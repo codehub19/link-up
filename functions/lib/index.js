@@ -34,73 +34,78 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.confirmMatch = exports.joinMatchingRound = void 0;
-const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
-admin.initializeApp();
+const https_1 = require("firebase-functions/v2/https");
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
-exports.joinMatchingRound = functions.https.onCall(async (data, context) => {
-    const uid = context.auth?.uid;
-    if (!uid)
-        throw new functions.https.HttpsError('unauthenticated', 'Sign in required');
-    const roundId = data?.roundId || '';
-    if (!roundId)
-        throw new functions.https.HttpsError('invalid-argument', 'roundId is required');
-    const userDoc = await db.doc(`users/${uid}`).get();
-    if (!userDoc.exists)
-        throw new functions.https.HttpsError('failed-precondition', 'User profile missing');
-    const user = userDoc.data();
-    if (user.gender !== 'male') {
-        throw new functions.https.HttpsError('permission-denied', 'Only male users can join round');
+exports.joinMatchingRound = (0, https_1.onCall)(async (request) => {
+    const auth = request.auth;
+    const data = request.data;
+    if (!auth) {
+        throw new https_1.HttpsError('unauthenticated', 'Sign in required');
     }
-    const roundDocRef = db.doc(`matchingRounds/${roundId}`);
-    const roundDoc = await roundDocRef.get();
-    if (!roundDoc.exists)
-        throw new functions.https.HttpsError('not-found', 'Round not found');
-    const round = roundDoc.data();
-    if (!round.isActive)
-        throw new functions.https.HttpsError('failed-precondition', 'Round is not active');
-    await db.runTransaction(async (tx) => {
-        const rSnap = await tx.get(roundDocRef);
-        const current = rSnap.data() || {};
-        const arr = (current.participatingMales ?? []);
-        if (!arr.includes(uid))
-            arr.push(uid);
-        tx.update(roundDocRef, { participatingMales: arr });
-        tx.update(db.doc(`users/${uid}`), { lastActivePlan: roundId });
+    const uid = auth.uid;
+    const roundId = data?.roundId;
+    if (!roundId) {
+        throw new https_1.HttpsError('invalid-argument', 'roundId is required');
+    }
+    const userSnap = await db.collection('users').doc(uid).get();
+    if (!userSnap.exists) {
+        throw new https_1.HttpsError('failed-precondition', 'User profile missing');
+    }
+    const user = userSnap.data() || {};
+    const gender = user.gender;
+    if (gender !== 'male' && gender !== 'female') {
+        throw new https_1.HttpsError('failed-precondition', 'User gender missing');
+    }
+    const roundRef = db.collection('matchingRounds').doc(roundId);
+    const roundSnap = await roundRef.get();
+    if (!roundSnap.exists) {
+        throw new https_1.HttpsError('not-found', 'Round not found');
+    }
+    const round = roundSnap.data() || {};
+    if (round.isActive !== true) {
+        throw new https_1.HttpsError('failed-precondition', 'Round is not active');
+    }
+    const field = gender === 'male' ? 'participatingMales' : 'participatingFemales';
+    await roundRef.update({
+        [field]: admin.firestore.FieldValue.arrayUnion(uid),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     return { status: 'ok' };
 });
-exports.confirmMatch = functions.https.onCall(async (data, context) => {
-    const boyUid = context.auth?.uid;
-    if (!boyUid)
-        throw new functions.https.HttpsError('unauthenticated', 'Sign in required');
-    const roundId = data?.roundId || '';
-    const girlUid = data?.girlUid || '';
-    if (!roundId || !girlUid)
-        throw new functions.https.HttpsError('invalid-argument', 'roundId and girlUid are required');
-    // Verify that a like exists from girl -> boy in this round
+exports.confirmMatch = (0, https_1.onCall)(async (request) => {
+    const auth = request.auth;
+    const data = request.data;
+    if (!auth) {
+        throw new https_1.HttpsError('unauthenticated', 'Sign in required');
+    }
+    const boyUid = auth.uid;
+    const roundId = data?.roundId;
+    const girlUid = data?.girlUid;
+    if (!roundId || !girlUid) {
+        throw new https_1.HttpsError('invalid-argument', 'roundId and girlUid are required');
+    }
+    // Verify a like exists from girl -> boy in this round
     const likeId = `${roundId}_${girlUid}_${boyUid}`;
-    const likeSnap = await db.doc(`likes/${likeId}`).get();
+    const likeRef = db.collection('likes').doc(likeId);
+    const likeSnap = await likeRef.get();
     if (!likeSnap.exists) {
-        throw new functions.https.HttpsError('failed-precondition', 'Like not found');
+        throw new https_1.HttpsError('failed-precondition', 'Like not found for this pair');
     }
-    // Ensure not already matched
-    const matches = await db
-        .collection('matches')
-        .where('boyUid', '==', boyUid)
-        .where('girlUid', '==', girlUid)
-        .limit(1)
-        .get();
-    if (!matches.empty) {
-        return { status: 'already-confirmed' };
-    }
-    await db.collection('matches').add({
+    // Create match (include fields used by UI)
+    const matchId = `${roundId}_${boyUid}_${girlUid}`;
+    const matchRef = db.collection('matches').doc(matchId);
+    await matchRef.set({
+        roundId,
         participants: [boyUid, girlUid],
         boyUid,
         girlUid,
         status: 'confirmed',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    }, { merge: true });
     return { status: 'ok' };
 });
 //# sourceMappingURL=index.js.map

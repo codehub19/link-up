@@ -5,9 +5,7 @@ import { useEffect, useState } from 'react'
 import { collection, getDocs, limit, query, where } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { toast } from 'sonner'
-import { Link } from 'react-router-dom'
-import { useNavigate } from 'react-router-dom'
-const nav = useNavigate()
+import { Link, useNavigate } from 'react-router-dom'
 
 type Round = {
   roundId: string
@@ -20,6 +18,7 @@ export default function MalePlans() {
   const { profile } = useAuth()
   const [activeRound, setActiveRound] = useState<Round | null>(null)
   const price = 199
+  const nav = useNavigate()
 
   useEffect(() => {
     const fetchActiveRound = async () => {
@@ -34,7 +33,7 @@ export default function MalePlans() {
   const purchase = async () => {
     if (!activeRound) return toast.error('No active round right now')
     try {
-      // Later: integrate Razorpay/Stripe before calling join
+      // If you still use the legacy flow:
       const res: any = await callJoinMatchingRound({ roundId: activeRound.roundId })
       if (res?.data?.status === 'ok') toast.success('You have joined the next matching round!')
       else toast.success('Requested to join the matching round')
@@ -52,16 +51,17 @@ export default function MalePlans() {
           <div className="card plan">
             <div className="card-body">
               <h3>Join the Next Matching Round</h3>
-              <p>Get your profile featured to hundreds of girls across Delhi NCR. If someone likes your profile, you'll see them in your "My Matches" section.</p>
+              <p>
+                Get your profile featured to hundreds of girls across Delhi NCR. If someone likes your
+                profile, you'll see them in your "My Matches" section.
+              </p>
               <div className="price">₹{price}</div>
             </div>
             <div className="card-footer">
               <button className="btn btn-primary" onClick={() => nav(`/pay?planId=basic&amount=199`)}>
-  Purchase Plan
-</button>
-              <div className="muted">
-                After purchase, you will be added to round: {activeRound?.roundId ?? '—'}
-              </div>
+                Purchase Plan
+              </button>
+              <div className="muted">After purchase, you will be added to round: {activeRound?.roundId ?? '—'}</div>
               <div className="muted">
                 Manage matches in <Link to="/dashboard/matches">My Matches</Link>
               </div>

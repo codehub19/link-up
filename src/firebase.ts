@@ -65,21 +65,36 @@ export async function signOut() {
   await fbSignOut(auth)
 }
 
-// User bootstrap: ensure users/{uid} exists and lightly update on login
+// Ensure users/{uid} exists and lightly update on login.
+// Supports both ensureUserDocument(user) and ensureUserDocument(uid, email?, name?, photoURL?)
 export async function ensureUserDocument(
-  user:
+  userOrUid:
     | FirebaseUser
-    | {
-        uid: string
-        email?: string | null
-        displayName?: string | null
-        photoURL?: string | null
-      }
+    | { uid: string; email?: string | null; displayName?: string | null; photoURL?: string | null }
+    | string,
+  email?: string | null,
+  displayName?: string | null,
+  photoURL?: string | null
 ) {
-  const { uid } = user as { uid: string }
-  const email = (user as any).email ?? null
-  const name = (user as any).displayName ?? null
-  const photoUrl = (user as any).photoURL ?? null
+  let uid: string | undefined
+  let em: string | null = null
+  let nm: string | null = null
+  let photo: string | null = null
+
+  if (typeof userOrUid === 'string') {
+    uid = userOrUid
+    em = email ?? null
+    nm = displayName ?? null
+    photo = photoURL ?? null
+  } else {
+    const u = userOrUid as any
+    uid = u?.uid
+    em = u?.email ?? null
+    nm = u?.displayName ?? null
+    photo = u?.photoURL ?? null
+  }
+
+  if (!uid) throw new Error('ensureUserDocument: uid missing')
 
   const userRef = doc(db, 'users', uid)
   const snap = await getDoc(userRef)
@@ -87,17 +102,17 @@ export async function ensureUserDocument(
   if (!snap.exists()) {
     await setDoc(userRef, {
       uid,
-      email,
-      name,
-      photoUrl,
+      email: em,
+      name: nm,
+      photoUrl: photo,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
   } else {
     await updateDoc(userRef, {
-      email,
-      name,
-      photoUrl,
+      email: em,
+      name: nm,
+      photoUrl: photo,
       lastLoginAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
@@ -115,7 +130,7 @@ export async function uploadProfilePhoto(uid: string, file: File) {
   return await getDownloadURL(r)
 }
 
-// TYPE: shape of your user profile document (adjust fields as your app uses)
+// TYPE: shape of your user profile document
 export type UserProfile = {
   uid: string
   name?: string
@@ -127,6 +142,7 @@ export type UserProfile = {
   photoUrl?: string
   // flags
   isAdmin?: boolean
+  isProfileComplete?: boolean
   createdAt?: any
   updatedAt?: any
   lastLoginAt?: any
@@ -137,7 +153,6 @@ export async function saveUserProfile(uid: string, data: Partial<UserProfile>) {
   const userRef = doc(db, 'users', uid)
   const snap = await getDoc(userRef)
 
-  // Clean up instagramId (@ -> none)
   const cleaned: Partial<UserProfile> = { ...data }
   if (typeof cleaned.instagramId === 'string') {
     cleaned.instagramId = cleaned.instagramId.replace(/^@/, '').trim()
@@ -158,11 +173,17 @@ export async function saveUserProfile(uid: string, data: Partial<UserProfile>) {
   }
 }
 
-// Callable wrapper to join a round (backend validates and adds user)
+// Callable wrappers
 export async function callJoinMatchingRound(payload: { roundId: string; planId?: string }) {
   const join = httpsCallable(functions, 'joinMatchingRound')
   return await join(payload)
 }
+
+export async function callConfirmMatch(payload: { roundId: string; girlUid: string }) {
+  const fn = httpsCallable(functions, 'confirmMatch')
+  return await fn(payload)
+}
+
 
 // Re-export common Firestore helpers
 export { doc, getDoc, setDoc, updateDoc, serverTimestamp }
