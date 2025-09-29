@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { createRound, listRounds, setActiveRound } from '../../services/rounds'
+import { createRound, listRounds, setActiveRound, syncApprovedMalesToActiveRound } from '../../services/rounds'
 import AdminGuard from './AdminGuard'
 
 export default function RoundsAdmin(){
   const [rounds, setRounds] = useState<any[]>([])
   const [newId, setNewId] = useState('')
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
 
   async function refresh(){ setRounds(await listRounds()) }
   useEffect(()=>{ refresh() }, [])
@@ -15,6 +17,20 @@ export default function RoundsAdmin(){
     await createRound(newId.trim())
     setNewId('')
     await refresh()
+  }
+
+  async function onSync() {
+    setSyncMsg(null)
+    setSyncing(true)
+    try {
+      const res = await syncApprovedMalesToActiveRound()
+      setSyncMsg(`Synced. Added ${res.addedCount} males. Total in round: ${res.totalMales}.`)
+      await refresh()
+    } catch (e: any) {
+      setSyncMsg(e?.message || 'Sync failed')
+    } finally {
+      setSyncing(false)
+    }
   }
 
   return (
@@ -39,14 +55,20 @@ export default function RoundsAdmin(){
                       Males: {r.participatingMales?.length ?? 0} • Females: {r.participatingFemales?.length ?? 0}
                     </div>
                   </div>
-                  <div className="row" style={{gap:8}}>
+                  <div className="row" style={{gap:8, flexWrap:'wrap'}}>
                     {!r.isActive ? (
                       <button className="btn btn-primary" onClick={()=> setActiveRound(r.id).then(refresh)}>Activate</button>
                     ) : (
-                      <button className="btn btn-ghost" onClick={()=> setActiveRound('').then(refresh)}>Deactivate All</button>
+                      <>
+                        <button className="btn btn-ghost" onClick={()=> setActiveRound('').then(refresh)}>Deactivate All</button>
+                        <button className="btn btn-primary" onClick={onSync} disabled={syncing}>
+                          {syncing ? 'Syncing…' : 'Sync approved males'}
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
+                {syncMsg && r.isActive ? <div style={{marginTop:8, color:'var(--muted)'}}>{syncMsg}</div> : null}
               </div>
             ))}
           </div>

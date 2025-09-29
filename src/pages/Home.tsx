@@ -7,9 +7,17 @@ export default function Home() {
   const nav = useNavigate()
 
   const cta = async () => {
-    if (!user) await login()
-    if (user && profile?.isProfileComplete) nav('/dashboard')
-    else nav('/setup/gender')
+    // If already logged in, route by profile completeness
+    if (user) {
+      if (profile?.isProfileComplete) nav('/dashboard')
+      else nav('/setup/gender')
+      return
+    }
+
+    // Not logged in: sign in, then route by new/existing user
+    const isNew = await login()
+    if (isNew) nav('/setup/gender')
+    else nav('/dashboard')
   }
 
   return (

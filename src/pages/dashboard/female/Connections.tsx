@@ -3,6 +3,7 @@ import { useAuth } from '../../../state/AuthContext'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { useEffect, useState } from 'react'
+import FemaleTabs from '../../../components/FemaleTabs'
 
 type Match = {
   id: string
@@ -56,6 +57,7 @@ export default function Connections() {
     <>
       <Navbar />
       <div className="container">
+        <FemaleTabs />
         <h2>My Connections</h2>
         <div className="grid cols-3">
           {matches.map((m) => {

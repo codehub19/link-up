@@ -4,6 +4,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  getAdditionalUserInfo,
   signOut as fbSignOut,
   type User as FirebaseUser,
 } from 'firebase/auth'
@@ -25,12 +26,14 @@ import {
 } from 'firebase/storage'
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions'
 
+
+
 // Configure from .env
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET, // e.g., linkup-dc86a.firebasestorage.app
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
 }
@@ -38,14 +41,9 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
-
-// Explicit bucket binding
 export const storage = getStorage(app, `gs://${import.meta.env.VITE_FIREBASE_STORAGE_BUCKET}`)
-
-// Cloud Functions
 export const functions = getFunctions(app)
 
-// Emulators
 if (import.meta.env.VITE_USE_EMULATORS === 'true') {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
   connectFirestoreEmulator(db, '127.0.0.1', 8080)
@@ -56,9 +54,11 @@ if (import.meta.env.VITE_USE_EMULATORS === 'true') {
 // Auth helpers
 export const provider = new GoogleAuthProvider()
 
-export async function signInWithGoogle() {
-  const res = await signInWithPopup(auth, provider)
-  return res.user
+export async function signInWithGoogle(): Promise<{ user: FirebaseUser; isNewUser: boolean }> {
+  const cred = await signInWithPopup(auth, provider)
+  const info = getAdditionalUserInfo(cred)
+  const isNewUser = info?.isNewUser === true
+  return { user: cred.user, isNewUser }
 }
 
 export async function signOut() {
@@ -66,7 +66,6 @@ export async function signOut() {
 }
 
 // Ensure users/{uid} exists and lightly update on login.
-// Supports both ensureUserDocument(user) and ensureUserDocument(uid, email?, name?, photoURL?)
 export async function ensureUserDocument(
   userOrUid:
     | FirebaseUser
@@ -120,7 +119,7 @@ export async function ensureUserDocument(
   return await getDoc(userRef)
 }
 
-// Profile image upload (resumable + contentType)
+// Profile image upload
 export async function uploadProfilePhoto(uid: string, file: File) {
   const r = ref(storage, `users/${uid}/profile.jpg`)
   const task = uploadBytesResumable(r, file, { contentType: file.type || 'image/jpeg' })
@@ -130,7 +129,7 @@ export async function uploadProfilePhoto(uid: string, file: File) {
   return await getDownloadURL(r)
 }
 
-// TYPE: shape of your user profile document
+// TYPE: user profile
 export type UserProfile = {
   uid: string
   name?: string
@@ -140,7 +139,6 @@ export type UserProfile = {
   bio?: string
   interests?: string[]
   photoUrl?: string
-  // flags
   isAdmin?: boolean
   isProfileComplete?: boolean
   createdAt?: any
@@ -148,7 +146,7 @@ export type UserProfile = {
   lastLoginAt?: any
 }
 
-// Save or update profile (used by Profile.tsx)
+// Save or update profile and mark profile complete
 export async function saveUserProfile(uid: string, data: Partial<UserProfile>) {
   const userRef = doc(db, 'users', uid)
   const snap = await getDoc(userRef)
@@ -162,18 +160,20 @@ export async function saveUserProfile(uid: string, data: Partial<UserProfile>) {
     await setDoc(userRef, {
       uid,
       ...cleaned,
+      isProfileComplete: true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
   } else {
     await updateDoc(userRef, {
       ...cleaned,
+      isProfileComplete: true,
       updatedAt: serverTimestamp(),
     } as any)
   }
 }
 
-// Callable wrappers
+// Cloud Function callables
 export async function callJoinMatchingRound(payload: { roundId: string; planId?: string }) {
   const join = httpsCallable(functions, 'joinMatchingRound')
   return await join(payload)
@@ -184,6 +184,16 @@ export async function callConfirmMatch(payload: { roundId: string; girlUid: stri
   return await fn(payload)
 }
 
+export async function callAdminPromoteMatch(payload: { roundId: string; boyUid: string; girlUid: string }) {
+  const fn = httpsCallable(functions, 'adminPromoteMatch')
+  return await fn(payload)
+}
+
+export async function callAdminApprovePayment(payload: { paymentId: string }) {
+  const functions = getFunctions()
+  const fn = httpsCallable(functions, 'adminApprovePayment')
+  return await fn(payload)
+}
 
 // Re-export common Firestore helpers
 export { doc, getDoc, setDoc, updateDoc, serverTimestamp }

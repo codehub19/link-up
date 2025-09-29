@@ -21,7 +21,7 @@ type AuthCtx = {
   user: User | null
   profile: UserProfile | null
   loading: boolean
-  login: () => Promise<void>
+  login: () => Promise<boolean>     // returns isNewUser
   logout: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u)
       if (u) {
-        await ensureUserDocument(u.uid, u.email ?? undefined)
+        await ensureUserDocument(u)  // creates/updates users/{uid}
         await fetchProfile(u.uid)
       } else {
         setProfile(null)
@@ -60,9 +60,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile,
       loading,
       login: async () => {
-        const u = await signInWithGoogle()
-        await ensureUserDocument(u.uid, u.email ?? undefined)
+        const { user: u, isNewUser } = await signInWithGoogle()
+        await ensureUserDocument(u)
         await fetchProfile(u.uid)
+        return isNewUser
       },
       logout: async () => {
         await signOut()

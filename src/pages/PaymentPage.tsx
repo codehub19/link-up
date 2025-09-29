@@ -1,34 +1,64 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
 import { PLANS, UPI_ID, UPI_QR_URL } from '../config/payments'
 import { createPayment } from '../services/payments'
 import Navbar from '../components/Navbar'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../firebase'
+
+type PlanLike = { id: string; name: string; amount: number }
 
 export default function PaymentPage(){
   const nav = useNavigate()
   const { user } = useAuth()
   const [sp] = useSearchParams()
   const params = useParams()
-  const planId = useMemo(()=> sp.get('planId') || params.planId || 'basic', [sp, params])
-  const plan = useMemo(()=> PLANS.find(p => p.id === planId) || PLANS[0], [planId])
+
+  const paramPlanId = useMemo(()=> sp.get('planId') || params.planId || 'basic', [sp, params])
+  const amountOverride = sp.get('amount')
+
+  const [resolvedPlan, setResolvedPlan] = useState<PlanLike | null>(null)
   const [proof, setProof] = useState<File|null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const amountOverride = sp.get('amount')
-  const amount = amountOverride ? Number(amountOverride) : plan.amount
+
+  // Resolve plan from Firestore if not present in PLANS
+  useEffect(() => {
+    const local = PLANS.find(p => p.id === paramPlanId)
+    if (local) {
+      setResolvedPlan({ id: local.id, name: local.name, amount: local.amount })
+      return
+    }
+    // Try Firestore "plans/{planId}"
+    (async () => {
+      const snap = await getDoc(doc(db, 'plans', paramPlanId))
+      if (snap.exists()) {
+        const d = snap.data() as any
+        setResolvedPlan({ id: snap.id, name: d.name || snap.id, amount: Number(d.price || d.amount || 0) })
+      } else {
+        // Fallback to URL amount and id if admin plan not found (keeps flow working)
+        setResolvedPlan({
+          id: paramPlanId,
+          name: paramPlanId,
+          amount: Number(amountOverride || 0),
+        })
+      }
+    })()
+  }, [paramPlanId, amountOverride])
 
   async function onConfirmPaid(){
     if(!user) { alert('Please login first'); return }
+    if(!resolvedPlan) { alert('Plan not loaded yet'); return }
     setSubmitting(true)
     try {
       await createPayment({
         uid: user.uid,
-        planId: plan.id,
-        amount,
+        planId: resolvedPlan.id,      // IMPORTANT: store the exact plan id so status chips match
+        amount: amountOverride ? Number(amountOverride) : resolvedPlan.amount,
         upiId: UPI_ID,
       }, proof || undefined)
       alert('Payment submitted. We will verify it shortly.')
-      nav('/dashboard')
+      nav('/dashboard/plans')
     } catch (e:any) {
       console.error(e)
       alert(e?.message || 'Failed to submit payment')
@@ -43,13 +73,24 @@ export default function PaymentPage(){
     }).catch(()=>{})
   }
 
+  if (!resolvedPlan) {
+    return (
+      <>
+        <Navbar />
+        <div className="container"><div className="card" style={{maxWidth: 820, margin: '24px auto', padding: 24}}>Loading…</div></div>
+      </>
+    )
+  }
+
+  const amount = amountOverride ? Number(amountOverride) : resolvedPlan.amount
+
   return (
     <>
       <Navbar />
       <div className="container">
         <div className="card" style={{maxWidth: 820, margin: '24px auto', padding: 24}}>
           <h2 style={{marginTop:0}}>Complete Payment</h2>
-          <p style={{marginTop:6, color:'var(--muted)'}}>Plan: <b>{plan.name}</b> • Amount: <b>₹{amount}</b></p>
+          <p style={{marginTop:6, color:'var(--muted)'}}>Plan: <b>{resolvedPlan.name}</b> • Amount: <b>₹{amount}</b></p>
 
           <div className="row" style={{gap:24, alignItems:'flex-start', flexWrap:'wrap', marginTop:16}}>
             <div className="stack" style={{minWidth:260}}>

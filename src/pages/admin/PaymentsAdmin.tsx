@@ -1,12 +1,28 @@
 import React, { useEffect, useState } from 'react'
 import AdminGuard from './AdminGuard'
-import { approvePayment, listPendingPayments, rejectPayment } from '../../services/payments'
+import { listPendingPayments, rejectPayment } from '../../services/payments'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
+import { callAdminApprovePayment } from '../../firebase'
 
 export default function PaymentsAdmin(){
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [busyId, setBusyId] = useState<string|null>(null)
+
+  async function approve(paymentId: string) {
+    setBusyId(paymentId)
+    try {
+      await callAdminApprovePayment({ paymentId })
+      alert('Approved and subscription provisioned')
+      await refresh()
+    } catch (e: any) {
+      console.error('approve error', e)
+      alert(e?.message || e?.code || 'Failed to approve')
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   async function refresh(){
     setLoading(true)
@@ -22,6 +38,7 @@ export default function PaymentsAdmin(){
       setLoading(false)
     }
   }
+
   useEffect(()=>{ refresh() }, [])
 
   return (
@@ -44,8 +61,12 @@ export default function PaymentsAdmin(){
                     ) : null}
                   </div>
                   <div className="row" style={{gap:8}}>
-                    <button className="btn btn-primary" onClick={async ()=>{ await approvePayment(p.id); await refresh() }}>Approve</button>
-                    <button className="btn btn-ghost" onClick={async ()=>{ await rejectPayment(p.id); await refresh() }}>Reject</button>
+                    <button className="btn btn-primary" disabled={busyId===p.id} onClick={()=>approve(p.id)}>
+                      {busyId===p.id ? 'Approving…' : 'Approve'}
+                    </button>
+                    <button className="btn btn-ghost" disabled={busyId===p.id} onClick={async ()=>{ await rejectPayment(p.id); await refresh() }}>
+                      Reject
+                    </button>
                   </div>
                 </div>
               </div>

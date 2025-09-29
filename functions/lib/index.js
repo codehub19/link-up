@@ -33,79 +33,113 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.confirmMatch = exports.joinMatchingRound = void 0;
+exports.onPaymentApproved = exports.adminApprovePayment = void 0;
 const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
-if (!admin.apps.length) {
+const firestore_1 = require("firebase-functions/v2/firestore");
+if (!admin.apps.length)
     admin.initializeApp();
-}
 const db = admin.firestore();
-exports.joinMatchingRound = (0, https_1.onCall)(async (request) => {
-    const auth = request.auth;
-    const data = request.data;
-    if (!auth) {
+async function isRequesterAdmin(uid) {
+    if (!uid)
+        return false;
+    const u = await db.collection('users').doc(uid).get();
+    return !!u.exists && u.data()?.isAdmin === true;
+}
+async function getActiveSubscription(uid) {
+    const snap = await db
+        .collection('subscriptions')
+        .where('uid', '==', uid)
+        .where('status', '==', 'active')
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get();
+    return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
+}
+async function getActiveRoundId() {
+    const r = await db.collection('matchingRounds').where('isActive', '==', true).limit(1).get();
+    return r.empty ? null : r.docs[0].id;
+}
+async function createOrMergeSubscriptionFromPayment(uid, planId, fallbackQuota = 0) {
+    const planSnap = await db.collection('plans').doc(planId).get();
+    const plan = planSnap.exists ? planSnap.data() : undefined;
+    const quota = Number(plan?.matchQuota ?? plan?.quota ?? fallbackQuota ?? 0);
+    if (!quota || quota <= 0) {
+        console.log('[adminApprovePayment] No quota found', { planId, planDocExists: !!planSnap.exists, fallbackQuota });
+        throw new https_1.HttpsError('failed-precondition', 'Plan has no quota (matchQuota/quota missing).');
+    }
+    const active = await getActiveSubscription(uid);
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    if (active) {
+        await db.collection('subscriptions').doc(active.id).update({
+            remainingMatches: admin.firestore.FieldValue.increment(quota),
+            updatedAt: now,
+        });
+    }
+    else {
+        await db.collection('subscriptions').add({
+            uid,
+            planId,
+            status: 'active',
+            matchQuota: quota,
+            remainingMatches: quota,
+            supportAvailable: !!plan?.supportAvailable,
+            createdAt: now,
+            updatedAt: now,
+        });
+    }
+    const roundId = await getActiveRoundId();
+    if (roundId) {
+        await db.collection('matchingRounds').doc(roundId).update({
+            participatingMales: admin.firestore.FieldValue.arrayUnion(uid),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+    }
+}
+// Explicitly pin region so client and backend match (your client is calling us-central1)
+exports.adminApprovePayment = (0, https_1.onCall)({ region: 'us-central1' }, async (req) => {
+    const caller = req.auth?.uid;
+    console.log('[adminApprovePayment] start', { caller });
+    if (!caller)
         throw new https_1.HttpsError('unauthenticated', 'Sign in required');
-    }
-    const uid = auth.uid;
-    const roundId = data?.roundId;
-    if (!roundId) {
-        throw new https_1.HttpsError('invalid-argument', 'roundId is required');
-    }
-    const userSnap = await db.collection('users').doc(uid).get();
-    if (!userSnap.exists) {
-        throw new https_1.HttpsError('failed-precondition', 'User profile missing');
-    }
-    const user = userSnap.data() || {};
-    const gender = user.gender;
-    if (gender !== 'male' && gender !== 'female') {
-        throw new https_1.HttpsError('failed-precondition', 'User gender missing');
-    }
-    const roundRef = db.collection('matchingRounds').doc(roundId);
-    const roundSnap = await roundRef.get();
-    if (!roundSnap.exists) {
-        throw new https_1.HttpsError('not-found', 'Round not found');
-    }
-    const round = roundSnap.data() || {};
-    if (round.isActive !== true) {
-        throw new https_1.HttpsError('failed-precondition', 'Round is not active');
-    }
-    const field = gender === 'male' ? 'participatingMales' : 'participatingFemales';
-    await roundRef.update({
-        [field]: admin.firestore.FieldValue.arrayUnion(uid),
+    if (!(await isRequesterAdmin(caller)))
+        throw new https_1.HttpsError('permission-denied', 'Admin only');
+    const paymentId = req.data?.paymentId;
+    if (!paymentId)
+        throw new https_1.HttpsError('invalid-argument', 'paymentId is required');
+    const payRef = db.collection('payments').doc(paymentId);
+    const snap = await payRef.get();
+    if (!snap.exists)
+        throw new https_1.HttpsError('not-found', 'Payment not found');
+    const p = snap.data();
+    const uid = String(p.uid || '');
+    const planId = String(p.planId || '');
+    const fallbackQuota = Number(p.matchQuota ?? p.quota ?? 0);
+    if (!uid || !planId)
+        throw new https_1.HttpsError('failed-precondition', 'Payment missing uid/planId');
+    console.log('[adminApprovePayment] approving', { paymentId, uid, planId, fallbackQuota });
+    await payRef.update({
+        status: 'approved',
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-    return { status: 'ok' };
+    await createOrMergeSubscriptionFromPayment(uid, planId, fallbackQuota);
+    console.log('[adminApprovePayment] done', { paymentId });
+    return { ok: true };
 });
-exports.confirmMatch = (0, https_1.onCall)(async (request) => {
-    const auth = request.auth;
-    const data = request.data;
-    if (!auth) {
-        throw new https_1.HttpsError('unauthenticated', 'Sign in required');
-    }
-    const boyUid = auth.uid;
-    const roundId = data?.roundId;
-    const girlUid = data?.girlUid;
-    if (!roundId || !girlUid) {
-        throw new https_1.HttpsError('invalid-argument', 'roundId and girlUid are required');
-    }
-    // Verify a like exists from girl -> boy in this round
-    const likeId = `${roundId}_${girlUid}_${boyUid}`;
-    const likeRef = db.collection('likes').doc(likeId);
-    const likeSnap = await likeRef.get();
-    if (!likeSnap.exists) {
-        throw new https_1.HttpsError('failed-precondition', 'Like not found for this pair');
-    }
-    // Create match (include fields used by UI)
-    const matchId = `${roundId}_${boyUid}_${girlUid}`;
-    const matchRef = db.collection('matches').doc(matchId);
-    await matchRef.set({
-        roundId,
-        participants: [boyUid, girlUid],
-        boyUid,
-        girlUid,
-        status: 'confirmed',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
-    return { status: 'ok' };
+// Keep your onPaymentApproved trigger too (pin to your Firestore/Eventarc region)
+exports.onPaymentApproved = (0, firestore_1.onDocumentUpdated)({ document: 'payments/{paymentId}', region: 'asia-south2' }, async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!after)
+        return;
+    if (before?.status === 'approved' || after?.status !== 'approved')
+        return;
+    const uid = after.uid;
+    const planId = after.planId;
+    const fallbackQuota = Number(after.matchQuota ?? after.quota ?? 0);
+    if (!uid || !planId)
+        return;
+    console.log('[onPaymentApproved] provisioning', { uid, planId, fallbackQuota });
+    await createOrMergeSubscriptionFromPayment(uid, planId, fallbackQuota);
 });
 //# sourceMappingURL=index.js.map

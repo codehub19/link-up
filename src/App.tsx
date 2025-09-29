@@ -7,6 +7,7 @@ import MaleMatches from './pages/dashboard/male/MaleMatches'
 import MaleEditProfile from './pages/dashboard/male/EditProfile'
 import FemaleRound from './pages/dashboard/female/MatchingRound'
 import FemaleConnections from './pages/dashboard/female/Connections'
+import FemaleEditProfile from './pages/dashboard/female/EditProfile'
 import { useAuth } from './state/AuthContext'
 import Protected from './components/Protected'
 import DashboardChooser from './pages/dashboard/DashboardChooser'
@@ -15,7 +16,7 @@ import RoundsAdmin from './pages/admin/RoundsAdmin'
 import PaymentsAdmin from './pages/admin/PaymentsAdmin'
 import CurationAdmin from './pages/admin/CurationAdmin'
 import AdminLogin from './pages/admin/AdminLogin'
-
+import PlansAdmin from './pages/admin/PlansAdmin'
 
 export default function App() {
   const { user, profile } = useAuth()
@@ -95,6 +96,14 @@ export default function App() {
           </Protected>
         }
       />
+      <Route
+        path="/dashboard/female/edit-profile"
+        element={
+          <Protected>
+            {profile?.gender === 'female' ? <FemaleEditProfile /> : <Navigate to="/dashboard" replace />}
+          </Protected>
+        }
+      />
 
       <Route path="*" element={<Navigate to="/" replace />} />
       <Route path="/pay" element={<PaymentPage />} />
@@ -103,7 +112,7 @@ export default function App() {
       <Route path="/admin/payments" element={<PaymentsAdmin />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/curation" element={<CurationAdmin />} />
+      <Route path="/admin/plans" element={<PlansAdmin />} />
     </Routes>
-    
   )
 }
