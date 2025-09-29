@@ -1,0 +1,18 @@
+[
+  {
+    "origin": ["http://localhost:5173", "http://127.0.0.1:5173"],
+    "method": ["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    "responseHeader": [
+      "Authorization",
+      "Content-Type",
+      "x-goog-date",
+      "x-goog-meta-*",
+      "x-goog-upload-command",
+      "x-goog-upload-header-content-length",
+      "x-goog-upload-offset",
+      "x-goog-upload-protocol",
+      "x-firebase-storage-version"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

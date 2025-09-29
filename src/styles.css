@@ -1,0 +1,88 @@
+:root{
+  --brand:#5b5bd6;
+  --accent:#ff7aa2;
+  --bg:#ffffff;
+  --text:#111213;
+  --muted:#6b7280;
+  --surface:#f6f7fb;
+  --radius:14px;
+  --shadow:0 8px 24px rgba(17,17,26,0.08);
+}
+
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, Helvetica Neue, Arial, Apple Color Emoji, Segoe UI Emoji; color:var(--text); background:var(--bg)}
+a{color:inherit;text-decoration:none}
+
+.container{max-width:1100px;margin:0 auto;padding:24px}
+.container.narrow{max-width:720px}
+
+.nav{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid #ececf3;position:sticky;top:0;background:#fff;z-index:10}
+.logo{font-weight:800;color:var(--brand);font-size:20px}
+.nav-left{display:flex;gap:16px;align-items:center}
+.nav-right{display:flex;gap:12px;align-items:center}
+.nav-link{color:#333}
+
+.hero{padding:72px 0;background:linear-gradient(180deg,#fff, #f9f9ff)}
+.hero-inner{max-width:900px;margin:0 auto;padding:0 24px;text-align:center}
+.hero h1{font-size:44px;line-height:1.1;margin:0 0 12px}
+.sub{color:var(--muted);font-size:18px}
+.cta{display:flex;gap:12px;justify-content:center;margin-top:20px}
+
+.section{padding:48px 24px}
+.section h2{font-size:28px;margin:0 0 20px}
+.grid{display:grid;gap:16px}
+.grid.cols-4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.grid.cols-3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+
+.feature,.step{background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.step-num{width:32px;height:32px;border-radius:999px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+
+.footer{border-top:1px solid #ececf3;padding:24px}
+.footer-links{display:flex;gap:16px}
+.copy{color:var(--muted);margin-top:8px}
+
+.btn{border:1px solid #e2e4ef;background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer}
+.btn:hover{background:#f3f4ff}
+.btn.primary{background:var(--brand);color:#fff;border-color:transparent}
+.btn.primary:hover{filter:brightness(0.95)}
+.btn.ghost{background:transparent;border-color:#dcddea}
+
+.banner{background:#eef0ff;border:1px solid #dfe2ff;color:#2f2f77;padding:12px 14px;border-radius:12px;margin:16px 0}
+
+.card{background:#fff;border:1px solid #ececf3;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.card-body{padding:12px 14px}
+.card-footer{padding:12px 14px;border-top:1px solid #ececf3;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.card-media{width:100%;aspect-ratio:4/5;background:#f2f3f8;overflow:hidden}
+.card-media img{width:100%;height:100%;object-fit:cover}
+.media-placeholder{width:100%;height:100%;background:linear-gradient(120deg,#f3f4f6,#eceff7)}
+
+.bio{color:#2b2b2b}
+.tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.tag{background:#f6f7fb;border:1px solid #ececf3;border-radius:999px;padding:4px 10px;font-size:12px}
+
+.form{display:flex;flex-direction:column;gap:10px}
+.form input,.form select,.form textarea{padding:10px 12px;border:1px solid #e1e2ea;border-radius:10px;font:inherit}
+.form textarea{min-height:100px;resize:vertical}
+.req{color:var(--accent);margin-left:4px}
+.ig{display:flex;align-items:center;gap:6px}
+.ig span{padding:10px 8px;border:1px solid #e1e2ea;border-radius:10px;background:#fafbff}
+
+.upload{display:flex;flex-direction:column;gap:8px}
+.upload-box{width:100%;aspect-ratio:4/5;border:1px dashed #cfd2e6;border-radius:12px;background:#fafbff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.preview{width:100%;height:100%;object-fit:cover}
+.upload-placeholder{color:var(--muted)}
+
+.chip-grid{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid #dfe2f2;border-radius:999px;padding:6px 12px;background:#fff}
+.chip-selected{background:linear-gradient(90deg,var(--brand), #8a8aff);color:#fff;border-color:transparent}
+
+.gender-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+.gender-card{padding:24px;border:2px solid #e1e2ea;border-radius:16px;background:#fff;font-weight:700}
+.gender-card.active{border-color:var(--brand);box-shadow:0 0 0 4px #e9ebff}
+
+.price{font-size:28px;font-weight:800}
+
+.row{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.actions{margin-top:12px}
+.empty,.muted{color:var(--muted)}
