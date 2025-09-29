@@ -17,6 +17,7 @@ import PaymentsAdmin from './pages/admin/PaymentsAdmin'
 import CurationAdmin from './pages/admin/CurationAdmin'
 import AdminLogin from './pages/admin/AdminLogin'
 import PlansAdmin from './pages/admin/PlansAdmin'
+import AdminHome from './pages/admin/AdminHome'
 
 export default function App() {
   const { user, profile } = useAuth()
@@ -105,14 +106,19 @@ export default function App() {
         }
       />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Payments */}
       <Route path="/pay" element={<PaymentPage />} />
       <Route path="/pay/:planId" element={<PaymentPage />} />
+
+      {/* Admin entry: single home for all controls */}
+      <Route path="/admin" element={<AdminHome />} />
       <Route path="/admin/rounds" element={<RoundsAdmin />} />
       <Route path="/admin/payments" element={<PaymentsAdmin />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/curation" element={<CurationAdmin />} />
       <Route path="/admin/plans" element={<PlansAdmin />} />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

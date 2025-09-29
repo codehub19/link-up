@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import AdminGuard from './AdminGuard'
-import { collection, doc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
+import { collection, doc, getDocs, setDoc, updateDoc, deleteDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
+import AdminHeader from '../../components/admin/AdminHeader'
 
 type Plan = {
   id: string
@@ -18,7 +19,7 @@ export default function PlansAdmin() {
   const [name, setName] = useState('')
   const [price, setPrice] = useState<number>(49)
   const [matchQuota, setMatchQuota] = useState<number>(1)
-  const [offersText, setOffersText] = useState('') // one per line
+  const [offersText, setOffersText] = useState('')
   const [supportAvailable, setSupportAvailable] = useState<boolean>(false)
   const [active, setActive] = useState<boolean>(true)
   const [saving, setSaving] = useState(false)
@@ -56,23 +57,46 @@ export default function PlansAdmin() {
     await load()
   }
 
+  async function removePlan(p: Plan) {
+    const ok = window.confirm(`Remove plan "${p.name}"? This does not affect existing subscriptions but users won't see this plan anymore.`)
+    if (!ok) return
+    await deleteDoc(doc(db, 'plans', p.id))
+    await load()
+  }
+
   return (
     <AdminGuard>
       <div className="container">
         <div className="card" style={{ padding: 24, margin: '24px auto', maxWidth: 900 }}>
+          <AdminHeader current="plans" />
           <h2>Plans</h2>
 
           <form className="stack" onSubmit={createPlan} style={{ gap: 10, marginTop: 12 }}>
-            <div className="row" style={{ gap: 12 }}>
-              <input className="input" placeholder="Plan name (e.g., Starter)" value={name} onChange={e=>setName(e.target.value)} />
-              <input className="input" type="number" placeholder="Price" value={price} onChange={e=>setPrice(Number(e.target.value||0))} style={{ width: 140 }} />
-              <input className="input" type="number" placeholder="Match quota" value={matchQuota} onChange={e=>setMatchQuota(Number(e.target.value||0))} style={{ width: 140 }} />
+            <div className="row" style={{ gap: 12, width: '100%', flexWrap: 'wrap' }}>
+              <div className="stack" style={{ minWidth: 220, flex: 1 }}>
+                <label style={{ fontWeight: 600 }}>Plan name</label>
+                <input className="input" placeholder="e.g., Starter" value={name} onChange={e=>setName(e.target.value)} />
+              </div>
+              <div className="stack" style={{ minWidth: 160 }}>
+                <label style={{ fontWeight: 600 }}>Price (₹)</label>
+                <input className="input" type="number" placeholder="Price" value={price} onChange={e=>setPrice(Number(e.target.value||0))} />
+              </div>
+              <div className="stack" style={{ minWidth: 160 }}>
+                <label style={{ fontWeight: 600 }}>Match quota</label>
+                <input className="input" type="number" placeholder="Match quota" value={matchQuota} onChange={e=>setMatchQuota(Number(e.target.value||0))} />
+              </div>
             </div>
-            <textarea className="input" placeholder="Offers (one per line)" rows={4} value={offersText} onChange={e=>setOffersText(e.target.value)} />
+
+            <div className="stack">
+              <label style={{ fontWeight: 600 }}>Offers</label>
+              <textarea className="input" placeholder="One offer per line" rows={4} value={offersText} onChange={e=>setOffersText(e.target.value)} />
+            </div>
+
             <div className="row" style={{ gap: 12 }}>
               <label><input type="checkbox" checked={supportAvailable} onChange={e=>setSupportAvailable(e.target.checked)} /> Support available</label>
               <label><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)} /> Active</label>
             </div>
+
             <div>
               <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Create/Update Plan'}</button>
             </div>
@@ -81,18 +105,22 @@ export default function PlansAdmin() {
           <div className="stack" style={{ marginTop: 24 }}>
             {plans.map(p => (
               <div key={p.id} className="card" style={{ padding: 12 }}>
-                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <div>
                     <b>{p.name}</b> {p.active ? <span style={{ color: '#22c55e', marginLeft: 6 }}>(Active)</span> : <span style={{ color: '#ef4444', marginLeft: 6 }}>(Inactive)</span>}
                     <div style={{ color: 'var(--muted)', fontSize: 13 }}>
                       ₹{p.price} • Quota: {p.matchQuota} • {p.supportAvailable ? 'Support included' : 'No support'}
                     </div>
-                    {p.offers?.length ? <ul style={{ margin: '6px 0 0 18px' }}>{p.offers.map(o => <li key={o}>{o}</li>)}</ul> : null}
+                    {p.offers?.length ? <ul style={{ margin: '6px 0 0 18px' }}>{p.offers.map((o: string) => <li key={o}>{o}</li>)}</ul> : null}
                   </div>
-                  <button className="btn" onClick={()=>toggleActive(p)}>{p.active ? 'Deactivate' : 'Activate'}</button>
+                  <div className="row" style={{ gap: 8 }}>
+                    <button className="btn" onClick={()=>toggleActive(p)}>{p.active ? 'Deactivate' : 'Activate'}</button>
+                    <button className="btn btn-ghost" onClick={()=>removePlan(p)}>Remove</button>
+                  </div>
                 </div>
               </div>
             ))}
+            {plans.length === 0 ? <div className="muted">No plans created yet.</div> : null}
           </div>
         </div>
       </div>

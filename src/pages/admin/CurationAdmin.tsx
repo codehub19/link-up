@@ -6,8 +6,8 @@ import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { getAssignments, setAssignments } from '../../services/assignments'
 import { listLikesByGirl } from '../../services/likes'
-import { createMatch } from '../../services/matches'
 import { callAdminPromoteMatch } from '../../firebase'
+import AdminHeader from '../../components/admin/AdminHeader'
 
 type UserLite = {
   uid: string
@@ -19,8 +19,6 @@ type UserLite = {
   interests?: string[]
 }
 
-
-
 export default function CurationAdmin(){
   const [activeRound, setActiveRound] = useState<any|null>(null)
   const [girls, setGirls] = useState<UserLite[]>([])
@@ -29,17 +27,15 @@ export default function CurationAdmin(){
   const [verifiedMales, setVerifiedMales] = useState<UserLite[]>([])
   const [assigned, setAssigned] = useState<string[]>([])
   const [likes, setLikes] = useState<any[]>([])
-  const [likedMales, setLikedMales] = useState<UserLite[]>([]) // enriched liked boys
+  const [likedMales, setLikedMales] = useState<UserLite[]>([])
   const roundId = activeRound?.id
 
   useEffect(()=>{ (async ()=>{
     const r = await getActiveRound()
     setActiveRound(r)
     if (r) {
-      // Load approved/premium males for this round
       const roundSnap = await getDoc(doc(db, 'matchingRounds', r.id))
       const males: string[] = (roundSnap.data() as any)?.participatingMales || []
-      // Load their profiles
       const profiles: UserLite[] = []
       for (const uid of males) {
         const u = await getDoc(doc(db, 'users', uid))
@@ -51,7 +47,6 @@ export default function CurationAdmin(){
     setGirls(gs as any)
   })() }, [])
 
-  // Load current girl's assignments and likes (+ liked boys' profiles)
   useEffect(()=>{ (async ()=>{
     if (!roundId || !selectedGirl) { setAssigned([]); setLikes([]); setLikedMales([]); return }
     const a = await getAssignments(roundId, selectedGirl.uid)
@@ -60,7 +55,6 @@ export default function CurationAdmin(){
     const l = await listLikesByGirl(roundId, selectedGirl.uid)
     setLikes(l)
 
-    // Enrich liked boys to show cards like "Approved males"
     const uniqueBoyUids = Array.from(new Set((l || []).map((x: any) => x.likedUserUid)))
     const likedProfiles: UserLite[] = []
     for (const uid of uniqueBoyUids) {
@@ -77,10 +71,10 @@ export default function CurationAdmin(){
   }
 
   async function promoteLike(maleUid: string){
-  if (!roundId || !selectedGirl) return
-  await callAdminPromoteMatch({ roundId, boyUid: maleUid, girlUid: selectedGirl.uid })
-  alert('Match created')
-}
+    if (!roundId || !selectedGirl) return
+    await callAdminPromoteMatch({ roundId, boyUid: maleUid, girlUid: selectedGirl.uid })
+    alert('Match created')
+  }
 
   const assignedSet = useMemo(()=> new Set(assigned), [assigned])
   const filteredGirls = useMemo(
@@ -91,18 +85,15 @@ export default function CurationAdmin(){
     [girls, filter]
   )
 
- 
-  
-
   return (
     <AdminGuard>
       <div className="container">
         <div className="card" style={{padding:24, margin:'24px auto', maxWidth:1300}}>
+          <AdminHeader current="curation" />
           <h2 style={{marginTop:0}}>Round Curation</h2>
           {!activeRound ? <p>No active round</p> : <p style={{color:'var(--muted)'}}>Active round: <b>{roundId}</b></p>}
 
           <div className="row" style={{gap:16, alignItems:'flex-start', flexWrap:'wrap'}}>
-            {/* Girls list */}
             <div className="card" style={{padding:16, width:340, maxHeight:560, overflow:'auto'}}>
               <div className="row" style={{justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
                 <b>Girls</b>
@@ -119,7 +110,7 @@ export default function CurationAdmin(){
                   <button
                     key={g.uid}
                     className={`btn ${selectedGirl?.uid === g.uid ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={()=> setSelectedGirl(prev => prev?.uid === g.uid ? null : g)} // toggle select/deselect
+                    onClick={()=> setSelectedGirl(prev => prev?.uid === g.uid ? null : g)}
                     style={{justifyContent:'flex-start'}}
                   >
                     <div className="row" style={{gap:10, alignItems:'center'}}>
@@ -136,11 +127,9 @@ export default function CurationAdmin(){
               </div>
             </div>
 
-            {/* Workspace */}
             <div className="card" style={{padding:16, flex:1, minWidth:420}}>
               {!selectedGirl ? <p>Select a girl to curate</p> : (
                 <>
-                  {/* Girl preview header */}
                   <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
                     <div className="row" style={{gap:12, alignItems:'center'}}>
                       <div className="avatar" style={{width:56, height:56, borderRadius:999, overflow:'hidden', background:'#f3f3f3'}}>
@@ -154,9 +143,7 @@ export default function CurationAdmin(){
                     <button className="btn btn-primary" onClick={persistAssignments}>Save assignments</button>
                   </div>
 
-                  {/* Two panes: assign males, and girl's likes */}
                   <div className="row" style={{gap:16, flexWrap:'wrap', marginTop:12}}>
-                    {/* Approved males */}
                     <div className="card" style={{padding:12, flex:1, minWidth:320}}>
                       <b>Approved males (toggle to assign)</b>
                       <div className="grid cols-2" style={{gap:8, marginTop:8}}>
@@ -169,7 +156,6 @@ export default function CurationAdmin(){
                               <div style={{flex:1}}>
                                 <div style={{fontWeight:600}}>{m.name || m.uid}</div>
                                 <small style={{color:'var(--muted)'}}>@{m.instagramId}{m.college ? ` • ${m.college}` : ''}</small>
-                                {/* Bio and interests intentionally shown only in Approved section */}
                                 {m.bio ? <div style={{fontSize:12, marginTop:6, color:'var(--muted)'}}>{m.bio}</div> : null}
                                 <div className="row" style={{gap:6, flexWrap:'wrap', marginTop:6}}>
                                   {(m.interests ?? []).slice(0,4).map(i => <span key={i} className="tag">{i}</span>)}
@@ -191,7 +177,6 @@ export default function CurationAdmin(){
                       </div>
                     </div>
 
-                    {/* Girl's likes rendered like "Approved males" but WITHOUT bio or interests */}
                     <div className="card" style={{padding:12, flex:1, minWidth:320}}>
                       <b>Girl’s likes (this round)</b>
                       <div className="grid cols-2" style={{gap:8, marginTop:8}}>
@@ -204,7 +189,6 @@ export default function CurationAdmin(){
                               <div style={{flex:1}}>
                                 <div style={{fontWeight:600}}>{m.name || m.uid}</div>
                                 <small style={{color:'var(--muted)'}}>@{m.instagramId}{m.college ? ` • ${m.college}` : ''}</small>
-                                {/* No bio or interests here by request */}
                               </div>
                               <div>
                                 <button className="btn btn-primary" onClick={()=>promoteLike(m.uid)}>Promote</button>
@@ -222,8 +206,6 @@ export default function CurationAdmin(){
           </div>
         </div>
       </div>
-      
     </AdminGuard>
   )
-
 }

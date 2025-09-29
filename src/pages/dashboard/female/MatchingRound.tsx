@@ -28,7 +28,6 @@ export default function MatchingRound() {
   const [males, setMales] = useState<UserDoc[]>([])
   const [liked, setLiked] = useState<Set<string>>(new Set())
 
-  // Load active round id (doc id)
   useEffect(() => {
     const run = async () => {
       const active = await getActiveRound()
@@ -36,13 +35,11 @@ export default function MatchingRound() {
         setRoundId(null)
         return
       }
-      // Prefer the document id for fetching assignments; keep field roundId if present for IDs
       setRoundId(active.id || active.roundId)
     }
     run()
   }, [])
 
-  // Load this girl's assignment list for the active round
   useEffect(() => {
     const run = async () => {
       if (!roundId || !user) {
@@ -55,7 +52,6 @@ export default function MatchingRound() {
     run()
   }, [roundId, user])
 
-  // Load only the assigned male profiles
   useEffect(() => {
     const run = async () => {
       if (assignedUids.length === 0) {
@@ -63,7 +59,6 @@ export default function MatchingRound() {
         return
       }
       const users: UserDoc[] = []
-      // Fetch sequentially to avoid "in" limit and keep it simple
       for (const uid of assignedUids) {
         const s = await getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
         if (!s.empty) users.push(s.docs[0].data() as UserDoc)
@@ -73,7 +68,6 @@ export default function MatchingRound() {
     run()
   }, [assignedUids])
 
-  // Persisted likes: load the girl's previous likes in this round
   useEffect(() => {
     const loadLiked = async () => {
       if (!user || !roundId) return
@@ -133,8 +127,9 @@ export default function MatchingRound() {
               <ProfileMiniCard
                 key={m.uid}
                 photoUrl={m.photoUrl}
-                name={m.name}
-                instagramId={m.instagramId}
+                // Hide identity for the girl until match confirmed
+                name="Hidden until matched"
+                instagramId={undefined}
                 bio={m.bio}
                 interests={m.interests}
                 footer={

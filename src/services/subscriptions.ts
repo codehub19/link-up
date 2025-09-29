@@ -20,23 +20,32 @@ export type ActiveSubscription = {
 }
 
 export async function getActiveSubscription(uid: string): Promise<ActiveSubscription | null> {
-  const q = query(
-    collection(db, 'subscriptions'),
-    where('uid', '==', uid),
-    where('status', '==', 'active'),
-    limit(1)
-  )
+  // Avoid composite index: only filter by uid, then pick an active one in code
+  const q = query(collection(db, 'subscriptions'), where('uid', '==', uid), limit(10))
   const snap = await getDocs(q)
   if (snap.empty) return null
-  const sub = { id: snap.docs[0].id, ...(snap.docs[0].data() as any) } as ActiveSubscription
-  if (sub.planId) {
-    const p = await getDoc(doc(db, 'plans', sub.planId))
+
+  const subs = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as ActiveSubscription[]
+  const active = subs.find(s => s.status === 'active' && Number(s.remainingMatches ?? 0) > 0)
+              || subs.find(s => s.status === 'active')
+              || null
+  if (!active) return null
+
+  if (active.planId) {
+    const p = await getDoc(doc(db, 'plans', active.planId))
     if (p.exists()) {
       const pd = p.data() as any
-      sub.plan = { id: p.id, name: pd.name, price: pd.price, matchQuota: pd.matchQuota, offers: pd.offers, supportAvailable: pd.supportAvailable }
+      active.plan = {
+        id: p.id,
+        name: pd.name,
+        price: pd.price,
+        matchQuota: pd.matchQuota ?? pd.quota,
+        offers: pd.offers,
+        supportAvailable: pd.supportAvailable
+      }
     }
   }
-  return sub
+  return active
 }
 
 export async function listActivePlans() {

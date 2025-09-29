@@ -8,6 +8,7 @@ import MaleTabs from '../../../components/MaleTabs'
 import ProfileMiniCard from '../../../components/ProfileMiniCard'
 import Carousel from '../../../components/Carousel'
 import { getMaleEntitlement } from '../../../services/entitlements'
+import { useNavigate } from 'react-router-dom'
 
 type Like = {
   id: string
@@ -35,6 +36,7 @@ type Match = {
 
 export default function MaleMatches() {
   const { user } = useAuth()
+  const nav = useNavigate()
   const [likes, setLikes] = useState<Like[]>([])
   const [girls, setGirls] = useState<Record<string, UserDoc>>({})
   const [matches, setMatches] = useState<Match[]>([])
@@ -88,7 +90,7 @@ export default function MaleMatches() {
 
   const confirm = async (like: Like) => {
     try {
-      const res: any = await callConfirmMatch({ roundId: like.roundId, girlUid: like.likingUserUid })
+      await callConfirmMatch({ roundId: like.roundId, girlUid: like.likingUserUid })
       toast.success('Connection revealed to both of you!')
       // refresh matches + remaining
       const matchSnaps = await getDocs(
@@ -111,8 +113,11 @@ export default function MaleMatches() {
       <div className="container">
         <MaleTabs />
 
-        <div className={`banner ${remaining === 0 ? 'ghost' : ''}`} style={{ marginBottom: 12 }}>
+        <div className={`banner ${remaining === 0 ? 'ghost' : ''}`} style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           Remaining matches: <b>{remaining}</b>
+          {remaining === 0 ? (
+            <button className="btn btn-primary" onClick={() => nav('/dashboard/plans')}>Buy again</button>
+          ) : null}
         </div>
 
         <h2>My Matches</h2>
@@ -128,8 +133,9 @@ export default function MaleMatches() {
                 <ProfileMiniCard
                   key={l.id}
                   photoUrl={g?.photoUrl}
-                  name={g?.name}
-                  instagramId={g?.instagramId}
+                  // Hide identity until confirmed
+                  name="Hidden until matched"
+                  instagramId={undefined}
                   bio={g?.bio}
                   interests={g?.interests}
                   footer={
@@ -155,6 +161,7 @@ export default function MaleMatches() {
                 <ProfileMiniCard
                   key={m.id}
                   photoUrl={g.photoUrl}
+                  // After confirmation, reveal identity
                   name={g.name}
                   instagramId={g.instagramId}
                   bio={g.bio}

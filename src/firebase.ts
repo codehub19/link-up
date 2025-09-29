@@ -26,8 +26,6 @@ import {
 } from 'firebase/storage'
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions'
 
-
-
 // Configure from .env
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -42,7 +40,9 @@ export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 export const storage = getStorage(app, `gs://${import.meta.env.VITE_FIREBASE_STORAGE_BUCKET}`)
-export const functions = getFunctions(app)
+
+// IMPORTANT: pin to same region as your HTTPS callables
+export const functions = getFunctions(app, 'us-central1')
 
 if (import.meta.env.VITE_USE_EMULATORS === 'true') {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
@@ -50,6 +50,10 @@ if (import.meta.env.VITE_USE_EMULATORS === 'true') {
   connectStorageEmulator(storage, '127.0.0.1', 9199)
   connectFunctionsEmulator(functions, '127.0.0.1', 5001)
 }
+
+// … keep the rest of this file unchanged …
+// Auth helpers…
+/* keep rest of the file unchanged */
 
 // Auth helpers
 export const provider = new GoogleAuthProvider()
@@ -175,8 +179,8 @@ export async function saveUserProfile(uid: string, data: Partial<UserProfile>) {
 
 // Cloud Function callables
 export async function callJoinMatchingRound(payload: { roundId: string; planId?: string }) {
-  const join = httpsCallable(functions, 'joinMatchingRound')
-  return await join(payload)
+  const fn = httpsCallable(functions, 'joinMatchingRound')
+  return await fn(payload)
 }
 
 export async function callConfirmMatch(payload: { roundId: string; girlUid: string }) {
@@ -190,7 +194,6 @@ export async function callAdminPromoteMatch(payload: { roundId: string; boyUid: 
 }
 
 export async function callAdminApprovePayment(payload: { paymentId: string }) {
-  const functions = getFunctions()
   const fn = httpsCallable(functions, 'adminApprovePayment')
   return await fn(payload)
 }
