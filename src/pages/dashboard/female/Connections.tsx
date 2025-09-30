@@ -1,9 +1,12 @@
 import Navbar from '../../../components/Navbar'
-import { useAuth } from '../../../state/AuthContext'
+import FemaleTabs from '../../../components/FemaleTabs.tsx'
+import { useEffect, useMemo, useState } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../../../firebase'
-import { useEffect, useState } from 'react'
-import FemaleTabs from '../../../components/FemaleTabs'
+import { useAuth } from '../../../state/AuthContext'
+import ProfileMiniCard from '../../../components/ProfileMiniCard'
+import Carousel from '../../../components/Carousel'
+import { Link } from 'react-router-dom'
 
 type Match = {
   id: string

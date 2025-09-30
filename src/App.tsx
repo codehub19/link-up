@@ -7,7 +7,7 @@ import MaleMatches from './pages/dashboard/male/MaleMatches'
 import MaleEditProfile from './pages/dashboard/male/EditProfile'
 import FemaleRound from './pages/dashboard/female/MatchingRound'
 import FemaleConnections from './pages/dashboard/female/Connections'
-import FemaleEditProfile from './pages/dashboard/female/EditProfile'
+import FemaleEditProfile from './pages/dashboard/female/EditProfile.jsx' // ← add .jsx
 import { useAuth } from './state/AuthContext'
 import Protected from './components/Protected'
 import DashboardChooser from './pages/dashboard/DashboardChooser'
@@ -17,7 +17,7 @@ import PaymentsAdmin from './pages/admin/PaymentsAdmin'
 import CurationAdmin from './pages/admin/CurationAdmin'
 import AdminLogin from './pages/admin/AdminLogin'
 import PlansAdmin from './pages/admin/PlansAdmin'
-import AdminHome from './pages/admin/AdminHome'
+import AdminHome from './pages/admin/AdminHome' // if you added AdminHome
 
 export default function App() {
   const { user, profile } = useAuth()
@@ -110,7 +110,7 @@ export default function App() {
       <Route path="/pay" element={<PaymentPage />} />
       <Route path="/pay/:planId" element={<PaymentPage />} />
 
-      {/* Admin entry: single home for all controls */}
+      {/* Admin routes */}
       <Route path="/admin" element={<AdminHome />} />
       <Route path="/admin/rounds" element={<RoundsAdmin />} />
       <Route path="/admin/payments" element={<PaymentsAdmin />} />
