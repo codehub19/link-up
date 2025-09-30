@@ -2,27 +2,44 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Home from './pages/Home'
 import Gender from './pages/setup/Gender'
 import Profile from './pages/setup/Profile'
-import MalePlans from './pages/dashboard/male/Plans'
-import MaleMatches from './pages/dashboard/male/MaleMatches'
-import MaleEditProfile from './pages/dashboard/male/EditProfile'
-import FemaleRound from './pages/dashboard/female/MatchingRound'
-import FemaleConnections from './pages/dashboard/female/Connections'
-import FemaleEditProfile from './pages/dashboard/female/EditProfile.jsx' // ← add .jsx
+// import MalePlans from './pages/dashboard/male/Plans'
+// import MaleMatches from './pages/dashboard/male/MaleMatches'
+// import MaleEditProfile from './pages/dashboard/male/EditProfile'
+// import FemaleRound from './pages/dashboard/female/MatchingRound'
+// import FemaleConnections from './pages/dashboard/female/Connections'
+// import FemaleEditProfile from './pages/dashboard/female/EditProfile' // ← removed .jsx extension
 import { useAuth } from './state/AuthContext'
 import Protected from './components/Protected'
 import DashboardChooser from './pages/dashboard/DashboardChooser'
 import PaymentPage from './pages/PaymentPage'
-import RoundsAdmin from './pages/admin/RoundsAdmin'
-import PaymentsAdmin from './pages/admin/PaymentsAdmin'
-import CurationAdmin from './pages/admin/CurationAdmin'
-import AdminLogin from './pages/admin/AdminLogin'
-import PlansAdmin from './pages/admin/PlansAdmin'
-import AdminHome from './pages/admin/AdminHome' // if you added AdminHome
+// import RoundsAdmin from './pages/admin/RoundsAdmin'
+// import PaymentsAdmin from './pages/admin/PaymentsAdmin'
+// import CurationAdmin from './pages/admin/CurationAdmin'
+// import AdminLogin from './pages/admin/AdminLogin'
+// import PlansAdmin from './pages/admin/PlansAdmin'
+// import AdminHome from './pages/admin/AdminHome'
+
+
+import React, { Suspense, lazy } from 'react'
+const MalePlans = lazy(() => import('./pages/dashboard/male/Plans'))
+const MaleMatches = lazy(() => import('./pages/dashboard/male/MaleMatches'))
+const MaleEditProfile = lazy(() => import('./pages/dashboard/male/EditProfile'))
+const FemaleRound = lazy(() => import('./pages/dashboard/female/MatchingRound'))
+const FemaleConnections = lazy(() => import('./pages/dashboard/female/Connections'))
+const FemaleEditProfile = lazy(() => import('./pages/dashboard/female/EditProfile'))
+const RoundsAdmin = lazy(() => import('./pages/admin/RoundsAdmin'))
+const PaymentsAdmin = lazy(() => import('./pages/admin/PaymentsAdmin'))
+const CurationAdmin = lazy(() => import('./pages/admin/CurationAdmin'))
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
+const PlansAdmin = lazy(() => import('./pages/admin/PlansAdmin'))
+const AdminHome = lazy(() => import('./pages/admin/AdminHome'))
+
 
 export default function App() {
   const { user, profile } = useAuth()
 
   return (
+    <Suspense fallback={null}>
     <Routes>
       <Route path="/" element={<Home />} />
 
@@ -120,5 +137,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   )
 }

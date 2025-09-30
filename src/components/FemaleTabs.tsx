@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
+import React from 'react'
 
 export default function FemaleTabs() {
   const loc = useLocation()
-  const is = (p) => loc.pathname.startsWith(p)
+  const is = (p: string) => loc.pathname.startsWith(p)
 
   return (
     <div className="row" style={{ gap: 8, marginBottom: 16 }}>

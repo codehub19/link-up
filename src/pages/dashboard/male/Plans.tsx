@@ -32,8 +32,11 @@ export default function MalePlans() {
   const [sub, setSub] = useState<ActiveSubscription | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // slug(planId) -> latest status
+  // slug(planId) -> latest payment status
   const [paymentStatusByPlan, setPaymentStatusByPlan] = useState<Record<string, Payment['status']>>({})
+
+  // slug(planId) -> 'active' | 'expired' (from subscriptions)
+  const [subStatusByPlan, setSubStatusByPlan] = useState<Record<string, 'active' | 'expired'>>({})
 
   useEffect(() => {
     const run = async () => {
@@ -54,6 +57,7 @@ export default function MalePlans() {
     run()
   }, [user])
 
+  // Track payment status for the user per plan (pending/approved/rejected/failed)
   useEffect(() => {
     if (!user) return
     const qy = query(collection(db, 'payments'), where('uid', '==', user.uid))
@@ -77,17 +81,39 @@ export default function MalePlans() {
     return () => un()
   }, [user])
 
+  // Track subscription status for the user per plan (active/expired)
+  useEffect(() => {
+    if (!user) return
+    const qy = query(collection(db, 'subscriptions'), where('uid', '==', user.uid))
+    const un = onSnapshot(qy, (snap) => {
+      const out: Record<string, 'active' | 'expired'> = {}
+      snap.forEach((doc) => {
+        const d = doc.data() as any
+        const key = slug(d.planId || '')
+        if (!key) return
+        const st = (d.status ?? 'active') as 'active' | 'expired'
+        // Prefer active over expired if multiple records exist
+        if (!out[key] || st === 'active') out[key] = st
+      })
+      setSubStatusByPlan(out)
+    })
+    return () => un()
+  }, [user])
+
   const choose = (p: any) => {
     nav(`/pay?planId=${encodeURIComponent(p.id)}&amount=${Number(p.price || p.amount || 0)}`)
   }
 
   const statusChip = (planId: string) => {
-    const st = paymentStatusByPlan[slug(planId)]
-    if (!st) return null
-    if (st === 'pending') return <span className="tag" style={{ background: '#FEF3C7', color: '#92400E' }}>Pending</span>
-    if (st === 'approved') return <span className="tag" style={{ background: '#DCFCE7', color: '#166534' }}>Confirmed</span>
-    if (st === 'rejected') return <span className="tag" style={{ background: '#FEE2E2', color: '#991B1B' }}>Rejected</span>
-    if (st === 'failed') return <span className="tag" style={{ background: '#FEE2E2', color: '#991B1B' }}>Failed</span>
+    const key = slug(planId)
+    const pay = paymentStatusByPlan[key]
+    if (pay === 'pending') return <span className="tag" style={{ background: '#FEF3C7', color: '#92400E' }}>Pending</span>
+    if (pay === 'approved') return <span className="tag" style={{ background: '#DCFCE7', color: '#166534' }}>Confirmed</span>
+    if (pay === 'rejected') return <span className="tag" style={{ background: '#FEE2E2', color: '#991B1B' }}>Rejected</span>
+    if (pay === 'failed') return <span className="tag" style={{ background: '#FEE2E2', color: '#991B1B' }}>Failed</span>
+    // If no recent payment state, show subscription state if expired
+    const subSt = subStatusByPlan[key]
+    if (subSt === 'expired') return <span className="tag" style={{ background: '#F3F4F6', color: '#374151' }}>Expired</span>
     return null
   }
 
@@ -119,9 +145,15 @@ export default function MalePlans() {
         ) : (
           <div className="grid cols-3">
             {plans.map((p) => {
-              const st = paymentStatusByPlan[slug(p.id)]
-              const isPending = st === 'pending'
-              const isApproved = st === 'approved'
+              const key = slug(p.id)
+              const pay = paymentStatusByPlan[key]
+              const isPending = pay === 'pending'
+              const isApproved = pay === 'approved'
+              const isExpired = subStatusByPlan[key] === 'expired'
+
+              const matchCount = (p.matchQuota ?? p.quota ?? 1)
+              const btnLabel = isApproved ? 'Go to Matches' : isPending ? 'Awaiting approval' : isExpired ? 'Buy again' : 'Choose plan'
+              const btnAction = isApproved ? () => nav('/dashboard/matches') : () => choose(p)
 
               return (
                 <div key={p.id} className="card plan">
@@ -131,7 +163,7 @@ export default function MalePlans() {
                       {statusChip(p.id)}
                     </div>
                     <div className="price">₹{p.price ?? p.amount}</div>
-                    <p className="muted">Includes {(p.matchQuota ?? p.quota ?? 1)} match{(p.matchQuota ?? p.quota ?? 1) > 1 ? 'es' : ''}</p>
+                    <p className="muted">Includes {matchCount} match{matchCount > 1 ? 'es' : ''}</p>
                     {Array.isArray(p.offers) && p.offers.length ? (
                       <ul style={{ marginLeft: 16 }}>
                         {p.offers.map((o: string) => (
@@ -142,13 +174,9 @@ export default function MalePlans() {
                     {p.supportAvailable ? <div className="tag" style={{ marginTop: 8 }}>Support included</div> : null}
                   </div>
                   <div className="card-footer">
-                    {isApproved ? (
-                      <button className="btn" onClick={() => nav('/dashboard/matches')}>Go to Matches</button>
-                    ) : (
-                      <button className="btn btn-primary" onClick={() => choose(p)} disabled={isPending}>
-                        {isPending ? 'Awaiting approval' : 'Choose plan'}
-                      </button>
-                    )}
+                    <button className={`btn ${isApproved ? '' : 'btn-primary'}`} onClick={btnAction} disabled={isPending}>
+                      {btnLabel}
+                    </button>
                   </div>
                 </div>
               )

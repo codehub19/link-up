@@ -1,5 +1,5 @@
 import Navbar from '../../../components/Navbar'
-import FemaleTabs from '../../../components/FemaleTabs.tsx'
+import FemaleTabs from '../../../components/FemaleTabs' // ← removed .tsx extension
 import { useEffect, useMemo, useState } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../../../firebase'
