@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import AdminGuard from './AdminGuard'
-import { listPendingPayments, rejectPayment, approveAndProvisionPayment } from '../../services/payments'
+import { listPendingPayments, rejectPayment, approvePayment } from '../../services/payments'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import AdminHeader from '../../components/admin/AdminHeader'
@@ -14,8 +14,8 @@ export default function PaymentsAdmin(){
   async function approve(paymentId: string) {
     setBusyId(paymentId)
     try {
-      await approveAndProvisionPayment(paymentId)
-      alert('Approved and subscription provisioned')
+      await approvePayment(paymentId) // status-only; backend trigger provisions
+      alert('Approved')
       await refresh()
     } catch (e: any) {
       console.error('approve error', e)

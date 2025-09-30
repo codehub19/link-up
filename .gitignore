@@ -1,1 +1,42 @@
-node_modules
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Vite web build
+dist/
+.vite/
+node_modules/.vite/
+
+# Firebase
+.firebase/
+firebase-debug.log
+hosting.*.cache
+.firebaserc.local
+
+# Cloud Functions build output
+functions/lib/
+functions/node_modules/
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*.*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Coverage
+coverage/
+
+# Source maps (optional)
+*.map
+
+# Local envs
+.env
+.env.*
+!.env.example
