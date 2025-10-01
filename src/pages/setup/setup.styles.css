@@ -100,7 +100,9 @@
 }
 .btn-primary-lg:hover{filter:brightness(1.06); transform:translateY(-1px)}
 .btn-primary-lg:disabled{opacity:.5; cursor:not-allowed; transform:none}
-.btn-ghost-lg{border:1px solid var(--line); background:#20212b; color:var(--text-1)}
+.btn-ghost-lg{
+    margin-top: 10px;
+    border:1px solid var(--line); background:#20212b; color:var(--text-1)}
 .btn-ghost-lg:hover{filter:brightness(1.08); transform:translateY(-1px)}
 
 /* Sticky footer with subtle veil */
@@ -248,3 +250,20 @@ textarea.field-input{min-height:110px; height:auto; padding:10px 12px; resize:ve
   .photo-grid{grid-template-columns:repeat(3,1fr)}
   .setup-card{padding:20px; padding-bottom:calc(20px + var(--footer-h))}
 }
+
+
+/* CollegeSelect dropdown */
+.college-wrap { position: relative; }
+.college-pop {
+  position: absolute; inset: auto 0 0 0; transform: translateY(calc(100% + 6px));
+  background: #161722; border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: var(--shadow-2); padding: 6px; z-index: 40; max-height: 260px; overflow: auto;
+}
+.college-item {
+  width: 100%; text-align: left; border: 0; background: transparent; color: var(--text-1);
+  border-radius: 10px; padding: 10px 12px; cursor: pointer;
+}
+.college-item:hover, .college-item.is-active { background: rgba(255,65,108,.10); }
+.ci-name { font-weight: 700; }
+.ci-meta { font-size: .9rem; color: var(--text-3); }
+.college-empty { padding: 12px; color: var(--text-3); }
