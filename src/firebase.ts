@@ -143,6 +143,7 @@ export type UserProfile = {
   bio?: string
   interests?: string[]
   photoUrl?: string
+  dob?: string       // ISO date string (YYYY-MM-DD)
   isAdmin?: boolean
   isProfileComplete?: boolean
   createdAt?: any

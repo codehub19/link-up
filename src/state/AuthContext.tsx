@@ -13,6 +13,7 @@ export type UserProfile = {
   photoUrl?: string
   bio?: string
   interests?: string[]
+  dob?: string            // NEW: ISO date string (YYYY-MM-DD)
   isProfileComplete?: boolean
   lastActivePlan?: string
 }
@@ -21,7 +22,7 @@ type AuthCtx = {
   user: User | null
   profile: UserProfile | null
   loading: boolean
-  login: () => Promise<boolean>     // returns isNewUser
+  login: () => Promise<boolean>
   logout: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -44,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u)
       if (u) {
-        await ensureUserDocument(u)  // creates/updates users/{uid}
+        await ensureUserDocument(u)
         await fetchProfile(u.uid)
       } else {
         setProfile(null)
