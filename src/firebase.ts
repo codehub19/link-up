@@ -53,7 +53,7 @@ if (import.meta.env.VITE_USE_EMULATORS === 'true') {
 
 // … keep the rest of this file unchanged …
 // Auth helpers…
-/* keep rest of the file unchanged */
+// … keep existing imports and initialization
 
 // Auth helpers
 export const provider = new GoogleAuthProvider()
@@ -70,6 +70,8 @@ export async function signOut() {
 }
 
 // Ensure users/{uid} exists and lightly update on login.
+// IMPORTANT: Do not overwrite an existing custom name or photoUrl on login.
+// Seed name/photoUrl from Google only on first login or when the Firestore fields are blank.
 export async function ensureUserDocument(
   userOrUid:
     | FirebaseUser
@@ -101,25 +103,40 @@ export async function ensureUserDocument(
 
   const userRef = doc(db, 'users', uid)
   const snap = await getDoc(userRef)
+  const now = serverTimestamp()
 
   if (!snap.exists()) {
+    // First login: seed from Google (kept if user never edits)
     await setDoc(userRef, {
       uid,
       email: em,
-      name: nm,
-      photoUrl: photo,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      name: nm || null,
+      photoUrl: photo || null,
+      createdAt: now,
+      updatedAt: now,
+      lastLoginAt: now,
     })
   } else {
-    await updateDoc(userRef, {
+    const existing = snap.data() as any
+    const existingName = (existing?.name ?? '').toString().trim()
+    const existingPhoto = (existing?.photoUrl ?? '').toString().trim()
+
+    // Always update lightweight fields
+    const updates: Record<string, any> = {
       email: em,
-      name: nm,
-      photoUrl: photo,
-      lastLoginAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
+      lastLoginAt: now,
+      updatedAt: now,
+    }
+
+    // Only backfill name/photo if blank (user hasn't set them)
+    if (!existingName && nm) updates.name = nm
+    if (!existingPhoto && photo) updates.photoUrl = photo
+
+    if (Object.keys(updates).length > 0) {
+      await updateDoc(userRef, updates)
+    }
   }
+
   return await getDoc(userRef)
 }
 
@@ -133,6 +150,7 @@ export async function uploadProfilePhoto(uid: string, file: File) {
   return await getDownloadURL(r)
 }
 
+// … keep the rest of the file unchanged (types, saveUserProfile, callable wrappers, etc.)
 // TYPE: user profile
 export type UserProfile = {
   uid: string

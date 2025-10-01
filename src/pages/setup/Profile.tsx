@@ -127,7 +127,7 @@ export default function Profile() {
   const [picked, setPicked] = useState<string[]>(profile?.interests ?? [])
 
   // Photos
-  const [slots, setSlots] = useState<PhotoSlot[]>(() => Array.from({ length: 6 }, () => ({})))
+  const [slots, setSlots] = useState<PhotoSlot[]>(() => Array.from({ length: 4 }, () => ({})))
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Details (no bio here)
@@ -287,7 +287,7 @@ export default function Profile() {
                     <span className="field-label">College</span>
                     <CollegeSelect value={college} onChange={setCollege} placeholder="Search your college (Delhi NCR)" />
                   </label>
-                  
+
                   <button type="button" className={`dob-field ${dob ? 'has-value' : ''}`} onClick={() => setDobOpen(true)}>
                     <span className="dob-icon">🎂</span>
                     <span>{formatDobLabel(dob)}</span>

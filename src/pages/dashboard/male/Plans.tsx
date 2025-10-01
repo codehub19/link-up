@@ -35,8 +35,11 @@ export default function MalePlans() {
   // slug(planId) -> latest payment status
   const [paymentStatusByPlan, setPaymentStatusByPlan] = useState<Record<string, Payment['status']>>({})
 
-  // slug(planId) -> 'active' | 'expired' (from subscriptions)
-  const [subStatusByPlan, setSubStatusByPlan] = useState<Record<string, 'active' | 'expired'>>({})
+  // Subscriptions view:
+  // - activeByPlan: true when some subscription for that plan is active AND remainingMatches > 0
+  // - expiredByPlan: true when any subscription for that plan is expired or active with remainingMatches <= 0
+  const [activeByPlan, setActiveByPlan] = useState<Record<string, boolean>>({})
+  const [expiredByPlan, setExpiredByPlan] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const run = async () => {
@@ -81,21 +84,32 @@ export default function MalePlans() {
     return () => un()
   }, [user])
 
-  // Track subscription status for the user per plan (active/expired)
+  // Track subscriptions per plan with remainingMatches consideration
   useEffect(() => {
     if (!user) return
     const qy = query(collection(db, 'subscriptions'), where('uid', '==', user.uid))
     const un = onSnapshot(qy, (snap) => {
-      const out: Record<string, 'active' | 'expired'> = {}
+      const activeMap: Record<string, boolean> = {}
+      const expiredMap: Record<string, boolean> = {}
+
       snap.forEach((doc) => {
         const d = doc.data() as any
         const key = slug(d.planId || '')
         if (!key) return
-        const st = (d.status ?? 'active') as 'active' | 'expired'
-        // Prefer active over expired if multiple records exist
-        if (!out[key] || st === 'active') out[key] = st
+        const remaining = Number(d.remainingMatches ?? 0)
+        const status = String(d.status ?? 'active')
+
+        const isActiveNow = status === 'active' && remaining > 0
+        if (isActiveNow) activeMap[key] = true
+
+        // Mark expired if explicitly expired OR active but 0 remaining
+        if (status === 'expired' || (status === 'active' && remaining <= 0)) {
+          expiredMap[key] = true
+        }
       })
-      setSubStatusByPlan(out)
+
+      setActiveByPlan(activeMap)
+      setExpiredByPlan(expiredMap)
     })
     return () => un()
   }, [user])
@@ -106,14 +120,15 @@ export default function MalePlans() {
 
   const statusChip = (planId: string) => {
     const key = slug(planId)
+    const isActive = activeByPlan[key] === true
+    const isExpired = expiredByPlan[key] === true
     const pay = paymentStatusByPlan[key]
+
+    if (isActive) return <span className="tag" style={{ background: '#DCFCE7', color: '#166534' }}>Active</span>
     if (pay === 'pending') return <span className="tag" style={{ background: '#FEF3C7', color: '#92400E' }}>Pending</span>
-    if (pay === 'approved') return <span className="tag" style={{ background: '#DCFCE7', color: '#166534' }}>Confirmed</span>
     if (pay === 'rejected') return <span className="tag" style={{ background: '#FEE2E2', color: '#991B1B' }}>Rejected</span>
     if (pay === 'failed') return <span className="tag" style={{ background: '#FEE2E2', color: '#991B1B' }}>Failed</span>
-    // If no recent payment state, show subscription state if expired
-    const subSt = subStatusByPlan[key]
-    if (subSt === 'expired') return <span className="tag" style={{ background: '#F3F4F6', color: '#374151' }}>Expired</span>
+    if (isExpired) return <span className="tag" style={{ background: '#F3F4F6', color: '#374151' }}>Expired</span>
     return null
   }
 
@@ -146,14 +161,25 @@ export default function MalePlans() {
           <div className="grid cols-3">
             {plans.map((p) => {
               const key = slug(p.id)
-              const pay = paymentStatusByPlan[key]
-              const isPending = pay === 'pending'
-              const isApproved = pay === 'approved'
-              const isExpired = subStatusByPlan[key] === 'expired'
+              const isActive = activeByPlan[key] === true
+              const isPending = paymentStatusByPlan[key] === 'pending'
+              const isExpired = expiredByPlan[key] === true
 
               const matchCount = (p.matchQuota ?? p.quota ?? 1)
-              const btnLabel = isApproved ? 'Go to Matches' : isPending ? 'Awaiting approval' : isExpired ? 'Buy again' : 'Choose plan'
-              const btnAction = isApproved ? () => nav('/dashboard/matches') : () => choose(p)
+
+              // CTA rules:
+              // - Active sub → Go to Matches
+              // - Pending payment → Awaiting approval (disabled)
+              // - Otherwise → Buy again (if expired) or Choose plan
+              const btnLabel = isActive
+                ? 'Go to Matches'
+                : isPending
+                ? 'Awaiting approval'
+                : isExpired
+                ? 'Buy again'
+                : 'Choose plan'
+
+              const btnAction = isActive ? () => nav('/dashboard/matches') : () => choose(p)
 
               return (
                 <div key={p.id} className="card plan">
@@ -174,7 +200,7 @@ export default function MalePlans() {
                     {p.supportAvailable ? <div className="tag" style={{ marginTop: 8 }}>Support included</div> : null}
                   </div>
                   <div className="card-footer">
-                    <button className={`btn ${isApproved ? '' : 'btn-primary'}`} onClick={btnAction} disabled={isPending}>
+                    <button className={`btn ${isActive ? '' : 'btn-primary'}`} onClick={btnAction} disabled={isPending}>
                       {btnLabel}
                     </button>
                   </div>

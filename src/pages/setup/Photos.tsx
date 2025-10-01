@@ -33,7 +33,7 @@ export default function PhotosStep() {
 
   return (
     <SetupShell step={5} total={6}>
-      <SetupHeader title="Upload your photos" sub="Add up to 6 photos. First one will be your primary photo." />
+      <SetupHeader title="Upload your photos" sub="Add up to 4 photos. First one will be your primary photo." />
       <input ref={inputRef} type="file" accept="image/*" className="hidden" />
       <div className="photo-grid">
         {slots.map((s, i) => (

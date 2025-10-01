@@ -17,6 +17,7 @@ type UserLite = {
   photoUrl?: string
   bio?: string
   interests?: string[]
+  gender?: 'male' | 'female'
 }
 
 export default function CurationAdmin(){
@@ -39,7 +40,13 @@ export default function CurationAdmin(){
       const profiles: UserLite[] = []
       for (const uid of males) {
         const u = await getDoc(doc(db, 'users', uid))
-        if (u.exists()) profiles.push({ uid, ...(u.data() as any) })
+        if (u.exists()) {
+          const data = u.data() as any
+          // UI guard: only keep males
+          if (data?.gender === 'male') {
+            profiles.push({ uid, ...(data as any) })
+          }
+        }
       }
       setVerifiedMales(profiles)
     }
@@ -59,7 +66,13 @@ export default function CurationAdmin(){
     const likedProfiles: UserLite[] = []
     for (const uid of uniqueBoyUids) {
       const u = await getDoc(doc(db, 'users', uid))
-      if (u.exists()) likedProfiles.push({ uid, ...(u.data() as any) })
+      if (u.exists()) {
+        const data = u.data() as any
+        // UI guard: only show males in "Girl’s likes"
+        if (data?.gender === 'male') {
+          likedProfiles.push({ uid, ...(data as any) })
+        }
+      }
     }
     setLikedMales(likedProfiles)
   })() }, [roundId, selectedGirl])
