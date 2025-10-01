@@ -5,6 +5,10 @@ import App from './App'
 import './styles.css'
 import { AuthProvider } from './state/AuthContext'
 import { Toaster } from 'sonner'
+import { registerSW } from 'virtual:pwa-register'
+
+// Register the service worker so the app is installable/offline
+registerSW({ immediate: true })
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

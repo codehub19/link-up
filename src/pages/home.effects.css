@@ -493,3 +493,112 @@
 .rv-date { color: #a8a9b6; font-size: .88rem; }
 .rv-tags { display: flex; gap: 6px; flex-wrap: wrap; }
 .rv-pill { background: #20212b; color: #f4f4fa; border: 1px solid rgba(255,65,108,.22); border-radius: 999px; padding: 6px 10px; font-size: .8rem; font-weight: 600; }
+
+
+
+/* Mobile stack for Safety section cards */
+@media (max-width: 540px) {
+  /* Force single-column grid */
+  .safety-grid-v2 {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Ensure each card takes full width and doesn't overlap */
+  .safety-item-v2 {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0 !important;
+    transform: none !important; /* in case reveal effects shift them */
+  }
+
+  /* Keep icon and content flowing nicely */
+  .safety-ic-wrap {
+    flex: 0 0 auto;
+  }
+  .safety-content {
+    overflow: visible;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  /* Optional: tighten typography on small screens */
+  .safety-item-v2 h3 {
+    font-size: 18px;
+    line-height: 1.25;
+  }
+  .safety-item-v2 p {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+
+
+/* Phone swipe preview */
+.phone-demo { width: 300px; max-width: 80vw; aspect-ratio: 9/19; border-radius: 32px; background: #0f0f14; border: 1.5px solid #2a2a36; box-shadow: 0 20px 60px rgba(0,0,0,.45); position: relative; overflow: hidden; }
+.phone-demo .notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 42%; height: 18px; background: #0b0b10; border-radius: 0 0 16px 16px; border: 1px solid #1e1e28; border-top: none; z-index: 3; }
+.screen { position: absolute; inset: 0; padding: 20px 14px 14px; }
+
+.card-demo {
+  position: absolute; inset: 16px;
+  border-radius: 22px;
+  background-size: cover; background-position: center;
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  animation: stack 12s infinite;
+  animation-fill-mode: both;               /* keep end state so it doesn’t pop back */
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Keep existing staggered delays */
+.cd-0 { animation-delay: 0s; }
+.cd-1 { animation-delay: 4s; }
+.cd-2 { animation-delay: 8s; }
+
+@keyframes stack {
+  0%   { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; z-index: 2; }
+  25%  { transform: translate(18px,-10px) rotate(4deg) scale(1.03); }
+  29%  { opacity: 0; }                              /* image fades later than text */
+  33%  { transform: translate(-100%, -20%) rotate(-16deg) scale(.95); opacity: 0; z-index: 1; }
+  34%  { transform: translate(100%, 20%) rotate(16deg) scale(.95); }
+  66%  { opacity: 1; transform: translate(0,0) rotate(0deg) scale(1); z-index: 2; }
+  100% { opacity: 1; }
+}
+
+/* Soften gradient but this isn’t the main fix */
+.cd-overlay {
+  position: absolute; left: 0; right: 0; bottom: 62px;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.55) 60%, rgba(0,0,0,.75) 100%);
+  color: #fff; border-radius: 0 0 22px 22px;
+  pointer-events: none;
+
+  /* NEW: run a shorter, earlier fade just for the caption layer */
+  animation: overlayCycle 12s infinite both;
+  will-change: opacity;
+}
+
+/* Align overlay animation delays to the parent cards */
+.cd-0 .cd-overlay { animation-delay: 0s; }
+.cd-1 .cd-overlay { animation-delay: 4s; }
+.cd-2 .cd-overlay { animation-delay: 8s; }
+
+/* The key: show the caption only in a narrow window when the card is truly on top.
+   - Fade in quickly, fade out well BEFORE the next card’s caption shows.
+   - Keep it hidden for the rest of the cycle to avoid any overlap windows. */
+@keyframes overlayCycle {
+  0%    { opacity: 0; }
+  6%    { opacity: 1; }    /* quick fade in */
+  20%   { opacity: 1; }    /* visible while card is centered */
+  24%   { opacity: 0; }    /* fade out EARLY to prevent overlap */
+  66%   { opacity: 0; }    /* remain hidden during off-stage period */
+  100%  { opacity: 0; }
+}
+
+.cd-name { font-weight: 800; letter-spacing: .2px; }
+.cd-bio  { color: #eaeaf1; font-size: 13.5px; margin-top: 4px; }
+
+.cd-actions { position: absolute; left: 0; right: 0; bottom: 20px; display: flex; gap: 10px; justify-content: center; }

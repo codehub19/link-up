@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import './home.effects.css'
 import MetricsBand from '../components/MetricsBand'
 
+
 /** Subtle layered background: gradient mesh + tiny floating hearts */
 function HomeBackground() {
   return (
@@ -306,10 +307,12 @@ function CollegesMarquee() {
 /** Phone swipe preview */
 function SwipePreview() {
   const cards = [
-    { name: 'Aisha, 20', bio: 'Design • Coffee • Indie', img: '/assets/demo1.jpg' },
-    { name: 'Rohan, 21', bio: 'MMA • Startups • Rap', img: '/assets/demo2.jpg' },
-    { name: 'Simran, 19', bio: 'Photography • Dance • Foodie', img: '/assets/demo3.jpg' },
+    { name: 'Aisha, 20', bio: 'Design • Coffee • Indie', img: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=900&q=80&auto=format&fit=crop' },
+    { name: 'Rohan, 21', bio: 'MMA • Startups • Rap', img: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?w=900&q=80&auto=format&fit=crop' },
+    { name: 'Simran, 19', bio: 'Photography • Dance • Foodie', img: 'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=900&q=80&auto=format&fit=crop' },
   ]
+
+
   return (
     <div className="phone-demo" data-reveal>
       <div className="notch" />

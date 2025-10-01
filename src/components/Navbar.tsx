@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
+import InstallPWAButton from './InstallPWAButton'
 
 export default function Navbar() {
   const { user, profile, logout, login } = useAuth()
@@ -23,7 +24,7 @@ export default function Navbar() {
               <Link to={profilePath} className={`nav-link ${isActive(profilePath) ? 'active' : ''}`}>Dashboard</Link>
             </>
           )}
-
+           <InstallPWAButton className="btn btn-ghost" label="Install App" />
           <div className="row" style={{ marginLeft: 4 }}>
             {user && profile?.isProfileComplete ? (
               <button className="btn btn-ghost" onClick={logout}>
