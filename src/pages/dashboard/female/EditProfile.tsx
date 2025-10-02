@@ -7,6 +7,7 @@ import { db, storage } from '../../../firebase'
 import { doc, setDoc } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { Link } from 'react-router-dom'
+import FemaleTabs from '../../../components/FemaleTabs'
 
 type ProfileForm = {
   name: string
@@ -106,7 +107,8 @@ export default function EditProfile() {
   return (
     <>
       <Navbar />
-      <div className="container narrow">
+      <div className="container">
+        <FemaleTabs />
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>Edit Profile</h2>
           <Link className="btn ghost" to="/dashboard/connections">Back</Link>

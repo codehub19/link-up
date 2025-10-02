@@ -10,6 +10,7 @@ import Carousel from '../../../components/Carousel'
 import { listLikesByGirl } from '../../../services/likes'
 import { getActiveRound } from '../../../services/rounds'
 import { getAssignments } from '../../../services/assignments'
+import FemaleTabs from '../../../components/FemaleTabs'
 
 type UserDoc = {
   uid: string
@@ -115,6 +116,7 @@ export default function MatchingRound() {
     <>
       <Navbar />
       <div className="container">
+        <FemaleTabs />
         <div className="banner">Today’s picks curated just for you.</div>
 
         {assignedUids.length === 0 ? (
@@ -145,10 +147,10 @@ export default function MatchingRound() {
             ))}
           </Carousel>
         )}
-
+{/* 
         <div style={{ marginTop: 24 }}>
           <Link className="btn ghost" to="/dashboard/connections">My Connections</Link>
-        </div>
+        </div> */}
       </div>
     </>
   )

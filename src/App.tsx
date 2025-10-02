@@ -1,4 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter} from 'react-router-dom'
+import ChatPage from './pages/dashboard/chat/ChatPage'
 import React, { Suspense, lazy } from 'react'
 import Home from './pages/Home'
 import Gender from './pages/setup/Gender'
@@ -168,6 +170,8 @@ export default function App() {
             </Protected>
           }
         />
+
+         <Route path="/dashboard/chat" element={<ChatPage />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

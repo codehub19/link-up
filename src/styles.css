@@ -48,7 +48,7 @@ img{max-width:100%;display:block}
 
 /* Nav */
 .nav{
-  position:sticky; top:0; z-index:50;
+  position:sticky; top:0; z-index:1001;
   border-bottom:1px solid var(--card-border);
   background:rgba(18,18,24,0.66);
   backdrop-filter:blur(10px);
@@ -730,6 +730,40 @@ body {
 }
 
 
+/* Mobile: keep all tabs in a single row (MaleTabs and FemaleTabs) */
+@media (max-width: 600px) {
+  .tab-btn-row {
+    /* one row only */
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    justify-content: space-between;
+    align-items: stretch;
+    /* ensure no accidental horizontal scrolling required */
+    overflow-x: visible;
+  }
+
+  .tab-btn {
+    /* exactly 4 items across: (total width - 3 gaps) / 4 */
+    flex: 0 0 calc((100% - 24px) / 4);
+    width: calc((100% - 24px) / 4);
+    min-width: 0;              /* allow shrinking to fit row */
+    min-height: 66px;
+    padding: 10px 6px 7px 6px; /* compact padding to help fit */
+    margin: 0;                 /* no extra margins so math stays exact */
+    text-align: center;
+  }
+
+  .tab-btn-icon {
+    min-height: 28px;
+  }
+
+  .tab-btn-label {
+    font-size: 0.75rem;
+    line-height: 1.1;
+    white-space: nowrap; /* keep label on one line inside each tab */
+  }
+}
 
 /* Safe areas for iOS standalone PWAs */
 :root {
