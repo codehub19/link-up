@@ -254,9 +254,9 @@ export default function Profile() {
         <div className="setup-top">
           <button type="button" className="setup-back" onClick={back} aria-label="Back">←</button>
           <div className="setup-progress">
-            <div className="setup-progress-bar" style={{ width: `${((step + 1) / 4) * 100}%` }} />
+            <div className="setup-progress-bar" style={{ width: `${((step + 1) / 5) * 100}%` }} />
           </div>
-          <span className="setup-step">{step + 1}/4</span>
+          <span className="setup-step">{step + 1}/5</span>
         </div>
 
         <div className="container narrow">

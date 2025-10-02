@@ -5,6 +5,7 @@ import Gender from './pages/setup/Gender'
 import Profile from './pages/setup/Profile' // Wizard entry (Looking For → Interests → Photos → Details)
 import { useAuth } from './state/AuthContext'
 import Protected from './components/Protected'
+import SetupGuard from './components/SetupGuard'  // ← add this import
 
 // Lazy dashboard/admin routes (trimmed here for brevity)
 const MalePlans = lazy(() => import('./pages/dashboard/male/Plans'))
@@ -30,12 +31,14 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
 
-        {/* Onboarding */}
+        {/* Onboarding (blocked if already complete) */}
         <Route
           path="/setup/gender"
           element={
             <Protected requireProfile={false}>
-              <Gender />
+              <SetupGuard>
+                <Gender />
+              </SetupGuard>
             </Protected>
           }
         />
@@ -43,8 +46,10 @@ export default function App() {
           path="/setup/profile"
           element={
             <Protected requireProfile={false}>
-              {/* Ensure gender exists before showing the wizard */}
-              {!profile?.gender ? <Navigate to="/setup/gender" replace /> : <Profile />}
+              <SetupGuard>
+                {/* Ensure gender exists before showing the wizard */}
+                {!profile?.gender ? <Navigate to="/setup/gender" replace /> : <Profile />}
+              </SetupGuard>
             </Protected>
           }
         />
@@ -112,18 +117,59 @@ export default function App() {
         />
 
         {/* Payments */}
-        <Route path="/pay" element={<PaymentPage />} />
-        <Route path="/pay/:planId" element={<PaymentPage />} />
+        <Route
+          path="/pay"
+          element={
+            <Protected>
+              <PaymentPage />
+            </Protected>
+          }
+        />
 
         {/* Admin */}
-        <Route path="/admin" element={<AdminHome />} />
-        <Route path="/admin/rounds" element={<RoundsAdmin />} />
-        <Route path="/admin/payments" element={<PaymentsAdmin />} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/curation" element={<CurationAdmin />} />
-        <Route path="/admin/plans" element={<PlansAdmin />} />
+        <Route
+          path="/admin"
+          element={
+            <Protected>
+              <AdminHome />
+            </Protected>
+          }
+        />
+        <Route
+          path="/admin/rounds"
+          element={
+            <Protected>
+              <RoundsAdmin />
+            </Protected>
+          }
+        />
+        <Route
+          path="/admin/payments"
+          element={
+            <Protected>
+              <PaymentsAdmin />
+            </Protected>
+          }
+        />
+        <Route
+          path="/admin/curation"
+          element={
+            <Protected>
+              <CurationAdmin />
+            </Protected>
+          }
+        />
+        <Route
+          path="/admin/plans"
+          element={
+            <Protected>
+              <PlansAdmin />
+            </Protected>
+          }
+        />
 
-        {/* Catch-all at the very end */}
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
