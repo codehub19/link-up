@@ -1,17 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 /**
- * Stacked "deck" carousel (CodePen-style) with swipe and keyboard support.
- * - Keeps child card markup intact (we only wrap them).
- * - Mobile: one visible card, swipe to change.
- * - Desktop: center card with a few fanned cards behind.
- * - No clones; circular by changing index.
+ * Stacked "deck" carousel (CodePen-style) with keyboard and button controls.
+ * - Mobile: arrows visible; swipe disabled (as requested).
+ * - Desktop: arrows + keyboard; swipe enabled.
+ * - Keeps child card markup intact; we only wrap them.
  */
 export default function Carousel({
   children,
-  itemWidth = 300,      // portrait card width (matches your ProfileMiniCard)
-  gap = 16,             // visual spacing used for stacking offsets
-  widthPercent = 80,    // consume ~80% page width by default and center the carousel
+  itemWidth = 300,      // portrait card width
+  gap = 16,             // spacing used for stacking offsets
+  widthPercent = 80,    // consume ~80% page width and center
   stackDepth = 4,       // how many cards are visible behind the active one (desktop)
   ariaLabel = 'Carousel',
 }: {
@@ -37,11 +36,10 @@ export default function Carousel({
   const [stageH, setStageH] = useState<number | undefined>(undefined)
   const isMobile = vw <= 640
 
-  // seeded tiny angle per card for natural fanning (stable across renders)
+  // deterministic tiny angle per card for natural fanning
   const angles = useMemo(() => {
     const a: number[] = []
     for (let i = 0; i < count; i++) {
-      // deterministic pseudo-random in [-10, 10] but avoid near 0 so it’s visible
       const seed = Math.sin(i * 12.9898) * 43758.5453
       let r = (seed - Math.floor(seed)) * 20 - 10
       if (Math.abs(r) < 2) r = r < 0 ? -2 : 2
@@ -79,6 +77,9 @@ export default function Carousel({
     return d
   }
 
+  // swipe is enabled only on desktop/tablet, disabled on mobile
+  const swipeEnabled = !isMobile
+
   // drag / swipe
   const drag = useRef({
     active: false,
@@ -88,7 +89,7 @@ export default function Carousel({
   })
 
   const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    if (count === 0) return
+    if (!swipeEnabled || count === 0) return
     drag.current.active = true
     drag.current.startX = e.clientX
     drag.current.dx = 0
@@ -99,19 +100,17 @@ export default function Carousel({
   }
 
   const onPointerMove: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    if (!drag.current.active) return
+    if (!swipeEnabled || !drag.current.active) return
     drag.current.dx = e.clientX - drag.current.startX
-    // optional: you can set a CSS var here for micro-parallax if desired
   }
 
   const onPointerEnd = () => {
-    if (!drag.current.active) return
+    if (!swipeEnabled || !drag.current.active) return
     const dx = drag.current.dx
     drag.current.active = false
     const threshold = Math.max(48, itemWidth * 0.18)
     if (dx <= -threshold) setIdx((i) => (i + 1) % Math.max(1, count))
     else if (dx >= threshold) setIdx((i) => (i - 1 + Math.max(1, count)) % Math.max(1, count))
-    // else snap to current (no-op)
   }
 
   // keyboard (desktop)
@@ -142,37 +141,38 @@ export default function Carousel({
       style={{
         width: `${Math.max(0, Math.min(100, widthPercent))}%`,
         margin: '0 auto',
+        // expose side padding to CSS so arrows can align with the true inner edges
+        ['--side-pad' as any]: `${sidePad}px`,
       }}
     >
       <button className="deck-btn left" onClick={prev} aria-label="Previous">‹</button>
 
       <div
         ref={stageRef}
-        className="deck-stage"
+        className={`deck-stage ${swipeEnabled ? 'can-swipe' : 'no-swipe'}`}
         style={{ height: stageH, paddingLeft: sidePad, paddingRight: sidePad }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerEnd}
-        onPointerCancel={onPointerEnd}
-        onPointerLeave={onPointerEnd}
+        onPointerDown={swipeEnabled ? onPointerDown : undefined}
+        onPointerMove={swipeEnabled ? onPointerMove : undefined}
+        onPointerUp={swipeEnabled ? onPointerEnd : undefined}
+        onPointerCancel={swipeEnabled ? onPointerEnd : undefined}
+        onPointerLeave={swipeEnabled ? onPointerEnd : undefined}
       >
         <div className="deck-lane">
           {slides.map((ch, i) => {
             const d = forwardDist(i) // 0 (active), 1 (next), 2, ...
             const isActive = d === 0
 
-            // Mobile: only show active card
+            // Mobile: only show active card (others visually hidden)
             const hideOnMobile = isMobile && !isActive
 
             // Stacking transforms for desktop
             const depth = Math.min(d, stackDepth)
-            const translateY = depth * (gap * 0.9)   // vertical drop per layer
-            const translateX = depth * (gap * 0.35)  // slight horizontal offset
+            const translateY = depth * (gap * 0.9)
+            const translateX = depth * (gap * 0.35)
             const scale = isActive ? 1 : Math.max(0.8, 1 - depth * 0.06)
-            const rot = isActive ? 0 : angles[i] * (0.6 - depth * 0.08) // smaller angle deeper in stack
+            const anglesIdx = i % angles.length
+            const rot = isActive ? 0 : angles[anglesIdx] * (0.6 - depth * 0.08)
             const zIndex = 1000 - depth
-
-            // Fade deeper layers a touch
             const opacity = isActive ? 1 : Math.max(0.6, 1 - depth * 0.12)
 
             return (

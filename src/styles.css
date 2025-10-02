@@ -748,6 +748,7 @@ body {
 
 
 /* ===== Stacked Deck Carousel (CodePen-like) ===== */
+/* ===== Stacked Deck Carousel (CodePen-like) ===== */
 .deck-wrap {
   position: relative;
   width: 100%;
@@ -757,8 +758,9 @@ body {
   position: relative;
   width: 100%;
   overflow: visible;     /* allow fanned cards to peek */
-  touch-action: pan-x;   /* swipe on mobile */
 }
+.deck-stage.can-swipe { touch-action: pan-x; } /* desktop/tablet */
+.deck-stage.no-swipe  { touch-action: pan-y; } /* mobile: arrows only */
 
 .deck-lane {
   position: relative;
@@ -776,34 +778,46 @@ body {
 }
 
 .deck-item-inner {
-  /* keep your card’s own shape/shadow */
-  overflow: visible;
+  overflow: visible; /* keep your card look */
 }
 
-/* Desktop navigation buttons (hidden on mobile) */
+/* Navigation buttons – ensure always on top and aligned to true inner edges */
+/* Stacked Deck Carousel buttons – pinned to the card edges and nudged outside */
 .deck-btn {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
-  z-index: 3;
-  width: 34px;
-  height: 34px;
+  z-index: 10000;
+  width: 42px;
+  height: 42px;
   border-radius: 9999px;
-  border: 1px solid var(--border, rgba(255,255,255,0.12));
-  background: var(--surface-1, rgba(255,255,255,0.07));
-  color: var(--text, #E5E7EB);
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.55);
+  color: #fff;
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: background .15s ease, opacity .15s ease;
-  opacity: 0.9;
+  transition: background .15s ease, opacity .15s ease, transform .1s ease;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  pointer-events: auto;
 }
-.deck-btn:hover { background: var(--surface-2, rgba(255,255,255,0.12)); }
-.deck-btn.left { left: 4px; }
-.deck-btn.right { right: 4px; }
 
-@media (max-width: 640px) {
-  .deck-btn { display: none; }   /* gesture-first on mobile */
+/* Position at the inner edges of the stage:
+   - left/right use the side padding var (the card’s left/right edge)
+   - then translate horizontally so the buttons sit just OUTSIDE the card by 8px
+   Fallback to 24px if --side-pad isn’t set yet. */
+.deck-btn.left  {
+  left: var(--side-pad, 24px);
+  transform: translate(calc(-140% - 8px), -50%);
+}
+.deck-btn.right {
+  right: var(--side-pad, 24px);
+  transform: translate(calc(140% + 8px), -50%);
+}
+
+.deck-btn:hover { background: rgba(0,0,0,0.7); }
+
+@media (max-width: 380px) {
+  .deck-btn { width: 38px; height: 38px; }
 }
 
 /* ---- ProfileMiniCard media: fully visible image with blurred fill (PORTRAIT) ---- */
