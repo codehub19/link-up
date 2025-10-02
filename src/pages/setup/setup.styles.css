@@ -267,3 +267,125 @@ textarea.field-input{min-height:110px; height:auto; padding:10px 12px; resize:ve
 .ci-name { font-weight: 700; }
 .ci-meta { font-size: .9rem; color: var(--text-3); }
 .college-empty { padding: 12px; color: var(--text-3); }
+
+
+
+/* Gender step refinements – mobile-first, thicker icon strokes, theme-aware */
+
+/* Use existing theme vars if present; provide gentle fallbacks for dark UI */
+:root {
+  --male-base: var(--blue-500, #3B82F6);
+  --male-strong: var(--blue-600, #2563EB);
+  --male-tint: rgba(37, 99, 235, 0.08);
+
+  --female-base: var(--pink-500, #EC4899);
+  --female-strong: var(--pink-600, #DB2777);
+  --female-tint: rgba(219, 39, 119, 0.08);
+
+  --pill-surface: var(--surface-1, rgba(255,255,255,0.02));
+  --pill-border: var(--border, rgba(255,255,255,0.10));
+  --pill-border-strong: var(--border-strong, rgba(255,255,255,0.18));
+  --text-primary: var(--text, #E5E7EB);
+  --shadow-soft: 0 8px 24px rgba(0,0,0,0.25);
+
+  /* Icon sizing + stroke weight (we bump on mobile via media query) */
+  --icon-size: 28px;
+  --icon-stroke: 2.4;
+}
+
+/* Grid: stack on mobile by default; enhanced to 2 cols on wider screens */
+.gender-grid {
+  display: grid !important;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+@media (min-width: 640px) {
+  .gender-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Base pill – keeps your site’s look, subtle border and shadow */
+.gender-pill {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;       /* comfortable touch target */
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid var(--pill-border);
+  background: var(--pill-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease, transform .05s ease;
+  box-shadow: var(--shadow-elevation, var(--shadow-soft));
+}
+
+.gender-pill:active { transform: translateY(0.5px); }
+
+.gender-label {
+  font-weight: 650;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+}
+
+/* Icon wrapper – SVG inherits currentColor and stroke thickness */
+.gender-icon {
+  display: inline-flex;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  align-items: center;
+  justify-content: center;
+}
+
+.gender-icon svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: var(--icon-stroke);
+}
+
+/* Male states */
+.gender-pill--male .gender-icon { color: var(--male-strong); }
+.gender-pill--male:hover { border-color: var(--male-base); }
+.gender-pill--male.is-selected {
+  border-color: var(--male-strong);
+  background: linear-gradient(0deg, var(--male-tint), var(--male-tint));
+  box-shadow:
+    inset 0 0 0 1.5px rgba(37, 99, 235, 0.18),
+    0 10px 26px rgba(37, 99, 235, 0.10);
+}
+
+/* Female states */
+.gender-pill--female .gender-icon { color: var(--female-strong); }
+.gender-pill--female:hover { border-color: var(--female-base); }
+.gender-pill--female.is-selected {
+  border-color: var(--female-strong);
+  background: linear-gradient(0deg, var(--female-tint), var(--female-tint));
+  box-shadow:
+    inset 0 0 0 1.5px rgba(219, 39, 119, 0.18),
+    0 10px 26px rgba(219, 39, 119, 0.10);
+}
+
+/* Focus ring aligned with current theme */
+.gender-pill:focus-visible {
+  outline: 0;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.10),
+    0 0 0 6px rgba(255, 76, 76, 0.25);
+}
+
+/* Mobile tuning (<= 420px): increase stroke and reduce spacing a bit */
+@media (max-width: 420px) {
+  :root {
+    --icon-size: 30px;
+    --icon-stroke: 2.8; /* thicker on mobile as requested */
+  }
+  .gender-label { font-size: 15px; }
+  .gender-pill { min-height: 60px; padding: 12px 14px; }
+}

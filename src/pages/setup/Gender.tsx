@@ -7,6 +7,30 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import './setup.styles.css'
 
+function MaleSymbol() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="10" cy="14" r="6" />
+        <line x1="14" y1="10" x2="22" y2="2" />
+        <polyline points="18.5 2 22 2 22 5.5" />
+      </g>
+    </svg>
+  )
+}
+
+function FemaleSymbol() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="9.5" r="6" />
+        <line x1="12" y1="15.5" x2="12" y2="22" />
+        <line x1="8.5" y1="18.5" x2="15.5" y2="18.5" />
+      </g>
+    </svg>
+  )
+}
+
 export default function Gender() {
   const { user, profile, refreshProfile } = useAuth()
   const [sel, setSel] = useState<'male' | 'female' | ''>(profile?.gender ?? '')
@@ -26,16 +50,12 @@ export default function Gender() {
     }
     try {
       setSaving(true)
-      // Persist gender and explicitly mark profile incomplete
       await setDoc(
         doc(db, 'users', user.uid),
         { uid: user.uid, gender: sel, isProfileComplete: false },
         { merge: true }
       )
-      // Ensure local context sees the new gender before routing
       await refreshProfile()
-
-      // Go to the multi-step profile setup
       nav('/setup/profile', { replace: true })
     } catch (e: any) {
       toast.error(e?.message ?? 'Failed to save gender')
@@ -51,7 +71,7 @@ export default function Gender() {
         <div className="setup-top">
           <button className="setup-back" onClick={() => nav(-1)} aria-label="Back">←</button>
           <div className="setup-progress">
-            <div className="setup-progress-bar" style={{ width: '25%' }} />
+            <div className="setup-progress-bar" style={{ width: '0%' }} />
           </div>
           <span className="setup-step">1/4</span>
         </div>
@@ -61,22 +81,27 @@ export default function Gender() {
             <h1 id="gender-step" className="setup-title">What’s your gender?</h1>
             <p className="setup-sub">Tell us about your gender.</p>
 
-            <div className="gender-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 6 }}>
+            <div className="gender-grid">
               <button
-                className={`gender-pill ${sel === 'male' ? 'is-selected' : ''}`}
+                className={`gender-pill gender-pill--male ${sel === 'male' ? 'is-selected' : ''}`}
                 onClick={() => setSel('male')}
                 aria-pressed={sel === 'male'}
               >
-                <span>♂</span>
-                <span>Male</span>
+                <span className="gender-icon" aria-hidden="true">
+                  <MaleSymbol />
+                </span>
+                <span className="gender-label">Male</span>
               </button>
+
               <button
-                className={`gender-pill ${sel === 'female' ? 'is-selected' : ''}`}
+                className={`gender-pill gender-pill--female ${sel === 'female' ? 'is-selected' : ''}`}
                 onClick={() => setSel('female')}
                 aria-pressed={sel === 'female'}
               >
-                <span>♀</span>
-                <span>Female</span>
+                <span className="gender-icon" aria-hidden="true">
+                  <FemaleSymbol />
+                </span>
+                <span className="gender-label">Female</span>
               </button>
             </div>
 
