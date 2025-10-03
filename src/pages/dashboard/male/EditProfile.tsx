@@ -1,12 +1,14 @@
+import React, { useEffect, useState } from 'react'
 import Navbar from '../../../components/Navbar'
 import { useAuth } from '../../../state/AuthContext'
-import { useEffect, useState } from 'react'
-import FileUpload from '../../../components/FileUpload'
-import InterestsSelect from '../../../components/InterestsSelect'
 import { doc, updateDoc } from 'firebase/firestore'
-import { db, uploadProfilePhoto } from '../../../firebase'
+import { db } from '../../../firebase'
 import { toast } from 'sonner'
 import MaleTabs from '../../../components/MaleTabs'
+import { uploadProfilePhoto } from '../../../firebase'
+import AvatarUpload from '../../../components/AvatarUpload'
+import '../profile.edit.css'
+import InterestsSelect from '../../../components/InterestsSelect'
 
 export default function MaleEditProfile() {
   const { user, profile, refreshProfile } = useAuth()
@@ -32,15 +34,17 @@ export default function MaleEditProfile() {
       setSaving(true)
       let photoUrl = profile?.photoUrl
       if (file) photoUrl = await uploadProfilePhoto(user.uid, file)
+
       await updateDoc(doc(db, 'users', user.uid), {
-        name,
-        instagramId: insta.replace(/^@/, ''),
-        bio,
+        name: name.trim(),
+        instagramId: insta.replace(/^@/, '').trim(),
+        bio: bio.trim(),
         interests,
         photoUrl,
       })
       await refreshProfile()
       toast.success('Profile updated')
+      setFile(null)
     } catch (e: any) {
       toast.error(e.message ?? 'Failed to update')
     } finally {
@@ -54,22 +58,68 @@ export default function MaleEditProfile() {
       <div className="container">
         <MaleTabs />
         <h2>Edit Profile</h2>
-        <div className="form">
-          <label>Name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} />
-          <label>Instagram</label>
-          <div className="ig">
-            <span>@</span>
-            <input value={insta.replace(/^@/, '')} onChange={(e) => setInsta(e.target.value)} />
+
+        <div className="edit-card">
+          <div className="edit-head">
+            <AvatarUpload previewUrl={profile?.photoUrl} onFile={setFile} />
           </div>
-          <label>Photo</label>
-          <FileUpload onFile={setFile} previewUrl={profile?.photoUrl} />
-          <label>Bio</label>
-          <textarea value={bio} onChange={(e) => setBio(e.target.value)} />
-          <label>Interests</label>
-          <InterestsSelect value={interests} onChange={setInterests} />
-          <div className="actions">
-            <button className="btn primary" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+
+          <div className="edit-body">
+            <label className="field">
+              <span className="field-label">Full name</span>
+              <input
+                className="field-input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name"
+              />
+            </label>
+
+            <label className="field">
+              <span className="field-label">Instagram</span>
+              <div className="ig-field">
+                <span>@</span>
+                <input
+                  value={insta.replace(/^@/, '')}
+                  onChange={(e) => setInsta(e.target.value)}
+                  placeholder="yourhandle"
+                />
+              </div>
+            </label>
+
+            <label className="field">
+              <span className="field-label">Bio</span>
+              <textarea
+                className="field-textarea"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="A short bio"
+                rows={4}
+              />
+            </label>
+
+            <div className="field">
+              <span className="field-label">Interests</span>
+              <div className="interests-wrap">
+                <InterestsSelect value={interests} onChange={setInterests} />
+                <small style={{ color: '#9aa0b4' }}>Pick up to 3 that describe you best</small>
+              </div>
+            </div>
+
+            <div className="save-row">
+              <button className="btn-ghost" type="button" onClick={() => {
+                if (!profile) return
+                setName(profile.name ?? '')
+                setInsta(profile.instagramId ?? '')
+                setBio(profile.bio ?? '')
+                setInterests(profile.interests ?? [])
+                setFile(null)
+              }} disabled={saving}>Reset</button>
+
+              <button className="btn-gradient" onClick={save} disabled={saving}>
+                {saving ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

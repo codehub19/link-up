@@ -1,104 +1,54 @@
 import React, { useEffect, useState } from 'react'
 import Navbar from '../../../components/Navbar'
-import FileUpload from '../../../components/FileUpload'
 import { useAuth } from '../../../state/AuthContext'
+import { doc, updateDoc } from 'firebase/firestore'
+import { db, uploadProfilePhoto } from '../../../firebase'
 import { toast } from 'sonner'
-import { db, storage } from '../../../firebase'
-import { doc, setDoc } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { Link } from 'react-router-dom'
 import FemaleTabs from '../../../components/FemaleTabs'
-
-type ProfileForm = {
-  name: string
-  instagramId: string
-  bio: string
-  interests: string
-  photoUrl?: string
-}
+import AvatarUpload from '../../../components/AvatarUpload'
+import '../profile.edit.css'
+import InterestsSelect from '../../../components/InterestsSelect'
 
 export default function EditProfile() {
-  const { user, profile } = useAuth()
-  const [form, setForm] = useState<ProfileForm>({
-    name: '',
-    instagramId: '',
-    bio: '',
-    interests: '',
-    photoUrl: undefined,
-  })
+  const { user, profile, refreshProfile } = useAuth()
+  const [name, setName] = useState(profile?.name ?? '')
+  const [insta, setInsta] = useState(profile?.instagramId ?? '')
+  const [bio, setBio] = useState(profile?.bio ?? '')
+  const [interests, setInterests] = useState<string[]>(profile?.interests ?? [])
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
 
-  // Initialize form from current profile
   useEffect(() => {
-    if (!profile) return
-    setForm({
-      name: profile.name ?? '',
-      instagramId: profile.instagramId ?? '',
-      bio: profile.bio ?? '',
-      interests: Array.isArray(profile.interests) ? profile.interests.join(', ') : (profile.interests ?? ''),
-      photoUrl: profile.photoUrl,
-    })
+    if (profile) {
+      setName(profile.name ?? '')
+      setInsta(profile.instagramId ?? '')
+      setBio(profile.bio ?? '')
+      setInterests(profile.interests ?? [])
+    }
   }, [profile])
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setForm((f) => ({ ...f, [name]: value }))
-  }
-
-  const handleFile = (f: File) => setFile(f)
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) {
-      toast.error('You must be signed in.')
-      return
-    }
-    if (!form.name.trim()) {
-      toast.error('Please enter your name.')
-      return
-    }
-
-    setSaving(true)
+  const save = async () => {
+    if (!user) return
     try {
-      let photoUrl = form.photoUrl
-
-      // Upload new photo if selected
+      setSaving(true)
+      let photoUrl = profile?.photoUrl
       if (file) {
-        const objectRef = ref(storage, `users/${user.uid}/profile.jpg`)
-        await uploadBytes(objectRef, file)
-        photoUrl = await getDownloadURL(objectRef)
+        photoUrl = await uploadProfilePhoto(user.uid, file)
       }
 
-      // Normalize interests: allow comma-separated string -> array of trimmed strings
-      const interestsArray = form.interests
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
+      await updateDoc(doc(db, 'users', user.uid), {
+        name: name.trim(),
+        instagramId: insta.replace(/^@/, '').trim(),
+        bio: bio.trim(),
+        interests,
+        photoUrl,
+      })
 
-      // Save to Firestore (use uid as doc id; merges if exists)
-      const userDocRef = doc(db, 'users', user.uid)
-      await setDoc(
-        userDocRef,
-        {
-          uid: user.uid,
-          gender: profile?.gender ?? 'female',
-          name: form.name.trim(),
-          instagramId: form.instagramId.trim(),
-          bio: form.bio.trim(),
-          interests: interestsArray,
-          photoUrl: photoUrl,
-          updatedAt: new Date(),
-        },
-        { merge: true }
-      )
-
+      await refreshProfile()
       toast.success('Profile updated')
       setFile(null)
-      setForm((f) => ({ ...f, photoUrl }))
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed to update'
-      toast.error(msg)
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed to update')
     } finally {
       setSaving(false)
     }
@@ -109,89 +59,78 @@ export default function EditProfile() {
       <Navbar />
       <div className="container">
         <FemaleTabs />
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h2 style={{ margin: 0 }}>Edit Profile</h2>
-          <Link className="btn ghost" to="/dashboard/connections">Back</Link>
-        </div>
+        <h2>Edit Profile</h2>
 
-        <form className="form" onSubmit={onSubmit}>
-          <div className="stack" style={{ gap: 12 }}>
-            <div className="stack">
-              <label style={{ fontWeight: 600 }}>Photo</label>
-              <FileUpload onFile={handleFile} previewUrl={form.photoUrl} />
-            </div>
+        <div className="edit-card">
+          <div className="edit-head">
+            <AvatarUpload previewUrl={profile?.photoUrl} onFile={setFile} />
+          </div>
 
-            <div className="stack">
-              <label style={{ fontWeight: 600 }}>Full Name</label>
+          <div className="edit-body">
+            <label className="field">
+              <span className="field-label">Full name</span>
               <input
-                className="input"
-                name="name"
+                className="field-input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
-                value={form.name}
-                onChange={onChange}
               />
-            </div>
+            </label>
 
-            <div className="stack">
-              <label style={{ fontWeight: 600 }}>Instagram ID</label>
-              <input
-                className="input"
-                name="instagramId"
-                placeholder="e.g., @username"
-                value={form.instagramId}
-                onChange={onChange}
-              />
-            </div>
+            <label className="field">
+              <span className="field-label">Instagram</span>
+              <div className="ig-field">
+                <span>@</span>
+                <input
+                  value={insta.replace(/^@/, '')}
+                  onChange={(e) => setInsta(e.target.value)}
+                  placeholder="yourhandle"
+                />
+              </div>
+            </label>
 
-            <div className="stack">
-              <label style={{ fontWeight: 600 }}>Bio</label>
+            <label className="field">
+              <span className="field-label">Bio</span>
               <textarea
-                className="input"
-                name="bio"
-                rows={4}
+                className="field-textarea"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
                 placeholder="A short bio"
-                value={form.bio}
-                onChange={onChange}
+                rows={4}
               />
+            </label>
+
+            <div className="field">
+              <span className="field-label">Interests</span>
+              <div className="interests-wrap">
+                <InterestsSelect value={interests} onChange={setInterests} />
+                <small style={{ color: '#9aa0b4' }}>Pick up to 3 that describe you best</small>
+              </div>
             </div>
 
-            <div className="stack">
-              <label style={{ fontWeight: 600 }}>Interests (comma-separated)</label>
-              <input
-                className="input"
-                name="interests"
-                placeholder="music, sports, travel"
-                value={form.interests}
-                onChange={onChange}
-              />
-            </div>
-
-            <div className="row" style={{ gap: 8 }}>
-              <button className="btn btn-primary" type="submit" disabled={saving}>
-                {saving ? 'Saving…' : 'Save Changes'}
-              </button>
+            <div className="save-row">
               <button
-                className="btn ghost"
+                className="btn-ghost"
                 type="button"
                 onClick={() => {
-                  // Reset to loaded profile values
                   if (!profile) return
-                  setForm({
-                    name: profile.name ?? '',
-                    instagramId: profile.instagramId ?? '',
-                    bio: profile.bio ?? '',
-                    interests: Array.isArray(profile.interests) ? profile.interests.join(', ') : (profile.interests ?? ''),
-                    photoUrl: profile.photoUrl,
-                  })
+                  setName(profile.name ?? '')
+                  setInsta(profile.instagramId ?? '')
+                  setBio(profile.bio ?? '')
+                  setInterests(profile.interests ?? [])
                   setFile(null)
                 }}
                 disabled={saving}
               >
                 Reset
               </button>
+
+              <button className="btn-gradient" onClick={save} disabled={saving}>
+                {saving ? 'Saving…' : 'Save Changes'}
+              </button>
             </div>
           </div>
-        </form>
+        </div>
       </div>
     </>
   )
