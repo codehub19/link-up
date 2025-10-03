@@ -1,7 +1,3 @@
-// Only the changed parts are highlighted; this is the full file updated.
-// Key changes:
-// - Messages subscription orders by 'createdAtMs' (client ms) instead of serverTimestamp
-// - No other behavior changed
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Navbar from '../../../components/Navbar'
@@ -11,15 +7,16 @@ import { db } from '../../../firebase'
 import ChatSidebar from '../../../components/chat/ChatSidebar'
 import ChatWindow from '../../../components/chat/ChatWindow'
 import { ensureThread, sendMessage, threadIdFor } from '../../../services/chat'
-import { blockUserInThread, unblockUserInThread, reportUser } from '../../../services/chatModeration'
+import { reportUser } from '../../../services/chatModeration'
 import MaleTabs from '../../../components/MaleTabs'
 import FemaleTabs from '../../../components/FemaleTabs'
 import ProfileModal from '../../../components/chat/ProfileModal'
 import ReportModal from '../../../components/chat/ReportModal'
+import { blockUser, unblockUser, subscribeAmIBlockedBy, subscribeBlockedUids } from '../../../services/blocks'
 import '../../../styles/chat.css'
 
 type UserDoc = { uid: string; name?: string; photoUrl?: string; instagramId?: string; bio?: string; interests?: string[]; college?: string }
-type ThreadDoc = { id: string; participants: string[]; lastMessage?: { text: string; senderUid: string; at?: any } | null; updatedAt?: any; blockedUserUid?: string | null; blockedSetByUid?: string | null }
+type ThreadDoc = { id: string; participants: string[]; lastMessage?: { text: string; senderUid: string; at?: any } | null; updatedAt?: any }
 type MatchDoc = { id: string; participants: string[]; boyUid: string; girlUid: string; status?: string }
 
 function useQuery() { return new URLSearchParams(useLocation().search) }
@@ -51,6 +48,10 @@ export default function ChatPage() {
   const [showProfile, setShowProfile] = useState(false)
   const [showReport, setShowReport] = useState(false)
 
+  // Block state (list-based)
+  const [myBlockedSet, setMyBlockedSet] = useState<Set<string>>(new Set())
+  const [peerBlocksMe, setPeerBlocksMe] = useState<boolean>(false)
+
   useEffect(() => {
     if (!user) return
     const threadsQ = query(
@@ -75,6 +76,26 @@ export default function ChatPage() {
     })
     return () => stop()
   }, [user])
+
+  // Subscribe to my block list
+  useEffect(() => {
+    if (!user) return
+    const stop = subscribeBlockedUids(user.uid, (set) => setMyBlockedSet(set))
+    return () => stop()
+  }, [user])
+
+  // Subscribe to whether selected peer has blocked me
+  useEffect(() => {
+    if (!user) return
+    const peer = (() => {
+      if (!selectedId) return undefined
+      const [a, b] = selectedId.split('_')
+      return a === user.uid ? b : a
+    })()
+    if (!peer) return
+    const stop = subscribeAmIBlockedBy(peer, user.uid, (is) => setPeerBlocksMe(is))
+    return () => stop()
+  }, [user, selectedId])
 
   useEffect(() => {
     if (!user) return
@@ -147,6 +168,11 @@ export default function ChatPage() {
 
   const onSend = async (text: string) => {
     if (!user || !selectedId) return
+    // Disallow sending if either party has blocked the other
+    if (peerBlocksMe) return
+    const [a, b] = selectedId.split('_')
+    const peerUid = a === user.uid ? b : a
+    if (myBlockedSet.has(peerUid)) return
     await sendMessage(selectedId, user.uid, text)
   }
 
@@ -175,17 +201,12 @@ export default function ChatPage() {
     return users[peerUid]
   }, [selectedId, users, user])
 
-  const iAmBlocked = useMemo(() => {
-    if (!user || !selectedThread) return false
-    return selectedThread.blockedUserUid === user.uid
-  }, [user, selectedThread])
-
+  // Computed block states from lists (not from old messages/threads)
+  const iAmBlocked = peerBlocksMe
   const iBlockedThem = useMemo(() => {
-    if (!user || !selectedThread) return false
-    const parts = (selectedThread.id || '').split('_')
-    const peerUid = parts[0] === user?.uid ? parts[1] : parts[0]
-    return !!peerUid && selectedThread.blockedUserUid === peerUid
-  }, [selectedThread, user])
+    if (!user || !selectedPeer) return false
+    return myBlockedSet.has(selectedPeer.uid)
+  }, [myBlockedSet, selectedPeer, user])
 
   if (!user) return null
   const isFemale = profile?.gender === 'female'
@@ -202,13 +223,14 @@ export default function ChatPage() {
             <ChatSidebar
               items={list.map((i) => {
                 const u = users[i.peerUid]
+                const blocked = myBlockedSet.has(i.peerUid)
                 return {
                   id: i.threadId,
                   peerUid: i.peerUid,
                   name: u?.name || 'Unknown',
                   photoUrl: u?.photoUrl,
                   instagramId: u?.instagramId,
-                  lastText: i.lastMessage || 'Say hi 👋',
+                  lastText: blocked ? 'You blocked this user' : (i.lastMessage || 'Say hi 👋'),
                   active: selectedId === i.threadId,
                 }
               })}
@@ -234,14 +256,23 @@ export default function ChatPage() {
                     </div>
                     <div className="chat-actions">
                       {iBlockedThem ? (
-                        <button className="btn small" onClick={async () => { if (!selectedThread) return; await unblockUserInThread(selectedThread.id) }}>
+                        <button
+                          className="btn small"
+                          onClick={async () => {
+                            if (!selectedPeer) return
+                            await unblockUser(user.uid, selectedPeer.uid)
+                          }}
+                        >
                           Unblock
                         </button>
                       ) : (
-                        <button className="btn small" onClick={async () => {
-                          if (!selectedThread || !selectedPeer) return
-                          await blockUserInThread(selectedThread.id, user.uid, selectedPeer.uid)
-                        }}>
+                        <button
+                          className="btn small"
+                          onClick={async () => {
+                            if (!selectedPeer) return
+                            await blockUser(user.uid, selectedPeer.uid)
+                          }}
+                        >
                           Block
                         </button>
                       )}
@@ -255,10 +286,16 @@ export default function ChatPage() {
                     </div>
                   ) : null}
 
+                  {iBlockedThem ? (
+                    <div className="blocked-banner">
+                      You have blocked this person. Unblock to resume chatting.
+                    </div>
+                  ) : null}
+
                   <ChatWindow
                     currentUid={user.uid}
                     messages={messages}
-                    onSend={iAmBlocked ? () => {} : async (t) => onSend(t)}
+                    onSend={iAmBlocked || iBlockedThem ? () => {} : async (t) => onSend(t)}
                   />
                 </>
               ) : (
