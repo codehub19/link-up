@@ -8,7 +8,7 @@ import MaleTabs from '../../../components/MaleTabs'
 import ProfileMiniCard from '../../../components/ProfileMiniCard'
 import Carousel from '../../../components/Carousel'
 import { getMaleEntitlement } from '../../../services/entitlements'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 type Like = {
   id: string
@@ -224,9 +224,11 @@ export default function MaleMatches() {
                   college={g.college}
                   age={age}
                   footer={
-                    <button className="btn btn-primary" onClick={() => openChat(g.uid)}>
-                      Chat
-                    </button>
+                    <div className="row" style={{ marginTop: 12 }}>
+                      <Link className="btn primary" to={`/dashboard/chat?with=${encodeURIComponent(m.girlUid)}`}>
+                        Chat
+                      </Link>
+                    </div>
                   }
                 />
               )

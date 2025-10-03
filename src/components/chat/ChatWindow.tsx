@@ -1,15 +1,16 @@
 import React, { useEffect, useRef } from 'react'
 import MessageBubble from './MessageBubble'
+import MessageInput from './MessageInput'
 
-type M = { id: string; text: string; senderUid: string; createdAt?: any }
+type M = { id: string; text: string; senderUid: string; createdAt?: any; createdAtMs?: number }
 
 export default function ChatWindow({
   currentUid,
-  messages,
+  messages = [],
   onSend,
 }: {
   currentUid: string
-  messages: M[]
+  messages?: M[]
   onSend: (text: string) => Promise<void> | void
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -23,16 +24,19 @@ export default function ChatWindow({
   return (
     <div className="chat-window">
       <div className="messages" ref={scrollerRef}>
-        {messages.map((m) => (
-          <MessageBubble
-            key={m.id}
-            text={m.text}
-            mine={m.senderUid === currentUid}
-            time={m.createdAt?.toDate ? new Date(m.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined}
-          />
-        ))}
+        {(messages || []).map((m) => {
+          const date =
+            m.createdAt?.toDate ? new Date(m.createdAt.toDate()) :
+            (typeof m.createdAtMs === 'number' ? new Date(m.createdAtMs) : undefined)
+          const time = date ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined
+          return (
+            <MessageBubble key={m.id} text={m.text} mine={m.senderUid === currentUid} time={time} />
+          )
+        })}
       </div>
-      {React.createElement(require('./MessageInput').default, { onSend })}
+      <div className="composer-wrap">
+        <MessageInput onSend={onSend} />
+      </div>
     </div>
   )
 }

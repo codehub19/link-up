@@ -1,11 +1,9 @@
 import Navbar from '../../../components/Navbar'
-import FemaleTabs from '../../../components/FemaleTabs' // ← removed .tsx extension
-import { useEffect, useMemo, useState } from 'react'
+import FemaleTabs from '../../../components/FemaleTabs'
+import { useEffect, useState } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { useAuth } from '../../../state/AuthContext'
-import ProfileMiniCard from '../../../components/ProfileMiniCard'
-import Carousel from '../../../components/Carousel'
 import { Link } from 'react-router-dom'
 
 type Match = {
@@ -37,7 +35,7 @@ export default function Connections() {
       const mds: Match[] = ms.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
       setMatches(mds)
 
-      const ids = Array.from(new Set(mds.map((m) => (m.boyUid === user.uid ? m.girlUid : m.boyUid))))
+      const ids = Array.from(new Set(mds.map((m) => (m.girlUid === user.uid ? m.boyUid : m.girlUid))))
       const snaps = await Promise.all(
         ids.map(async (uid) => {
           const r = await getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
@@ -56,6 +54,8 @@ export default function Connections() {
     run()
   }, [user])
 
+  if (!user) return null
+
   return (
     <>
       <Navbar />
@@ -64,7 +64,8 @@ export default function Connections() {
         <h2>My Connections</h2>
         <div className="grid cols-3">
           {matches.map((m) => {
-            const other = users[m.boyUid]
+            const peerUid = m.girlUid === user.uid ? m.boyUid : m.girlUid
+            const other = users[peerUid]
             if (!other) return null
             return (
               <div key={m.id} className="card">
@@ -79,6 +80,12 @@ export default function Connections() {
                   <p className="bio">{other.bio}</p>
                   <div className="tags">
                     {(other.interests ?? []).map((i) => <span key={i} className="tag">{i}</span>)}
+                  </div>
+                  <div className="row" style={{ marginTop: 12 }}>
+                    {/* Open chat with the correct peer */}
+                    <Link className="btn primary" to={`/dashboard/chat?with=${encodeURIComponent(peerUid)}`}>
+                      Chat
+                    </Link>
                   </div>
                 </div>
               </div>
