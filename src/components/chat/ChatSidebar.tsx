@@ -1,39 +1,29 @@
 import React from 'react'
 
-type Item = {
-  id: string
-  peerUid: string
-  name: string
-  photoUrl?: string
-  instagramId?: string
-  lastText?: string
-  active?: boolean
-  sortTime?: number
-}
-
-type User = { uid: string; name?: string; photoUrl?: string; instagramId?: string }
-
 export default function ChatSidebar({
-  items = [],
+  items,
   onSelect,
-  users = {},
-  currentUid,
 }: {
-  items?: Item[]
-  onSelect: (idOrPeerUid: string) => void
-  users?: Record<string, User>
-  currentUid: string
+  items: Array<{
+    id: string
+    peerUid: string
+    name: string
+    photoUrl?: string
+    instagramId?: string
+    lastText?: string
+    active?: boolean
+  }>
+  onSelect: (peerUid: string) => void
 }) {
-  const safe = Array.isArray(items) ? items : []
   return (
     <aside className="chat-sidebar">
       <div className="sidebar-title">Chats</div>
       <div className="thread-list">
-        {safe.map((t) => (
+        {items.map((t) => (
           <button
-            key={t.id}
+            key={t.id || t.peerUid}
             className={`thread-item ${t.active ? 'active' : ''}`}
-            onClick={() => onSelect(t.id)}
+            onClick={() => onSelect(t.peerUid)}
           >
             <div className="avatar">
               {t.photoUrl ? <img src={t.photoUrl} alt={t.name} /> : <div className="avatar-fallback">{(t.name || 'U').slice(0,1)}</div>}

@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 
 export type ChatMessage = {
@@ -14,26 +14,24 @@ export function threadIdFor(u1: string, u2: string) {
   return [u1, u2].sort().join('_')
 }
 
-// Safe for strict rules:
-// - Try updating an existing thread WITHOUT touching participants.
-// - If missing, create with sorted participants and timestamps.
+// Write-first creation (no pre-read)
 export async function ensureThread(currentUid: string, peerUid: string): Promise<string> {
   if (!currentUid || !peerUid) throw new Error('Missing participant uid(s)')
   const id = threadIdFor(currentUid, peerUid)
   const ref = doc(db, 'threads', id)
 
-  try {
-    await updateDoc(ref, { updatedAt: serverTimestamp() } as any)
-    return id
-  } catch {
-    await setDoc(ref, {
-      participants: [currentUid, peerUid].sort(),
+  await setDoc(
+    ref,
+    {
+      participants: [currentUid, peerUid],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       lastMessage: null,
-    })
-    return id
-  }
+    },
+    { merge: true }
+  )
+
+  return id
 }
 
 export async function sendMessage(threadId: string, senderUid: string, text: string) {
@@ -42,31 +40,24 @@ export async function sendMessage(threadId: string, senderUid: string, text: str
   const res = await addDoc(msgCol, {
     text,
     senderUid,
-    createdAt: serverTimestamp(),  // required by your rules
-    createdAtMs: now,              // for smooth local ordering
+    // Keep both: server timestamp for canonical, client ms for snappy local ordering
+    createdAt: serverTimestamp(),
+    createdAtMs: now,
     readBy: [senderUid],
   })
-
   const tRef = doc(db, 'threads', threadId)
   await updateDoc(tRef, {
     updatedAt: serverTimestamp(),
-    lastMessage: { text, senderUid, at: serverTimestamp() },
-  } as any)
-
+    lastMessage: { text, senderUid, at: serverTimestamp() }
+  })
   return res.id
 }
 
+// If you keep this helper, prefer createdAtMs for smooth ordering
 export function subscribeMessages(threadId: string, cb: (messages: ChatMessage[]) => void) {
   const q = query(collection(db, 'threads', threadId, 'messages'), orderBy('createdAtMs', 'asc'))
   return onSnapshot(q, (snap) => {
     const msgs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as ChatMessage[]
     cb(msgs)
   })
-}
-
-// Optional helper to confirm thread exists and is shaped correctly before sending
-export async function verifyThreadExists(threadId: string) {
-  const ref = doc(db, 'threads', threadId)
-  const snap = await getDoc(ref)
-  return snap.exists()
 }

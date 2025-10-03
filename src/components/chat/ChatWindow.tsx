@@ -6,11 +6,11 @@ type M = { id: string; text: string; senderUid: string; createdAt?: any; created
 
 export default function ChatWindow({
   currentUid,
-  messages = [],
+  messages,
   onSend,
 }: {
   currentUid: string
-  messages?: M[]
+  messages: M[]
   onSend: (text: string) => Promise<void> | void
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -24,13 +24,18 @@ export default function ChatWindow({
   return (
     <div className="chat-window">
       <div className="messages" ref={scrollerRef}>
-        {(messages || []).map((m) => {
+        {messages.map((m) => {
           const date =
             m.createdAt?.toDate ? new Date(m.createdAt.toDate()) :
             (typeof m.createdAtMs === 'number' ? new Date(m.createdAtMs) : undefined)
           const time = date ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined
           return (
-            <MessageBubble key={m.id} text={m.text} mine={m.senderUid === currentUid} time={time} />
+            <MessageBubble
+              key={m.id}
+              text={m.text}
+              mine={m.senderUid === currentUid}
+              time={time}
+            />
           )
         })}
       </div>

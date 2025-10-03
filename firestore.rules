@@ -7,44 +7,54 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
+    function isParticipant(uid, participants) {
+      return participants != null && uid in participants;
+    }
+
     function isTwoStringList(l) {
       return l is list && l.size() == 2 && l[0] is string && l[1] is string;
     }
 
-    // Users
     match /users/{uid} {
       allow read: if request.auth != null;
       allow create, update: if request.auth != null && request.auth.uid == uid;
       allow delete: if isAdmin();
     }
 
-    // Plans / Subscriptions / Payments (unchanged, trimmed for brevity)
-    match /plans/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /subscriptions/{id} {
-      allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isAdmin());
-      allow write: if isAdmin();
+    match /plans/{planId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isAdmin();
     }
-    match /payments/{id} {
+
+    match /subscriptions/{subId} {
+      allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.status == 'pending';
       allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isAdmin());
-      allow write: if isAdmin();
+      allow update, delete: if isAdmin();
     }
 
-    match /matchingRounds/{id} {
+    match /matchingRounds/{roundId} {
       allow read: if request.auth != null;
       allow write: if isAdmin();
+
       match /assignments/{girlUid} {
         allow read: if request.auth != null && (request.auth.uid == girlUid || isAdmin());
         allow write: if isAdmin();
       }
     }
 
-    match /likes/{id} {
+    match /likes/{likeId} {
       allow create: if request.auth != null
-                    && (request.resource.data.likingUserUid == request.auth.uid
-                        || request.resource.data.likerUid == request.auth.uid)
+                    && (
+                      request.resource.data.likingUserUid == request.auth.uid
+                      || request.resource.data.likerUid == request.auth.uid
+                    )
                     && request.resource.data.likedUserUid is string
                     && request.resource.data.roundId is string;
       allow read: if request.auth != null;
@@ -53,56 +63,47 @@ service cloud.firestore {
                             || (request.auth != null && resource.data.likerUid == request.auth.uid);
     }
 
-    // Matches — source of truth for who can chat
     match /matches/{matchId} {
       allow read: if request.auth != null
                   && ((resource.data.participants != null && request.auth.uid in resource.data.participants) || isAdmin());
       allow create, update, delete: if isAdmin();
     }
 
-    // Threads — metadata only (lastMessage, blocks, updatedAt). Doc id == matchId.
-    match /threads/{matchId} {
-      // Participants can read thread meta if the match exists
-      allow read: if request.auth != null
-                  && exists(/databases/$(database)/documents/matches/$(matchId))
-                  && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.participants;
+    // Chat
+    match /threads/{threadId} {
+      // Each thread may include optional moderation fields:
+      // blockedUserUid: string | null        // the user who is blocked (cannot send)
+      // blockedSetByUid: string | null       // who set the block (the blocker)
+      // blockedAt: timestamp | null
 
-      // Create requires participant in the match
+      allow read: if request.auth != null && (isAdmin() || isParticipant(request.auth.uid, resource.data.participants));
+
       allow create: if request.auth != null
-                    && exists(/databases/$(database)/documents/matches/$(matchId))
-                    && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.participants
+                    && isTwoStringList(request.resource.data.participants)
+                    && request.auth.uid in request.resource.data.participants
                     && request.resource.data.createdAt != null
                     && request.resource.data.updatedAt != null;
 
-      // Update allowed if participant; participants field must not change if present
-      allow update: if request.auth != null
-                    && exists(/databases/$(database)/documents/matches/$(matchId))
-                    && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.participants
-                    && (!('participants' in request.resource.data)
-                        || request.resource.data.participants == resource.data.participants);
+      // Allow participants to update thread meta, but not participants array.
+      // This permits setting/clearing blocked fields by either participant.
+      allow update: if isAdmin()
+                    || (
+                      request.auth != null
+                      && isParticipant(request.auth.uid, resource.data.participants)
+                      && request.resource.data.participants == resource.data.participants
+                    );
 
       allow delete: if isAdmin();
 
-      // Messages under thread
       match /messages/{messageId} {
-        // Participants can read messages if the match exists
         allow read: if request.auth != null
-                    && exists(/databases/$(database)/documents/matches/$(matchId))
-                    && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.participants;
+                    && (isAdmin()
+                        || isParticipant(request.auth.uid, get(/databases/$(database)/documents/threads/$(threadId)).data.participants));
 
-        // Participants can send if:
-        // - Match exists and is confirmed
-        // - Sender is a participant
-        // - If thread exists and has blocks, sender is not blocked
-        // - Valid payload
+        // Disallow sending if the current user is the blocked user in this thread
         allow create: if request.auth != null
-                      && exists(/databases/$(database)/documents/matches/$(matchId))
-                      && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.participants
-                      && get(/databases/$(database)/documents/matches/$(matchId)).data.status == 'confirmed'
-                      && (
-                           !exists(/databases/$(database)/documents/threads/$(matchId))
-                           || get(/databases/$(database)/documents/threads/$(matchId)).data.blocks[request.auth.uid] != true
-                         )
+                      && isParticipant(request.auth.uid, get(/databases/$(database)/documents/threads/$(threadId)).data.participants)
+                      && get(/databases/$(database)/documents/threads/$(threadId)).data.blockedUserUid != request.auth.uid
                       && request.resource.data.senderUid == request.auth.uid
                       && request.resource.data.text is string
                       && request.resource.data.createdAt != null;
@@ -111,7 +112,7 @@ service cloud.firestore {
       }
     }
 
-    // Reports
+    // Reports (clients can create; admins can read/manage)
     match /reports/{reportId} {
       allow create: if request.auth != null
                     && request.resource.data.reporterUid == request.auth.uid

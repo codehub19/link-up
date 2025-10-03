@@ -13,7 +13,9 @@ export default function ProfileModal({
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
@@ -26,7 +28,10 @@ export default function ProfileModal({
       className="modal-overlay"
       role="dialog"
       aria-modal="true"
-      onMouseDown={(e) => { if (e.target === overlayRef.current) onClose() }}
+      onMouseDown={(e) => {
+        // Close when clicking the dimmed overlay (not when clicking inside the card)
+        if (e.target === overlayRef.current) onClose()
+      }}
     >
       <div className="modal-card" role="document">
         <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>

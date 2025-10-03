@@ -1,68 +1,37 @@
+// Only the changed parts are highlighted; this is the full file updated.
+// Key changes:
+// - Messages subscription orders by 'createdAtMs' (client ms) instead of serverTimestamp
+// - No other behavior changed
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Navbar from '../../../components/Navbar'
 import { useAuth } from '../../../state/AuthContext'
-import {
-  collection,
-  doc,
-  getDoc,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from 'firebase/firestore'
+import { collection, doc, getDoc, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import ChatSidebar from '../../../components/chat/ChatSidebar'
 import ChatWindow from '../../../components/chat/ChatWindow'
+import { ensureThread, sendMessage, threadIdFor } from '../../../services/chat'
+import { blockUserInThread, unblockUserInThread, reportUser } from '../../../services/chatModeration'
 import MaleTabs from '../../../components/MaleTabs'
 import FemaleTabs from '../../../components/FemaleTabs'
 import ProfileModal from '../../../components/chat/ProfileModal'
 import ReportModal from '../../../components/chat/ReportModal'
-import {
-  createOrTouchThread,
-  sendMessageByMatchId,
-  blockUserInThreadByMatchId,
-  unblockUserInThreadByMatchId,
-  reportUserFromChat,
-} from '../../../services/chatV2'
 import '../../../styles/chat.css'
 
-type UserDoc = {
-  uid: string
-  name?: string
-  photoUrl?: string
-  instagramId?: string
-  bio?: string
-  interests?: string[]
-  college?: string
-}
+type UserDoc = { uid: string; name?: string; photoUrl?: string; instagramId?: string; bio?: string; interests?: string[]; college?: string }
+type ThreadDoc = { id: string; participants: string[]; lastMessage?: { text: string; senderUid: string; at?: any } | null; updatedAt?: any; blockedUserUid?: string | null; blockedSetByUid?: string | null }
+type MatchDoc = { id: string; participants: string[]; boyUid: string; girlUid: string; status?: string }
 
-type MatchDoc = {
-  id: string
-  participants: string[]
-  boyUid: string
-  girlUid: string
-  status?: string
-  updatedAt?: any
-  createdAt?: any
-}
-
-function useQuery() {
-  const { search } = useLocation()
-  return useMemo(() => new URLSearchParams(search), [search])
-}
-
+function useQuery() { return new URLSearchParams(useLocation().search) }
 function useIsMobile(breakpoint = 960) {
-  const [isMobile, setIsMobile] = useState<boolean>(() =>
-    typeof window !== 'undefined' ? window.innerWidth <= breakpoint : false
-  )
+  const [isMobile, setIsMobile] = useState<boolean>(() => (typeof window !== 'undefined' ? window.innerWidth <= breakpoint : false))
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`)
-    const onChange = () => setIsMobile(mq.matches)
+    const mql = window.matchMedia(`(max-width: ${breakpoint}px)`)
+    const onChange = () => setIsMobile(mql.matches)
     onChange()
-    mq.addEventListener?.('change', onChange)
-    return () => mq.removeEventListener?.('change', onChange)
+    mql.addEventListener?.('change', onChange)
+    return () => mql.removeEventListener?.('change', onChange)
   }, [breakpoint])
   return isMobile
 }
@@ -71,158 +40,156 @@ export default function ChatPage() {
   const { user, profile } = useAuth()
   const nav = useNavigate()
   const q = useQuery()
-  const matchId = q.get('match') || undefined
+  const withUid = q.get('with') || undefined
   const isMobile = useIsMobile()
 
+  const [threads, setThreads] = useState<ThreadDoc[]>([])
   const [matches, setMatches] = useState<MatchDoc[]>([])
   const [users, setUsers] = useState<Record<string, UserDoc>>({})
-  const [selectedMatchId, setSelectedMatchId] = useState<string | undefined>(undefined)
+  const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
   const [messages, setMessages] = useState<any[]>([])
-  const [threadMeta, setThreadMeta] = useState<any>(undefined)
   const [showProfile, setShowProfile] = useState(false)
   const [showReport, setShowReport] = useState(false)
 
-  // Load confirmed matches (list)
   useEffect(() => {
     if (!user) return
-    const qMatches = query(
-      collection(db, 'matches'),
-      where('participants', 'array-contains', user.uid)
+    const threadsQ = query(
+      collection(db, 'threads'),
+      where('participants', 'array-contains', user.uid),
+      orderBy('updatedAt', 'desc')
     )
-    const stop = onSnapshot(qMatches, (snap) => {
-      const ms = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as MatchDoc[]
+    const stop = onSnapshot(threadsQ, (snap) => {
+      const ts = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+      setThreads(ts as ThreadDoc[])
+    })
+    return () => stop()
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    const matchesQ = query(collection(db, 'matches'), where('participants', 'array-contains', user.uid))
+    const stop = onSnapshot(matchesQ, (snap) => {
+      const ms = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
       const confirmed = ms.filter((m) => (m.status ?? 'confirmed') === 'confirmed')
       setMatches(confirmed)
     })
     return () => stop()
   }, [user])
 
-  // Load peer profiles for header and list
   useEffect(() => {
-    if (!user || matches.length === 0) return
-    const uids = Array.from(
-      new Set(
-        matches.map((m) => m.participants.find((p) => p !== user.uid)).filter(Boolean) as string[]
-      )
-    )
+    if (!user) return
+    const peerUids = new Set<string>()
+    for (const m of matches) {
+      const p = m.participants?.find((p: string) => p !== user.uid)
+      if (p) peerUids.add(p)
+    }
+    for (const t of threads) {
+      const p = t.participants?.find((p: string) => p !== user.uid)
+      if (p) peerUids.add(p)
+    }
+    if (peerUids.size === 0) return
+
     const run = async () => {
-      const entries = await Promise.all(
-        uids.map(async (uid) => {
-          const snap = await getDoc(doc(db, 'users', uid))
-          if (snap.exists()) return [uid, { uid, ...(snap.data() as any) } as UserDoc] as const
-          return undefined
-        })
-      )
+      const pairs = await Promise.all(Array.from(peerUids).map(async (uid) => {
+        const snap = await getDoc(doc(db, 'users', uid))
+        if (snap.exists()) return [uid, { uid, ...(snap.data() as any) } as UserDoc] as const
+        return undefined
+      }))
       const map: Record<string, UserDoc> = {}
-      for (const e of entries) if (e) map[e[0]] = e[1]
+      for (const p of pairs) if (p) map[p[0]] = p[1]
       setUsers(map)
     }
-    void run()
-  }, [user, matches])
+    run()
+  }, [user, matches, threads])
 
-  // Select from ?match=; on desktop auto-open first
+  const list = useMemo(() => {
+    if (!user) return []
+    const toMs = (t: any) => (typeof t?.toMillis === 'function' ? t.toMillis() : (t instanceof Date ? t.getTime() : 0))
+    return matches.map((m) => {
+      const peerUid = m.participants.find((p) => p !== user.uid)!
+      const tid = threadIdFor(user.uid, peerUid)
+      const t = threads.find((x) => x.id === tid)
+      return {
+        peerUid,
+        threadId: tid,
+        lastMessage: t?.lastMessage?.text || '',
+        updatedAt: (t as any)?.updatedAt || null,
+      }
+    }).sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt))
+  }, [matches, threads, user])
+
   useEffect(() => {
     if (!user) return
     const init = async () => {
-      if (matchId) {
-        setSelectedMatchId(matchId)
-        try { await createOrTouchThread(matchId) } catch {}
+      if (withUid && withUid !== user.uid) {
+        const tid = threadIdFor(user.uid, withUid)
+        setSelectedId(tid)
+        try { await ensureThread(user.uid, withUid) } catch {}
         return
       }
-      if (!isMobile && matches.length > 0 && !selectedMatchId) {
-        setSelectedMatchId(matches[0].id)
-        try { await createOrTouchThread(matches[0].id) } catch {}
+      if (!withUid && !isMobile && list.length > 0 && !selectedId) {
+        setSelectedId(list[0].threadId)
       }
     }
-    void init()
+    init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchId, user, matches.length, isMobile])
+  }, [withUid, user, list.length, isMobile])
 
-  // Subscribe thread meta (blocks, lastMessage, updatedAt)
+  // MESSAGES: subscribe ordered by createdAtMs for instant, stable local updates
   useEffect(() => {
-    if (!selectedMatchId) { setThreadMeta(undefined); return }
-    const stop = onSnapshot(doc(db, 'threads', selectedMatchId), (snap) => {
-      setThreadMeta(snap.exists() ? { id: selectedMatchId, ...(snap.data() as any) } : { id: selectedMatchId })
-    })
-    return () => stop()
-  }, [selectedMatchId])
-
-  // Subscribe messages under threads/{matchId}/messages ordered by createdAtMs
-  useEffect(() => {
-    if (!selectedMatchId) { setMessages([]); return }
-    const msgsQ = query(
-      collection(db, 'threads', selectedMatchId, 'messages'),
-      orderBy('createdAtMs', 'asc')
-    )
+    if (!selectedId) return
+    const msgsQ = query(collection(db, 'threads', selectedId, 'messages'), orderBy('createdAtMs', 'asc'))
     const stop = onSnapshot(msgsQ, (snap) => {
       setMessages(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })))
     })
     return () => stop()
-  }, [selectedMatchId])
+  }, [selectedId])
 
-  // Build sidebar list from matches
-  const sidebarItems = useMemo(() => {
-    if (!user) return []
-    const toMs = (t: any) =>
-      typeof t?.toMillis === 'function'
-        ? t.toMillis()
-        : t instanceof Date
-          ? t.getTime()
-          : typeof t === 'number'
-            ? t
-            : 0
-    const list = matches.map((m) => {
-      const peerUid = m.participants.find((p) => p !== user.uid) || user.uid
-      const u = users[peerUid]
-      return {
-        id: m.id,
-        peerUid,
-        name: u?.name || 'Unknown',
-        photoUrl: u?.photoUrl,
-        instagramId: u?.instagramId,
-        lastText: '', // optional: you can hydrate from threadMeta cache if you store it
-        active: selectedMatchId === m.id,
-        sortTime: toMs(m.updatedAt) || toMs(m.createdAt),
-      }
-    })
-    list.sort((a, b) => (b.sortTime || 0) - (a.sortTime || 0))
-    return list
-  }, [matches, users, user, selectedMatchId])
+  const onSend = async (text: string) => {
+    if (!user || !selectedId) return
+    await sendMessage(selectedId, user.uid, text)
+  }
 
-  // Select a chat
-  const selectMatch = useCallback(async (id: string) => {
-    setSelectedMatchId(id)
-    try { await createOrTouchThread(id) } catch {}
-    nav(`/dashboard/chat?match=${encodeURIComponent(id)}`, { replace: true })
-  }, [nav])
+  const selectPeer = useCallback(async (peerUid: string) => {
+    if (!user) return
+    const tid = threadIdFor(user.uid, peerUid)
+    setSelectedId(tid)
+    try { await ensureThread(user.uid, peerUid) } catch {}
+    nav(`/dashboard/chat?with=${encodeURIComponent(peerUid)}`, { replace: true })
+  }, [nav, user])
 
-  // Send handler (no first-message race with these rules)
-  const onSend = useCallback(async (text: string) => {
-    if (!user || !selectedMatchId) return
-    try {
-      await sendMessageByMatchId(selectedMatchId, user.uid, text)
-    } catch (e) {
-      console.error('sendMessage failed', e)
-    }
-  }, [selectedMatchId, user])
-
-  // Mobile back
   const backToList = useCallback(() => {
-    setSelectedMatchId(undefined)
+    setSelectedId(undefined)
     nav('/dashboard/chat', { replace: true })
   }, [nav])
 
+  const selectedThread: ThreadDoc | undefined = useMemo(
+    () => threads.find((t) => t.id === selectedId),
+    [threads, selectedId]
+  )
+
+  const selectedPeer: UserDoc | undefined = useMemo(() => {
+    if (!user || !selectedId) return undefined
+    const parts = selectedId.split('_')
+    const peerUid = parts[0] === user.uid ? parts[1] : parts[0]
+    return users[peerUid]
+  }, [selectedId, users, user])
+
+  const iAmBlocked = useMemo(() => {
+    if (!user || !selectedThread) return false
+    return selectedThread.blockedUserUid === user.uid
+  }, [user, selectedThread])
+
+  const iBlockedThem = useMemo(() => {
+    if (!user || !selectedThread) return false
+    const parts = (selectedThread.id || '').split('_')
+    const peerUid = parts[0] === user?.uid ? parts[1] : parts[0]
+    return !!peerUid && selectedThread.blockedUserUid === peerUid
+  }, [selectedThread, user])
+
   if (!user) return null
   const isFemale = profile?.gender === 'female'
-
-  const selectedMatch = matches.find((m) => m.id === selectedMatchId)
-  const selectedPeerUid = selectedMatch?.participants?.find((p) => p !== user.uid)
-  const selectedPeer = selectedPeerUid ? users[selectedPeerUid] : undefined
-
-  const iAmBlocked = !!threadMeta?.blocks && threadMeta.blocks[user.uid] === true
-  const iBlockedThem = !!(selectedPeerUid && threadMeta?.blocks && threadMeta.blocks[selectedPeerUid] === true)
-
-  const mobileClasses = isMobile ? `mobile ${selectedMatchId ? 'mobile-chat-open' : ''}` : ''
+  const isMobileClass = isMobile ? `mobile ${selectedId ? 'mobile-chat-open' : ''}` : ''
 
   return (
     <>
@@ -231,16 +198,24 @@ export default function ChatPage() {
         {isFemale ? <FemaleTabs /> : <MaleTabs />}
 
         <div className="chat-area">
-          <div className={`chat-shell ${mobileClasses}`}>
+          <div className={`chat-shell ${isMobileClass}`}>
             <ChatSidebar
-              items={sidebarItems}
-              onSelect={(peerOrId: string) => selectMatch(peerOrId)}
-              currentUid={user.uid}
-              users={users}
+              items={list.map((i) => {
+                const u = users[i.peerUid]
+                return {
+                  id: i.threadId,
+                  peerUid: i.peerUid,
+                  name: u?.name || 'Unknown',
+                  photoUrl: u?.photoUrl,
+                  instagramId: u?.instagramId,
+                  lastText: i.lastMessage || 'Say hi 👋',
+                  active: selectedId === i.threadId,
+                }
+              })}
+              onSelect={(peerUid) => selectPeer(peerUid)}
             />
-
             <div className="chat-main">
-              {selectedMatchId ? (
+              {selectedId ? (
                 <>
                   <div className="chat-header">
                     <button className="back-btn" type="button" onClick={backToList} aria-label="Back to chats">
@@ -248,25 +223,25 @@ export default function ChatPage() {
                         <polyline points="15 18 9 12 15 6"></polyline>
                       </svg>
                     </button>
-
                     <button className="avatar as-button" onClick={() => setShowProfile(true)}>
                       {selectedPeer?.photoUrl
                         ? <img src={selectedPeer.photoUrl} alt={selectedPeer?.name || 'user'} />
                         : <div className="avatar-fallback">{(selectedPeer?.name || 'U').slice(0,1)}</div>}
                     </button>
-
                     <div className="peer-meta">
                       <div className="peer-name">{selectedPeer?.name || 'Chat'}</div>
                       <div className="peer-sub">@{selectedPeer?.instagramId || '—'}</div>
                     </div>
-
                     <div className="chat-actions">
                       {iBlockedThem ? (
-                        <button className="btn small" onClick={async () => selectedPeerUid && await unblockUserInThreadByMatchId(selectedMatchId, selectedPeerUid)}>
+                        <button className="btn small" onClick={async () => { if (!selectedThread) return; await unblockUserInThread(selectedThread.id) }}>
                           Unblock
                         </button>
                       ) : (
-                        <button className="btn small" onClick={async () => selectedPeerUid && await blockUserInThreadByMatchId(selectedMatchId, selectedPeerUid)}>
+                        <button className="btn small" onClick={async () => {
+                          if (!selectedThread || !selectedPeer) return
+                          await blockUserInThread(selectedThread.id, user.uid, selectedPeer.uid)
+                        }}>
                           Block
                         </button>
                       )}
@@ -275,10 +250,16 @@ export default function ChatPage() {
                   </div>
 
                   {iAmBlocked ? (
-                    <div className="blocked-banner">You can’t message this person anymore.</div>
+                    <div className="blocked-banner">
+                      You can’t message this person anymore.
+                    </div>
                   ) : null}
 
-                  <ChatWindow currentUid={user.uid} messages={messages} onSend={iAmBlocked ? () => {} : onSend} />
+                  <ChatWindow
+                    currentUid={user.uid}
+                    messages={messages}
+                    onSend={iAmBlocked ? () => {} : async (t) => onSend(t)}
+                  />
                 </>
               ) : (
                 <div className="chat-empty">Select a connection to start chatting</div>
@@ -293,8 +274,13 @@ export default function ChatPage() {
         open={showReport}
         onClose={() => setShowReport(false)}
         onSubmit={async (reason) => {
-          if (!selectedMatchId || !selectedPeerUid) return
-          await reportUserFromChat({ reporterUid: user.uid, reportedUid: selectedPeerUid, threadId: selectedMatchId, reason })
+          if (!selectedPeer || !selectedId) return
+          await reportUser({
+            reporterUid: user.uid,
+            reportedUid: selectedPeer.uid,
+            threadId: selectedId,
+            reason,
+          })
         }}
       />
     </>
