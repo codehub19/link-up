@@ -1,105 +1,232 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import AdminGuard from './AdminGuard'
-import { getActiveRound } from '../../services/rounds'
-import { listPendingPayments } from '../../services/payments'
-import { listActivePlans } from '../../services/subscriptions'
 
-export default function AdminHome() {
-  const [loading, setLoading] = useState(true)
-  const [activeRoundId, setActiveRoundId] = useState<string | null>(null)
-  const [pendingPaymentsCount, setPendingPaymentsCount] = useState<number>(0)
-  const [activePlansCount, setActivePlansCount] = useState<number>(0)
+/**
+ * IMPORTANT:
+ * This component is designed to be backward‑compatible with earlier usages like:
+ *   <AdminHeader />
+ *   <AdminHeader title="Payments" />
+ *   <AdminHeader current="plans" />
+ *   <AdminHeader title="Something" current="curation" showPendingCount={false} />
+ *
+ * It also safely ignores the pending count feature if the payments service is missing
+ * (e.g. during a refactor) by catching dynamic import errors.
+ *
+ * If you already have a static import:
+ *   import { listPendingPayments } from '../../services/payments'
+ * you can keep it. Here we use a dynamic import so pages that don’t care
+ * about pending payments aren’t forced to have the service ready at build time.
+ */
 
+// Types you may already have in services/payments.ts; duplicated minimally here
+// for resilience if a circular dependency occurs.
+interface Payment {
+  id: string
+  status?: string
+  [k: string]: any
+}
+
+export interface AdminHeaderNavItem {
+  slug: string
+  label: string
+  href?: string
+}
+
+export interface AdminHeaderProps {
+  title?: string
+  /**
+   * Slug of the current admin section (e.g. 'plans', 'curation', 'payments', 'dashboard')
+   * Used for highlighting navigation.
+   */
+  current?: string
+  /**
+   * Show the small badge with pending payment count (defaults true)
+   */
+  showPendingCount?: boolean
+  /**
+   * Hide the navigation bar entirely
+   */
+  hideNav?: boolean
+  /**
+   * Provide custom nav items. If omitted, a default set is used.
+   */
+  navItems?: AdminHeaderNavItem[]
+  /**
+   * Optional className for outer wrapper
+   */
+  className?: string
+  /**
+   * Optional style override
+   */
+  style?: React.CSSProperties
+  /**
+   * Called after pending count refresh (if needed)
+   */
+  onPendingCountLoaded?: (count: number) => void
+}
+
+/* --------------------------------- Defaults -------------------------------- */
+const DEFAULT_NAV: AdminHeaderNavItem[] = [
+  { slug: 'dashboard', label: 'Dashboard', href: '/admin' },
+  { slug: 'plans', label: 'Plans', href: '/admin/plans' },
+  { slug: 'payments', label: 'Payments', href: '/admin/payments' },
+  { slug: 'curation', label: 'Curation', href: '/admin/curation' },
+]
+
+const badgeBase: React.CSSProperties = {
+  fontSize: 11,
+  lineHeight: 1,
+  padding: '4px 8px',
+  borderRadius: 999,
+  fontWeight: 600,
+  display: 'inline-block',
+  whiteSpace: 'nowrap',
+}
+
+/* --------------------------------- Component -------------------------------- */
+export const AdminHeader: React.FC<AdminHeaderProps> = ({
+  title = 'Admin',
+  current,
+  showPendingCount = true,
+  hideNav = false,
+  navItems = DEFAULT_NAV,
+  className,
+  style,
+  onPendingCountLoaded,
+}) => {
+  const [pendingCount, setPendingCount] = useState<number | null>(null)
+  const [pendingError, setPendingError] = useState<string | null>(null)
+
+  /* ---------------------- Load Pending Payments (Optional) --------------------- */
   useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      try {
-        const [round, pending, plans] = await Promise.all([
-          getActiveRound(),
-          listPendingPayments(),
-          listActivePlans(),
-        ])
-        setActiveRoundId(round?.id ?? null)
-        setPendingPaymentsCount(pending.length)
-        setActivePlansCount(plans.length)
-      } finally {
-        setLoading(false)
-      }
+    let cancelled = false
+    if (!showPendingCount) {
+      setPendingCount(null)
+      return
     }
-    load()
-  }, [])
 
+    // Dynamic import to avoid hard failure if payments service changes
+    import('../../services/payments')
+      .then(mod => {
+        if (!mod.listPendingPayments) {
+          throw new Error('listPendingPayments not exported')
+        }
+        return mod.listPendingPayments()
+      })
+      .then((rows: Payment[]) => {
+        if (cancelled) return
+        setPendingCount(rows.length)
+        setPendingError(null)
+        onPendingCountLoaded?.(rows.length)
+      })
+      .catch(err => {
+        if (cancelled) return
+        // Fallback: hide badge rather than crashing build
+        setPendingCount(0)
+        setPendingError(err?.message || 'Failed to load')
+        onPendingCountLoaded?.(0)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [showPendingCount, onPendingCountLoaded])
+
+  /* --------------------------------- Rendering -------------------------------- */
   return (
-    <AdminGuard>
-      <div className="container">
-        <div className="card" style={{ padding: 24, margin: '24px auto', maxWidth: 1100 }}>
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ margin: 0 }}>Admin Home</h2>
-            {loading ? <span className="tag">Loading…</span> : null}
-          </div>
+    <header
+      className={className}
+      style={{
+        marginBottom: 28,
+        ...style,
+      }}
+      data-admin-header
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <h2
+          style={{
+            margin: 0,
+            fontSize: 26,
+            lineHeight: 1.15,
+            fontWeight: 600,
+          }}
+        >
+          {title}
+        </h2>
 
-          <div className="row" style={{ gap: 12, marginTop: 8, color: 'var(--muted)' }}>
-            <div>Active round: <b>{activeRoundId ?? 'None'}</b></div>
-            <div>•</div>
-            <div>Pending payments: <b>{pendingPaymentsCount}</b></div>
-            <div>•</div>
-            <div>Active plans: <b>{activePlansCount}</b></div>
-          </div>
-
-          <div className="grid cols-2" style={{ gap: 16, marginTop: 20 }}>
-            <div className="card" style={{ padding: 16 }}>
-              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0 }}>Matching Rounds</h3>
-                <span className="tag">{activeRoundId ? 'Active' : 'No active round'}</span>
-              </div>
-              <p className="muted" style={{ marginTop: 6 }}>
-                Create a round, activate/deactivate, and view participants count.
-              </p>
-              <Link className="btn btn-primary" to="/admin/rounds">Open Rounds</Link>
-            </div>
-
-            <div className="card" style={{ padding: 16 }}>
-              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0 }}>Payments</h3>
-                <span className="tag">{pendingPaymentsCount} pending</span>
-              </div>
-              <p className="muted" style={{ marginTop: 6 }}>
-                Review payments, Approve to activate plan, or Reject with reason.
-              </p>
-              <Link className="btn btn-primary" to="/admin/payments">Open Payments</Link>
-            </div>
-
-            <div className="card" style={{ padding: 16 }}>
-              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0 }}>Curation</h3>
-              </div>
-              <p className="muted" style={{ marginTop: 6 }}>
-                Assign approved males to girls and promote likes to matches.
-              </p>
-              <Link className="btn btn-primary" to="/admin/curation">Open Curation</Link>
-            </div>
-
-            <div className="card" style={{ padding: 16 }}>
-              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0 }}>Plans</h3>
-                <span className="tag">{activePlansCount} active</span>
-              </div>
-              <p className="muted" style={{ marginTop: 6 }}>
-                Create and manage subscription plans (price, match quota, support, offers).
-              </p>
-              <Link className="btn btn-primary" to="/admin/plans">Manage Plans</Link>
-            </div>
-          </div>
-
-          <div className="row" style={{ gap: 8, marginTop: 20 }}>
-            <Link className="btn" to="/admin/rounds">Rounds</Link>
-            <Link className="btn" to="/admin/payments">Payments</Link>
-            <Link className="btn" to="/admin/curation">Curation</Link>
-            <Link className="btn" to="/admin/plans">Plans</Link>
-          </div>
-        </div>
+        {showPendingCount && pendingCount !== null && (
+          <span
+            title={
+              pendingError
+                ? `Pending payments (error fallback: ${pendingError})`
+                : 'Pending payments'
+            }
+            style={{
+              ...badgeBase,
+              background:
+                pendingCount > 0
+                  ? '#fff4e0'
+                  : '#e7faef',
+              color:
+                pendingCount > 0
+                  ? '#8a4b00'
+                  : '#1d6b32',
+              border: `1px solid ${
+                pendingCount > 0 ? '#f6c38a' : '#8dd6a6'
+              }`,
+            }}
+          >
+            Pending: {pendingCount}
+          </span>
+        )}
       </div>
-    </AdminGuard>
+
+      {!hideNav && navItems.length > 0 && (
+        <nav
+          style={{
+            marginTop: 14,
+            display: 'flex',
+            gap: 14,
+            flexWrap: 'wrap',
+            fontSize: 14,
+          }}
+          aria-label="Admin sections"
+        >
+          {navItems.map(item => {
+            const active = current === item.slug
+            return (
+              <a
+                key={item.slug}
+                href={item.href || '#'}
+                style={{
+                  textDecoration: 'none',
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  background: active ? '#222' : '#f2f3f5',
+                  color: active ? '#fff' : '#333',
+                  fontWeight: active ? 600 : 500,
+                  border: active
+                    ? '1px solid #222'
+                    : '1px solid #d9dce0',
+                  transition: 'background .15s,color .15s',
+                }}
+                data-active={active ? 'true' : 'false'}
+              >
+                {item.label}
+              </a>
+            )
+          })}
+        </nav>
+      )}
+    </header>
   )
 }
+
+export default AdminHeader

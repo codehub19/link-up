@@ -8,6 +8,7 @@ export type UserProfile = {
   email: string
   name?: string
   gender?: 'male' | 'female'
+  isAdmin?: boolean
   instagramId?: string
   college?: string
   photoUrl?: string

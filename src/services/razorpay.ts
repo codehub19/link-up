@@ -1,56 +1,146 @@
 import { getApp } from 'firebase/app'
 import { getFunctions, httpsCallable } from 'firebase/functions'
-import { getFirestore, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore'
-import { Plan } from '../config/payments'
-import { FUNCTIONS_REGION } from '../firebase'  // you exported this earlier
-
-const app = getApp()
-const db = getFirestore(app)
+import { FUNCTIONS_REGION } from '../firebase'
 
 function fns() {
-  return getFunctions(app, FUNCTIONS_REGION)
+  return getFunctions(getApp(), FUNCTIONS_REGION)
 }
 
-export async function createOrder(plan: Plan) {
+export async function createOrder(planId: string) {
   const callable = httpsCallable(fns(), 'createRazorpayOrder')
-  const res: any = await callable({ planId: plan.id, amount: plan.amount })
-  return res.data as { orderId: string; amount: number; currency: string; keyId: string }
+  const res: any = await callable({ planId })
+  return res.data
 }
 
-export async function verifyPayment(params: {
+export async function verifyPayment(payload: {
   orderId: string
   paymentId: string
   signature: string
   planId: string
-  amount: number
 }) {
   const callable = httpsCallable(fns(), 'verifyRazorpayPayment')
-  const res: any = await callable(params)
-  return res.data as { success: boolean; paymentDocId: string }
+  const res: any = await callable(payload)
+  return res.data as {
+    success: boolean
+    paymentDocId: string
+    subscriptionProvisioned?: boolean
+    provisionError?: string
+    already?: boolean
+  }
 }
 
-export type PaymentRecord = {
+
+
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  limit,
+  Timestamp,
+} from 'firebase/firestore'
+
+export interface Payment {
   id: string
   uid: string
   planId: string
   amount: number
-  status: string
-  gateway: string
+  gateway: 'razorpay' | string
+  status: 'pending' | 'approved' | 'failed' | 'refunded' | string
+  subscriptionProvisioned?: boolean
+  provisionedAt?: Timestamp
+  createdAt?: Timestamp
+  updatedAt?: Timestamp
   razorpayOrderId?: string
   razorpayPaymentId?: string
-  createdAt?: any
-  updatedAt?: any
-  provisionedAt?: any
-  subscriptionProvisioned?: boolean
+  razorpaySignature?: string
+  // Any dynamic fields
+  [k: string]: any
 }
 
-export async function listUserPayments(uid: string, max = 10): Promise<PaymentRecord[]> {
-  const q = query(
-    collection(db, 'payments'),
+interface ListOptions {
+  limitTo?: number
+  statusIn?: string[]
+  order?: 'asc' | 'desc'
+}
+
+/**
+ * List payments for a specific user.
+ * Defaults: order by updatedAt desc.
+ */
+export async function listUserPayments(
+  uid: string,
+  opts: ListOptions = {}
+): Promise<Payment[]> {
+  const db = getFirestore(getApp())
+  const col = collection(db, 'payments')
+
+  const statusIn = opts.statusIn
+  const parts = [
     where('uid', '==', uid),
-    orderBy('updatedAt', 'desc'),
-    limit(max)
-  )
+  ] as any[]
+
+  // Firestore does not support "in" with dynamic arrays + other sorts simultaneously without proper indexes.
+  // If you need multi-status filters, build separate queries or add an index.
+  // For now we only handle optional single-status arrays gracefully.
+  if (statusIn && statusIn.length === 1) {
+    parts.push(where('status', '==', statusIn[0]))
+  }
+
+  const direction = opts.order === 'asc' ? 'asc' : 'desc'
+  parts.push(orderBy('updatedAt', direction))
+
+  if (opts.limitTo) {
+    parts.push(limit(opts.limitTo))
+  }
+
+  const q = query(col, ...parts)
   const snap = await getDocs(q)
-  return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
+  const out: Payment[] = []
+  snap.forEach(d => {
+    out.push({ id: d.id, ...(d.data() as any) })
+  })
+  return out
+}
+
+/**
+ * List pending payments for admin (status == 'pending').
+ * You can adjust this criteria if "pending" is no longer used.
+ */
+export async function listPendingPayments(opts: { limitTo?: number } = {}): Promise<Payment[]> {
+  const db = getFirestore(getApp())
+  const col = collection(db, 'payments')
+  const parts = [
+    where('status', '==', 'pending'),
+    orderBy('createdAt', 'desc'),
+  ] as any[]
+  if (opts.limitTo) parts.push(limit(opts.limitTo))
+  const q = query(col, ...parts)
+  const snap = await getDocs(q)
+  const out: Payment[] = []
+  snap.forEach(d => out.push({ id: d.id, ...(d.data() as any) }))
+  return out
+}
+
+/**
+ * (Optional helper) Approved but not yet provisioned (should be rare after inline provisioning).
+ */
+export async function listUnprovisionedApprovedPayments(
+  opts: { limitTo?: number } = {}
+): Promise<Payment[]> {
+  const db = getFirestore(getApp())
+  const col = collection(db, 'payments')
+  const parts = [
+    where('status', '==', 'approved'),
+    where('subscriptionProvisioned', '==', false),
+    orderBy('updatedAt', 'desc'),
+  ] as any[]
+  if (opts.limitTo) parts.push(limit(opts.limitTo))
+  const q = query(col, ...parts)
+  const snap = await getDocs(q)
+  const out: Payment[] = []
+  snap.forEach(d => out.push({ id: d.id, ...(d.data() as any) }))
+  return out
 }

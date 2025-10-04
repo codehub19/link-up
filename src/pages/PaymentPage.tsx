@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../state/AuthContext'
-import { getPlan } from '../config/payments'
+import {
+  ensurePlans,
+  getPlanById,
+  type Plan
+} from '../config/payments'
 import { createOrder, verifyPayment } from '../services/razorpay'
 
 declare global {
@@ -16,17 +20,33 @@ export default function PaymentPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
 
-  const planId = params.get('plan') || params.get('planId') || 'basic'
-  const [loading, setLoading] = useState(true)
+  const planId = params.get('plan') || params.get('planId') || 'pro'
+
+  const [plan, setPlan] = useState<Plan | null>(null)
+  const [loadingPlan, setLoadingPlan] = useState(true)
   const [initializing, setInitializing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [provisionPending, setProvisionPending] = useState(false)
 
-  const plan = getPlan(planId)
+  const loadPlan = useCallback(async () => {
+    setLoadingPlan(true)
+    try {
+      await ensurePlans()
+      const p = await getPlanById(planId)
+      setPlan(p)
+      if (!p) setError('Plan not found or inactive.')
+    } catch (e: any) {
+      console.error(e)
+      setError('Failed to load plans.')
+    } finally {
+      setLoadingPlan(false)
+    }
+  }, [planId])
 
   useEffect(() => {
-    setLoading(false)
-  }, [planId])
+    loadPlan()
+  }, [loadPlan])
 
   async function loadRazorpayScript() {
     if (window.Razorpay) return
@@ -44,8 +64,8 @@ export default function PaymentPage() {
       setError('Please sign in first.')
       return
     }
-    if (!plan.amount || plan.amount <= 0) {
-      setError('Invalid plan amount.')
+    if (!plan) {
+      setError('Plan not loaded.')
       return
     }
     setError(null)
@@ -53,13 +73,14 @@ export default function PaymentPage() {
 
     try {
       await loadRazorpayScript()
-      const order = await createOrder(plan)
+      // Server now derives price; we only send planId
+      const order = await createOrder(plan.id)
 
       const options = {
         key: order.keyId,
         amount: order.amount,
         currency: order.currency,
-        name: 'LinkUp',
+        name: 'DateU',
         description: `Purchase: ${plan.name}`,
         order_id: order.orderId,
         prefill: {
@@ -68,14 +89,16 @@ export default function PaymentPage() {
         },
         handler: async (resp: any) => {
           try {
-            await verifyPayment({
+            const verifyRes = await verifyPayment({
               orderId: resp.razorpay_order_id,
               paymentId: resp.razorpay_payment_id,
               signature: resp.razorpay_signature,
               planId: plan.id,
-              amount: plan.amount,
             })
             setSuccess(true)
+            if (!verifyRes.subscriptionProvisioned) {
+              setProvisionPending(true)
+            }
             setInitializing(false)
             setTimeout(() => navigate('/dashboard/plans'), 1200)
           } catch (e: any) {
@@ -99,55 +122,66 @@ export default function PaymentPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <>
-        <Navbar />
-        <div className="container">
-          <div className="card" style={{ padding: 24, margin: '32px auto', maxWidth: 720 }}>
-            Loading...
-          </div>
-        </div>
-      </>
-    )
-  }
-
   return (
     <>
       <Navbar />
       <div className="container" style={{ maxWidth: 820, padding: '24px 0' }}>
         <div className="card" style={{ padding: 28 }}>
           <h2 style={{ marginTop: 0 }}>Complete Payment</h2>
-          <p className="muted" style={{ marginTop: 4 }}>
-            Plan: <strong>{plan.name}</strong> • Amount: <strong>₹{plan.amount}</strong>
-          </p>
+
+            {loadingPlan && (
+              <p className="muted" style={{ marginTop: 4 }}>Loading plan...</p>
+            )}
+
+            {!loadingPlan && plan && (
+              <p className="muted" style={{ marginTop: 4 }}>
+                Plan:&nbsp;
+                <strong>{plan.name}</strong>
+                &nbsp;• Amount:&nbsp;
+                <strong>₹{plan.price}</strong>
+              </p>
+            )}
+
+            {!loadingPlan && !plan && (
+              <div className="banner" style={{ marginTop: 16 }}>
+                Plan unavailable or inactive.
+              </div>
+            )}
+
           <p style={{ marginTop: 18 }}>
-            Click the button below to pay securely via Razorpay. Do not refresh or close the window until payment finishes.
+            {!plan
+              ? 'Select a valid plan to proceed.'
+              : 'Click the button below to pay securely via Razorpay. Do not refresh or close the window until payment completes.'}
           </p>
 
-            {error && (
-              <div className="banner" style={{ marginTop: 16 }}>
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="banner" style={{ marginTop: 16 }}>
-                Payment successful! Redirecting...
-              </div>
-            )}
+          {error && (
+            <div className="banner" style={{ marginTop: 16 }}>
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="banner" style={{ marginTop: 16 }}>
+              Payment successful
+              {provisionPending ? ', provisioning your plan...' : '! Redirecting...'}
+            </div>
+          )}
 
           <div style={{ marginTop: 30 }}>
             <button
               className="btn btn-primary"
               onClick={startPayment}
-              disabled={initializing}
+              disabled={initializing || loadingPlan || !plan}
             >
-              {initializing ? 'Initializing...' : 'Pay with Razorpay'}
+              {initializing
+                ? 'Initializing...'
+                : !plan
+                  ? 'Plan Unavailable'
+                  : 'Pay with Razorpay'}
             </button>
           </div>
 
           <small style={{ display: 'block', marginTop: 24, color: 'var(--muted)' }}>
-            If money is deducted but the plan does not appear after a few minutes, contact support with your Razorpay payment id.
+            If money is deducted but your plan does not appear after a few minutes, contact support with your Razorpay payment id.
           </small>
         </div>
       </div>

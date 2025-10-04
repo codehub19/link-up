@@ -1,27 +1,35 @@
 import * as admin from 'firebase-admin'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
-import { onDocumentUpdated, Change, DocumentSnapshot } from 'firebase-functions/v2/firestore'
+import {
+  onDocumentUpdated,
+  Change,
+  DocumentSnapshot,
+} from 'firebase-functions/v2/firestore'
 import * as logger from 'firebase-functions/logger'
 import Razorpay from 'razorpay'
 import * as crypto from 'crypto'
 import { defineSecret } from 'firebase-functions/params'
 
-/* -------------------------------------------------------------------------- */
-/*  Region & Secrets                                                          */
-/* -------------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------------
+ * Region & Secrets
+ * ------------------------------------------------------------------------- */
 const REGION = 'asia-south2'
+
+// Set with:
+//   firebase functions:secrets:set RAZORPAY_KEY_ID
+//   firebase functions:secrets:set RAZORPAY_KEY_SECRET
 const RAZORPAY_KEY_ID = defineSecret('RAZORPAY_KEY_ID')
 const RAZORPAY_KEY_SECRET = defineSecret('RAZORPAY_KEY_SECRET')
 
-/* -------------------------------------------------------------------------- */
-/*  Admin Initialization                                                      */
-/* -------------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------------
+ * Firebase Admin Initialization
+ * ------------------------------------------------------------------------- */
 if (!admin.apps.length) admin.initializeApp()
 const db = admin.firestore()
 
-/* -------------------------------------------------------------------------- */
-/*  Helpers                                                                   */
-/* -------------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------------
+ * Types
+ * ------------------------------------------------------------------------- */
 interface ActiveSubscription {
   id: string
   remainingMatches?: number
@@ -29,22 +37,33 @@ interface ActiveSubscription {
   [k: string]: any
 }
 
+/* ----------------------------------------------------------------------------
+ * Helper Functions
+ * ------------------------------------------------------------------------- */
+
 async function isRequesterAdmin(uid?: string): Promise<boolean> {
   if (!uid) return false
-  const u = await db.collection('users').doc(uid).get()
-  return !!u.exists && u.data()?.isAdmin === true
+  const snap = await db.collection('users').doc(uid).get()
+  return !!snap.exists && snap.data()?.isAdmin === true
 }
 
 async function getActiveSubscription(uid: string): Promise<ActiveSubscription | null> {
-  const snap = await db.collection('subscriptions').where('uid', '==', uid).limit(10).get()
+  const snap = await db
+    .collection('subscriptions')
+    .where('uid', '==', uid)
+    .limit(10)
+    .get()
   if (snap.empty) return null
-  const docs: ActiveSubscription[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
-  const withRemaining = docs.find(s => s.status === 'active' && Number(s.remainingMatches ?? 0) > 0)
-  return withRemaining || docs.find(s => s.status === 'active') || null
+  const subs: ActiveSubscription[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
+  const withRemaining = subs.find(s => s.status === 'active' && Number(s.remainingMatches ?? 0) > 0)
+  return withRemaining || subs.find(s => s.status === 'active') || null
 }
 
 async function getActiveRoundId(): Promise<string | null> {
-  const r = await db.collection('matchingRounds').where('isActive', '==', true).limit(1).get()
+  const r = await db.collection('matchingRounds')
+    .where('isActive', '==', true)
+    .limit(1)
+    .get()
   return r.empty ? null : r.docs[0].id
 }
 
@@ -56,8 +75,13 @@ async function createOrMergeSubscriptionFromPayment(
   const planSnap = await db.collection('plans').doc(planId).get()
   const plan = planSnap.exists ? (planSnap.data() as any) : undefined
   const quota = Number(plan?.matchQuota ?? plan?.quota ?? fallbackQuota ?? 0)
+
   if (!quota || quota <= 0) {
-    logger.warn('[provision] No quota found', { planId, hasPlanDoc: planSnap.exists })
+    logger.warn('[provision] Missing or invalid quota', {
+      planId,
+      hasPlanDoc: planSnap.exists,
+      computedQuota: quota,
+    })
     throw new HttpsError('failed-precondition', 'Plan has no quota.')
   }
 
@@ -84,13 +108,13 @@ async function createOrMergeSubscriptionFromPayment(
     logger.log('[provision] Created subscription', { uid, planId, quota })
   }
 
+  // Auto-join current active round (best effort)
   const roundId = await getActiveRoundId()
   if (roundId) {
     const userDoc = await db.collection('users').doc(uid).get()
     const gender = userDoc.exists ? (userDoc.data() as any)?.gender : undefined
     if (gender === 'male' || gender === 'female') {
-      const field =
-        gender === 'male' ? 'participatingMales' : 'participatingFemales'
+      const field = gender === 'male' ? 'participatingMales' : 'participatingFemales'
       await db.collection('matchingRounds').doc(roundId).update({
         [field]: admin.firestore.FieldValue.arrayUnion(uid),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -99,18 +123,27 @@ async function createOrMergeSubscriptionFromPayment(
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Razorpay: create order                                                    */
-/* -------------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------------
+ * Razorpay: Create Order (amount derived from Firestore Plan)
+ * ------------------------------------------------------------------------- */
 export const createRazorpayOrder = onCall(
   { region: REGION, secrets: [RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET] },
   async (req) => {
     const auth = req.auth
     if (!auth) throw new HttpsError('unauthenticated', 'Login required')
 
-    const { planId, amount } = (req.data || {}) as { planId?: string; amount?: number }
-    if (!planId || typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
-      throw new HttpsError('invalid-argument', 'planId and positive amount required')
+    const { planId } = (req.data || {}) as { planId?: string }
+    if (!planId) throw new HttpsError('invalid-argument', 'planId required')
+
+    // Securely fetch plan
+    const planSnap = await db.collection('plans').doc(planId).get()
+    if (!planSnap.exists) throw new HttpsError('not-found', 'Plan not found')
+    const plan = planSnap.data() as any
+    if (plan.active !== true) throw new HttpsError('failed-precondition', 'Plan inactive')
+
+    const amount = Number(plan.price ?? plan.amount)
+    if (!amount || amount <= 0 || !Number.isFinite(amount)) {
+      throw new HttpsError('failed-precondition', 'Plan has invalid price')
     }
 
     const key_id = RAZORPAY_KEY_ID.value()
@@ -120,29 +153,34 @@ export const createRazorpayOrder = onCall(
       throw new HttpsError('failed-precondition', 'Payment service unavailable')
     }
 
-    // Short, unique receipt <= 40 chars
+    // Short receipt <= 40 chars
     function buildReceipt(p: string, uid: string) {
       const uid6 = uid.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6) || 'user'
-      const ts = Date.now().toString(36) // compact base36 timestamp
-      const raw = `p_${p}_${uid6}_${ts}` // usually < 30 chars
+      const ts = Date.now().toString(36)
+      const raw = `p_${p}_${uid6}_${ts}`
       return raw.length <= 40 ? raw : raw.slice(0, 40)
     }
     const receipt = buildReceipt(planId, auth.uid)
 
-    logger.log('createRazorpayOrder_input', { uid: auth.uid, planId, amount, receipt })
+    logger.log('createRazorpayOrder_input', {
+      uid: auth.uid,
+      planId,
+      amount,
+      receipt,
+    })
 
     try {
       const client = new Razorpay({ key_id, key_secret })
       const order = await client.orders.create({
         amount: Math.round(amount * 100),
-        currency: 'INR',
+        currency: (plan.currency || 'INR') as string,
         receipt,
         notes: {
           uid: auth.uid,
           planId,
-          // You can add a version marker if needed
-          v: '1'
-        }
+          quota: plan.matchQuota ?? '',
+          v: '1',
+        },
       })
 
       logger.log('createRazorpayOrder_success', {
@@ -150,14 +188,14 @@ export const createRazorpayOrder = onCall(
         planId,
         orderId: order.id,
         receipt: order.receipt,
-        amountPaise: order.amount
+        amountPaise: order.amount,
       })
 
       return {
         orderId: order.id,
         amount: order.amount,
         currency: order.currency,
-        keyId: key_id
+        keyId: key_id,
       }
     } catch (e: any) {
       const rz = e?.error || {}
@@ -170,43 +208,32 @@ export const createRazorpayOrder = onCall(
         statusCode: e?.statusCode || rz?.statusCode,
         description: rz?.description,
         code: rz?.code,
-        raw: rz
+        raw: rz,
       })
-      const clientMsg =
-        typeof rz?.description === 'string'
-          ? `Order failed: ${rz.description}`
-          : 'Failed to create order.'
+      const clientMsg = typeof rz?.description === 'string'
+        ? `Order failed: ${rz.description}`
+        : 'Failed to create order.'
       throw new HttpsError('internal', clientMsg)
     }
   }
 )
-
-/* -------------------------------------------------------------------------- */
-/*  Razorpay: verify payment                                                  */
-/* -------------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------------
+ * Razorpay: Verify + Provision (Option A: inline provisioning)
+ * ------------------------------------------------------------------------- */
 export const verifyRazorpayPayment = onCall(
   { region: REGION, secrets: [RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET] },
   async (req) => {
     const auth = req.auth
     if (!auth) throw new HttpsError('unauthenticated', 'Login required')
 
-    const { orderId, paymentId, signature, planId, amount } = (req.data || {}) as {
+    const { orderId, paymentId, signature, planId } = (req.data || {}) as {
       orderId?: string
       paymentId?: string
       signature?: string
       planId?: string
-      amount?: number
     }
 
-    if (
-      !orderId ||
-      !paymentId ||
-      !signature ||
-      !planId ||
-      typeof amount !== 'number' ||
-      !Number.isFinite(amount) ||
-      amount <= 0
-    ) {
+    if (!orderId || !paymentId || !signature || !planId) {
       throw new HttpsError('invalid-argument', 'Invalid verification payload')
     }
 
@@ -223,6 +250,24 @@ export const verifyRazorpayPayment = onCall(
       throw new HttpsError('permission-denied', 'Signature mismatch')
     }
 
+    // Fetch plan info (for amount logging & plan validation)
+    let planPrice: number | undefined
+    let planQuota: number | undefined
+    try {
+      const pSnap = await db.collection('plans').doc(planId).get()
+      if (!pSnap.exists) throw new Error('Plan not found')
+      const pdata = pSnap.data() as any
+      if (pdata.active !== true) throw new Error('Plan inactive')
+      planPrice = Number(pdata.price ?? pdata.amount)
+      planQuota = Number(pdata.matchQuota ?? pdata.quota)
+    } catch (e: any) {
+      logger.error('verify_plan_fetch_failed', {
+        planId,
+        error: e?.message,
+      })
+      // Proceed; provisioning attempt may still succeed if quota resolved
+    }
+
     const payments = db.collection('payments')
     const existing = await payments
       .where('uid', '==', auth.uid)
@@ -230,46 +275,99 @@ export const verifyRazorpayPayment = onCall(
       .limit(1)
       .get()
 
+    const nowTs = admin.firestore.FieldValue.serverTimestamp()
+    let paymentDocRef: FirebaseFirestore.DocumentReference
+    let existingData: any | undefined
+
     const base = {
       uid: auth.uid,
       planId,
-      amount,
+      amount: planPrice ?? 0,
       gateway: 'razorpay',
       razorpayOrderId: orderId,
       razorpayPaymentId: paymentId,
       razorpaySignature: signature,
       status: 'approved',
       subscriptionProvisioned: false,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: nowTs,
+      planSnapshot: {
+        price: planPrice ?? null,
+        quota: planQuota ?? null,
+      },
     }
 
-    let paymentDocId: string
     if (existing.empty) {
-      const ref = await payments.add({
+      // FIX: remove .ref (add returns a DocumentReference directly)
+      paymentDocRef = await payments.add({
         ...base,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: nowTs,
       })
-      paymentDocId = ref.id
     } else {
-      await existing.docs[0].ref.update(base)
-      paymentDocId = existing.docs[0].id
+      paymentDocRef = existing.docs[0].ref
+      existingData = existing.docs[0].data()
+      await paymentDocRef.update(base)
     }
 
-    logger.log('verify_payment_success', {
-      uid: auth.uid,
-      planId,
-      orderId,
-      paymentId,
-      paymentDocId,
-    })
+    if (existingData?.subscriptionProvisioned === true) {
+      logger.log('verify_payment_already_provisioned', {
+        uid: auth.uid,
+        planId,
+        orderId,
+        paymentId,
+        paymentDocId: paymentDocRef.id,
+      })
+      return {
+        success: true,
+        paymentDocId: paymentDocRef.id,
+        already: true,
+        subscriptionProvisioned: true,
+      }
+    }
 
-    return { success: true, paymentDocId }
+    try {
+      await createOrMergeSubscriptionFromPayment(auth.uid, planId, 0)
+      await paymentDocRef.set(
+        {
+          subscriptionProvisioned: true,
+          provisionedAt: nowTs,
+          updatedAt: nowTs,
+        },
+        { merge: true }
+      )
+      logger.log('verify_payment_provisioned', {
+        uid: auth.uid,
+        planId,
+        orderId,
+        paymentId,
+        paymentDocId: paymentDocRef.id,
+      })
+      return {
+        success: true,
+        paymentDocId: paymentDocRef.id,
+        subscriptionProvisioned: true,
+      }
+    } catch (e: any) {
+      logger.error('verify_payment_provision_failed', {
+        uid: auth.uid,
+        planId,
+        orderId,
+        paymentId,
+        paymentDocId: paymentDocRef.id,
+        error: e?.message,
+      })
+      return {
+        success: true,
+        paymentDocId: paymentDocRef.id,
+        subscriptionProvisioned: false,
+        provisionError: e?.message,
+      }
+    }
   }
 )
 
-/* -------------------------------------------------------------------------- */
-/*  Matching & Admin Callables                                                */
-/* -------------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------------
+ * Matching & Admin Callables
+ * ------------------------------------------------------------------------- */
 export const joinMatchingRound = onCall({ region: REGION }, async (req) => {
   const auth = req.auth
   if (!auth) throw new HttpsError('unauthenticated', 'Sign in required')
@@ -422,6 +520,9 @@ export const adminPromoteMatch = onCall({ region: REGION }, async (req) => {
   return { ok: true }
 })
 
+/**
+ * (Optional Legacy) Admin manual payment approval.
+ */
 export const adminApprovePayment = onCall({ region: REGION }, async (req) => {
   const caller = req.auth?.uid
   if (!caller) throw new HttpsError('unauthenticated', 'Sign in required')
@@ -466,9 +567,9 @@ export const adminApprovePayment = onCall({ region: REGION }, async (req) => {
   return { ok: true }
 })
 
-/* -------------------------------------------------------------------------- */
-/*  Trigger: Payment Approved                                                 */
-/* -------------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------------
+ * Legacy Trigger (only fires on update -> approved)
+ * ------------------------------------------------------------------------- */
 export const onPaymentApproved = onDocumentUpdated(
   { document: 'payments/{paymentId}', region: REGION },
   async (event) => {
@@ -477,10 +578,9 @@ export const onPaymentApproved = onDocumentUpdated(
     const before = change.before.data() as any | undefined
     const after = change.after.data() as any | undefined
     if (!after) return
-
+    if (after.subscriptionProvisioned === true) return
     if (before?.status === 'approved') return
     if (after.status !== 'approved') return
-    if (after.subscriptionProvisioned === true) return
 
     const uid = after.uid as string
     const planId = after.planId as string
@@ -499,7 +599,7 @@ export const onPaymentApproved = onDocumentUpdated(
         },
         { merge: true }
       )
-      logger.log('[onPaymentApproved] subscription provisioned', {
+      logger.log('[onPaymentApproved] subscription provisioned (trigger)', {
         paymentId,
         uid,
         planId,
