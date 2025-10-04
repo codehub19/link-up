@@ -64,9 +64,12 @@ export default function PaymentsAdmin(){
                 <div className="row" style={{justifyContent:'space-between', alignItems:'center', gap:12, flexWrap:'wrap'}}>
                   <div>
                     <div><b>{p.userName}</b> • {p.gender} {p.instagramId ? <span className="muted">(@{p.instagramId})</span> : null}</div>
-                    <div style={{color:'var(--muted)', fontSize:13}}>
-                      Plan: {p.planId} • Amount: ₹{p.amount} • UPI: {p.upiId}
-                    </div>
+                    
+                      <div style={{color:'var(--muted)', fontSize:13}}>
+                        Plan: {p.planId} • Amount: ₹{p.amount} • Gateway: {p.gateway || 'manual'}
+                        {p.razorpayPaymentId ? <> • Razorpay PID: {p.razorpayPaymentId}</> : null}
+                      </div>
+                      
                     {p.proofUrl ? (
                       <div style={{marginTop:6}}>
                         <a href={p.proofUrl} target="_blank" rel="noreferrer">View proof</a>

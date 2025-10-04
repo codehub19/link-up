@@ -2,8 +2,11 @@ import * as admin from 'firebase-admin'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore'
 
+
 if (!admin.apps.length) admin.initializeApp()
 const db = admin.firestore()
+
+
 
 async function isRequesterAdmin(uid?: string) {
   if (!uid) return false
@@ -291,3 +294,6 @@ export const onPaymentApproved = onDocumentUpdated(
     await createOrMergeSubscriptionFromPayment(uid, planId, fallbackQuota)
   }
 )
+
+
+export { createRazorpayOrder, verifyRazorpayPayment } from './razorpay'

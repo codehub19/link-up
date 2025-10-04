@@ -1,127 +1,143 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams, useParams } from 'react-router-dom'
-import { useAuth } from '../state/AuthContext'
-import { PLANS, UPI_ID, UPI_QR_URL } from '../config/payments'
-import { createPayment } from '../services/payments'
+import React, { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '../firebase'
+import { useAuth } from '../state/AuthContext'
+import { PLANS } from '../config/payments'
+import { createOrder, verifyPayment } from '../services/razorpay'
 
-type PlanLike = { id: string; name: string; amount: number }
+type Plan = { id: string; name: string; amount: number }
 
-export default function PaymentPage(){
-  const nav = useNavigate()
+declare global {
+  interface Window { Razorpay: any }
+}
+
+export default function PaymentPage() {
   const { user } = useAuth()
   const [sp] = useSearchParams()
-  const params = useParams()
+  const nav = useNavigate()
 
-  const paramPlanId = useMemo(()=> sp.get('planId') || params.planId || 'basic', [sp, params])
+  const planParam = sp.get('plan') || sp.get('planId') || 'basic'
   const amountOverride = sp.get('amount')
 
-  const [resolvedPlan, setResolvedPlan] = useState<PlanLike | null>(null)
-  const [proof, setProof] = useState<File|null>(null)
-  const [submitting, setSubmitting] = useState(false)
+  const [plan, setPlan] = useState<Plan | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [initializing, setInitializing] = useState(false)
 
-  // Resolve plan from Firestore if not present in PLANS
   useEffect(() => {
-    const local = PLANS.find(p => p.id === paramPlanId)
+    setLoading(true)
+    const local = PLANS.find(p => p.id === planParam)
     if (local) {
-      setResolvedPlan({ id: local.id, name: local.name, amount: local.amount })
+      setPlan(local)
+      setLoading(false)
       return
     }
-    // Try Firestore "plans/{planId}"
-    (async () => {
-      const snap = await getDoc(doc(db, 'plans', paramPlanId))
-      if (snap.exists()) {
-        const d = snap.data() as any
-        setResolvedPlan({ id: snap.id, name: d.name || snap.id, amount: Number(d.price || d.amount || 0) })
-      } else {
-        // Fallback to URL amount and id if admin plan not found (keeps flow working)
-        setResolvedPlan({
-          id: paramPlanId,
-          name: paramPlanId,
-          amount: Number(amountOverride || 0),
-        })
-      }
-    })()
-  }, [paramPlanId, amountOverride])
+    // Fallback custom plan from query (not in PLANS)
+    setPlan({
+      id: planParam,
+      name: planParam,
+      amount: Number(amountOverride || 0),
+    })
+    setLoading(false)
+  }, [planParam, amountOverride])
 
-  async function onConfirmPaid(){
-    if(!user) { alert('Please login first'); return }
-    if(!resolvedPlan) { alert('Plan not loaded yet'); return }
-    setSubmitting(true)
+  async function loadRazorpayScript() {
+    if (window.Razorpay) return
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.onload = () => resolve()
+      script.onerror = () => reject(new Error('Failed to load Razorpay SDK'))
+      document.body.appendChild(script)
+    })
+  }
+
+  async function startPayment() {
+    if (!user) { alert('Please login first'); return }
+    if (!plan) { alert('Plan not loaded'); return }
+    setInitializing(true)
     try {
-      await createPayment({
-        uid: user.uid,
-        planId: resolvedPlan.id,      // IMPORTANT: store the exact plan id so status chips match
-        amount: amountOverride ? Number(amountOverride) : resolvedPlan.amount,
-        upiId: UPI_ID,
-      }, proof || undefined)
-      alert('Payment submitted. We will verify it shortly.')
-      nav('/dashboard/plans')
-    } catch (e:any) {
+      await loadRazorpayScript()
+      const amount = amountOverride ? Number(amountOverride) : plan.amount
+      const order = await createOrder(plan.id, amount)
+
+      const opts = {
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'LinkUp',
+        description: `Plan: ${plan.name}`,
+        order_id: order.orderId,
+        prefill: {
+          name: user.displayName || '',
+          email: user.email || '',
+        },
+        theme: { color: '#f43f5e' },
+        handler: async (resp: any) => {
+          try {
+            await verifyPayment({
+              orderId: resp.razorpay_order_id,
+              paymentId: resp.razorpay_payment_id,
+              signature: resp.razorpay_signature,
+              planId: plan.id,
+              amount,
+            })
+            alert('Payment successful!')
+            nav('/dashboard/plans')
+          } catch (err: any) {
+            console.error(err)
+            alert(err?.message || 'Verification failed. Contact support.')
+            setInitializing(false)
+          }
+        },
+        modal: {
+          ondismiss: () => setInitializing(false),
+        },
+      }
+
+      const rzp = new window.Razorpay(opts)
+      rzp.open()
+    } catch (e: any) {
       console.error(e)
-      alert(e?.message || 'Failed to submit payment')
-    } finally {
-      setSubmitting(false)
+      alert(e?.message || 'Could not initialize payment')
+      setInitializing(false)
     }
   }
 
-  function copyUPI(){
-    navigator.clipboard.writeText(UPI_ID).then(()=> {
-      alert('UPI ID copied')
-    }).catch(()=>{})
-  }
-
-  if (!resolvedPlan) {
+  if (loading || !plan) {
     return (
       <>
         <Navbar />
-        <div className="container"><div className="card" style={{maxWidth: 820, margin: '24px auto', padding: 24}}>Loading…</div></div>
+        <div className="container">
+          <div className="card" style={{maxWidth:820, margin:'24px auto', padding:24}}>
+            Loading…
+          </div>
+        </div>
       </>
     )
   }
-
-  const amount = amountOverride ? Number(amountOverride) : resolvedPlan.amount
 
   return (
     <>
       <Navbar />
       <div className="container">
-        <div className="card" style={{maxWidth: 820, margin: '24px auto', padding: 24}}>
+        <div className="card" style={{maxWidth:820, margin:'24px auto', padding:24}}>
           <h2 style={{marginTop:0}}>Complete Payment</h2>
-          <p style={{marginTop:6, color:'var(--muted)'}}>Plan: <b>{resolvedPlan.name}</b> • Amount: <b>₹{amount}</b></p>
-
-          <div className="row" style={{gap:24, alignItems:'flex-start', flexWrap:'wrap', marginTop:16}}>
-            <div className="stack" style={{minWidth:260}}>
-              <img
-                src={UPI_QR_URL}
-                alt="UPI QR"
-                style={{width:260, height:260, objectFit:'contain', borderRadius:12, border:'1px solid var(--card-border)'}}
-              />
-              <small style={{color:'var(--muted)'}}>Scan the QR with your UPI app</small>
-            </div>
-
-            <div className="stack" style={{flex:1, minWidth:260}}>
-              <label style={{fontWeight:600}}>UPI ID</label>
-              <div className="row" style={{gap:8}}>
-                <input className="input" readOnly value={UPI_ID} />
-                <button type="button" className="btn btn-primary" onClick={copyUPI}>Copy</button>
-              </div>
-
-              <div className="stack" style={{marginTop:16}}>
-                <label style={{fontWeight:600}}>Payment screenshot (optional)</label>
-                <input className="input" type="file" accept="image/*" onChange={(e)=> setProof(e.target.files?.[0] || null)} />
-                <small style={{color:'var(--muted)'}}>Attach proof to speed up approval.</small>
-              </div>
-
-              <div className="row" style={{justifyContent:'flex-end', marginTop:16}}>
-                <button className="btn btn-primary" onClick={onConfirmPaid} disabled={submitting}>
-                  {submitting ? 'Submitting…' : 'I have paid'}
-                </button>
-              </div>
-            </div>
+          <p style={{marginTop:6, color:'var(--muted)'}}>
+            Plan: <b>{plan.name}</b> • Amount: <b>₹{plan.amount}</b>
+          </p>
+          <p style={{marginTop:16}}>Click below to pay securely with Razorpay.</p>
+          <div className="row" style={{justifyContent:'flex-end', marginTop:24}}>
+            <button
+              className="btn btn-primary"
+              onClick={startPayment}
+              disabled={initializing}
+            >
+              {initializing ? 'Initializing…' : 'Pay with Razorpay'}
+            </button>
           </div>
+          <small style={{display:'block', marginTop:16, color:'var(--muted)'}}>
+            Do not refresh while the payment window is open. If money is deducted but upgrade doesn’t show, contact support.
+          </small>
         </div>
       </div>
     </>
