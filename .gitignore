@@ -40,3 +40,10 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# Environment variables
+.env
+.env.example
+
+# Config files - add any others you need to
+cors.json
