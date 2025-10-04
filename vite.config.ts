@@ -10,8 +10,8 @@ export default defineConfig({
       // generate a service worker and inject the registration helper
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'LinkUp',
-        short_name: 'LinkUp',
+        name: 'DateU',
+        short_name: 'DateU',
         description: 'Meaningful connections, made in college.',
         start_url: '/',
         scope: '/',

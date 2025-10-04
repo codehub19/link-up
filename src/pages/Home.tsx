@@ -337,7 +337,7 @@ function SwipePreview() {
 /** Safety section (kept as-is) */
 function SafetyGrid() {
   const items = [
-    { title: 'Verified Profiles', desc: 'College verification and checks help keep LinkUp authentic.', iconId: 'g1' },
+    { title: 'Verified Profiles', desc: 'College verification and checks help keep DateU authentic.', iconId: 'g1' },
     { title: 'Report System', desc: 'Flag suspicious or harmful behavior quickly, right from the app.', iconId: 'g2' },
     { title: 'Privacy Controls', desc: 'Limit what you share and who can reach you with granular settings.', iconId: 'g3' },
     { title: 'Safety Guidelines', desc: 'Practical tips for online chat and IRL meets, built for students.', iconId: 'g4' },
@@ -563,7 +563,7 @@ export default function Home() {
             </details>
             <details>
               <summary>Do I need to be in college?</summary>
-              <p>Yes. We verify you with your institution details to keep LinkUp college‑exclusive.</p>
+              <p>Yes. We verify you with your institution details to keep DateU college‑exclusive.</p>
             </details>
           </div>
         </div>
@@ -590,7 +590,7 @@ export default function Home() {
             <Link to="/">Terms of Service</Link>
             <Link to="/">Contact</Link>
           </div>
-          <div className="copy">© {new Date().getFullYear()} LinkUp</div>
+          <div className="copy">© {new Date().getFullYear()} DateU</div>
         </div>
       </footer>
     </>

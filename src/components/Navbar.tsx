@@ -15,7 +15,7 @@ export default function Navbar() {
     <nav className="nav">
       <div className="container">
         <div className="nav-left">
-          <Link to="/" className="logo">LinkUp</Link>
+          <Link to="/" className="logo">DateU</Link>
         </div>
         <div className="nav-right">
 

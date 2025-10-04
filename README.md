@@ -1,4 +1,4 @@
-# LinkUp College Matchmaking (Firebase + React)
+# DateU College Matchmaking (Firebase + React)
 
 A modern, curated matchmaking app for college students (Delhi NCR) built on Firebase:
 - Google-only authentication
