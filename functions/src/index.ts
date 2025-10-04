@@ -1,49 +1,64 @@
 import * as admin from 'firebase-admin'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore'
+import { onDocumentUpdated, Change, DocumentSnapshot } from 'firebase-functions/v2/firestore'
+import * as logger from 'firebase-functions/logger'
+import Razorpay from 'razorpay'
+import * as crypto from 'crypto'
+import { defineSecret } from 'firebase-functions/params'
 
+/* -------------------------------------------------------------------------- */
+/*  Region & Secrets                                                          */
+/* -------------------------------------------------------------------------- */
+const REGION = 'asia-south2'
+const RAZORPAY_KEY_ID = defineSecret('RAZORPAY_KEY_ID')
+const RAZORPAY_KEY_SECRET = defineSecret('RAZORPAY_KEY_SECRET')
 
+/* -------------------------------------------------------------------------- */
+/*  Admin Initialization                                                      */
+/* -------------------------------------------------------------------------- */
 if (!admin.apps.length) admin.initializeApp()
 const db = admin.firestore()
 
+/* -------------------------------------------------------------------------- */
+/*  Helpers                                                                   */
+/* -------------------------------------------------------------------------- */
+interface ActiveSubscription {
+  id: string
+  remainingMatches?: number
+  status?: string
+  [k: string]: any
+}
 
-
-async function isRequesterAdmin(uid?: string) {
+async function isRequesterAdmin(uid?: string): Promise<boolean> {
   if (!uid) return false
   const u = await db.collection('users').doc(uid).get()
   return !!u.exists && u.data()?.isAdmin === true
 }
 
-async function getActiveSubscription(uid: string) {
-  const snap = await db
-    .collection('subscriptions')
-    .where('uid', '==', uid)
-    .limit(10)
-    .get()
-
+async function getActiveSubscription(uid: string): Promise<ActiveSubscription | null> {
+  const snap = await db.collection('subscriptions').where('uid', '==', uid).limit(10).get()
   if (snap.empty) return null
-
-  // Prefer a sub that is active and has remainingMatches > 0
-  const docs = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
+  const docs: ActiveSubscription[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
   const withRemaining = docs.find(s => s.status === 'active' && Number(s.remainingMatches ?? 0) > 0)
-  const anyActive = withRemaining || docs.find(s => s.status === 'active')
-  return anyActive || null
+  return withRemaining || docs.find(s => s.status === 'active') || null
 }
 
 async function getActiveRoundId(): Promise<string | null> {
-  // This repo uses isActive on rounds
   const r = await db.collection('matchingRounds').where('isActive', '==', true).limit(1).get()
   return r.empty ? null : r.docs[0].id
 }
 
-async function createOrMergeSubscriptionFromPayment(uid: string, planId: string, fallbackQuota = 0) {
+async function createOrMergeSubscriptionFromPayment(
+  uid: string,
+  planId: string,
+  fallbackQuota = 0
+) {
   const planSnap = await db.collection('plans').doc(planId).get()
   const plan = planSnap.exists ? (planSnap.data() as any) : undefined
   const quota = Number(plan?.matchQuota ?? plan?.quota ?? fallbackQuota ?? 0)
-
   if (!quota || quota <= 0) {
-    console.log('[provision] No quota found', { planId, hasPlanDoc: !!planSnap.exists, fallbackQuota })
-    throw new HttpsError('failed-precondition', 'Plan has no quota (matchQuota/quota missing).')
+    logger.warn('[provision] No quota found', { planId, hasPlanDoc: planSnap.exists })
+    throw new HttpsError('failed-precondition', 'Plan has no quota.')
   }
 
   const active = await getActiveSubscription(uid)
@@ -54,6 +69,7 @@ async function createOrMergeSubscriptionFromPayment(uid: string, planId: string,
       remainingMatches: admin.firestore.FieldValue.increment(quota),
       updatedAt: now,
     })
+    logger.log('[provision] Incremented subscription', { uid, planId, added: quota })
   } else {
     await db.collection('subscriptions').add({
       uid,
@@ -65,38 +81,198 @@ async function createOrMergeSubscriptionFromPayment(uid: string, planId: string,
       createdAt: now,
       updatedAt: now,
     })
+    logger.log('[provision] Created subscription', { uid, planId, quota })
   }
 
-  // Best-effort join round – respect gender
   const roundId = await getActiveRoundId()
   if (roundId) {
     const userDoc = await db.collection('users').doc(uid).get()
     const gender = userDoc.exists ? (userDoc.data() as any)?.gender : undefined
-    const roundRef = db.collection('matchingRounds').doc(roundId)
-    const update: Record<string, any> = { updatedAt: admin.firestore.FieldValue.serverTimestamp() }
-
-    if (gender === 'male') {
-      update.participatingMales = admin.firestore.FieldValue.arrayUnion(uid)
-    } else if (gender === 'female') {
-      update.participatingFemales = admin.firestore.FieldValue.arrayUnion(uid)
-    } else {
-      // Unknown gender: do not add to any gendered list
-      console.log('[provision] Skipped adding to participants due to missing/unknown gender', { uid })
-    }
-
-    if (update.participatingMales || update.participatingFemales) {
-      await roundRef.update(update)
+    if (gender === 'male' || gender === 'female') {
+      const field =
+        gender === 'male' ? 'participatingMales' : 'participatingFemales'
+      await db.collection('matchingRounds').doc(roundId).update({
+        [field]: admin.firestore.FieldValue.arrayUnion(uid),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
     }
   }
 }
 
-/**
- * Join active round – region pinned to us-central1
- */
-export const joinMatchingRound = onCall({ region: 'us-central1' }, async (req) => {
+/* -------------------------------------------------------------------------- */
+/*  Razorpay: create order                                                    */
+/* -------------------------------------------------------------------------- */
+export const createRazorpayOrder = onCall(
+  { region: REGION, secrets: [RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET] },
+  async (req) => {
+    const auth = req.auth
+    if (!auth) throw new HttpsError('unauthenticated', 'Login required')
+
+    const { planId, amount } = (req.data || {}) as { planId?: string; amount?: number }
+    if (!planId || typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
+      throw new HttpsError('invalid-argument', 'planId and positive amount required')
+    }
+
+    const key_id = RAZORPAY_KEY_ID.value()
+    const key_secret = RAZORPAY_KEY_SECRET.value()
+    if (!key_id || !key_secret) {
+      logger.error('createRazorpayOrder_missing_secrets', { hasKeyId: !!key_id, hasKeySecret: !!key_secret })
+      throw new HttpsError('failed-precondition', 'Payment service unavailable')
+    }
+
+    // Short, unique receipt <= 40 chars
+    function buildReceipt(p: string, uid: string) {
+      const uid6 = uid.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6) || 'user'
+      const ts = Date.now().toString(36) // compact base36 timestamp
+      const raw = `p_${p}_${uid6}_${ts}` // usually < 30 chars
+      return raw.length <= 40 ? raw : raw.slice(0, 40)
+    }
+    const receipt = buildReceipt(planId, auth.uid)
+
+    logger.log('createRazorpayOrder_input', { uid: auth.uid, planId, amount, receipt })
+
+    try {
+      const client = new Razorpay({ key_id, key_secret })
+      const order = await client.orders.create({
+        amount: Math.round(amount * 100),
+        currency: 'INR',
+        receipt,
+        notes: {
+          uid: auth.uid,
+          planId,
+          // You can add a version marker if needed
+          v: '1'
+        }
+      })
+
+      logger.log('createRazorpayOrder_success', {
+        uid: auth.uid,
+        planId,
+        orderId: order.id,
+        receipt: order.receipt,
+        amountPaise: order.amount
+      })
+
+      return {
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        keyId: key_id
+      }
+    } catch (e: any) {
+      const rz = e?.error || {}
+      logger.error('createRazorpayOrder_failed', {
+        uid: auth.uid,
+        planId,
+        amount,
+        name: e?.name,
+        message: e?.message,
+        statusCode: e?.statusCode || rz?.statusCode,
+        description: rz?.description,
+        code: rz?.code,
+        raw: rz
+      })
+      const clientMsg =
+        typeof rz?.description === 'string'
+          ? `Order failed: ${rz.description}`
+          : 'Failed to create order.'
+      throw new HttpsError('internal', clientMsg)
+    }
+  }
+)
+
+/* -------------------------------------------------------------------------- */
+/*  Razorpay: verify payment                                                  */
+/* -------------------------------------------------------------------------- */
+export const verifyRazorpayPayment = onCall(
+  { region: REGION, secrets: [RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET] },
+  async (req) => {
+    const auth = req.auth
+    if (!auth) throw new HttpsError('unauthenticated', 'Login required')
+
+    const { orderId, paymentId, signature, planId, amount } = (req.data || {}) as {
+      orderId?: string
+      paymentId?: string
+      signature?: string
+      planId?: string
+      amount?: number
+    }
+
+    if (
+      !orderId ||
+      !paymentId ||
+      !signature ||
+      !planId ||
+      typeof amount !== 'number' ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      throw new HttpsError('invalid-argument', 'Invalid verification payload')
+    }
+
+    const key_secret = RAZORPAY_KEY_SECRET.value()
+    if (!key_secret) throw new HttpsError('failed-precondition', 'Payment service not configured')
+
+    const expected = crypto
+      .createHmac('sha256', key_secret)
+      .update(`${orderId}|${paymentId}`)
+      .digest('hex')
+
+    if (expected !== signature) {
+      logger.warn('verify_signature_mismatch', { orderId, paymentId, uid: auth.uid })
+      throw new HttpsError('permission-denied', 'Signature mismatch')
+    }
+
+    const payments = db.collection('payments')
+    const existing = await payments
+      .where('uid', '==', auth.uid)
+      .where('razorpayOrderId', '==', orderId)
+      .limit(1)
+      .get()
+
+    const base = {
+      uid: auth.uid,
+      planId,
+      amount,
+      gateway: 'razorpay',
+      razorpayOrderId: orderId,
+      razorpayPaymentId: paymentId,
+      razorpaySignature: signature,
+      status: 'approved',
+      subscriptionProvisioned: false,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }
+
+    let paymentDocId: string
+    if (existing.empty) {
+      const ref = await payments.add({
+        ...base,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
+      paymentDocId = ref.id
+    } else {
+      await existing.docs[0].ref.update(base)
+      paymentDocId = existing.docs[0].id
+    }
+
+    logger.log('verify_payment_success', {
+      uid: auth.uid,
+      planId,
+      orderId,
+      paymentId,
+      paymentDocId,
+    })
+
+    return { success: true, paymentDocId }
+  }
+)
+
+/* -------------------------------------------------------------------------- */
+/*  Matching & Admin Callables                                                */
+/* -------------------------------------------------------------------------- */
+export const joinMatchingRound = onCall({ region: REGION }, async (req) => {
   const auth = req.auth
   if (!auth) throw new HttpsError('unauthenticated', 'Sign in required')
-
   const { roundId } = (req.data || {}) as { roundId?: string }
   if (!roundId) throw new HttpsError('invalid-argument', 'roundId is required')
 
@@ -105,29 +281,27 @@ export const joinMatchingRound = onCall({ region: 'us-central1' }, async (req) =
   if (!userSnap.exists) throw new HttpsError('failed-precondition', 'User profile missing')
 
   const gender = userSnap.data()?.gender
-  if (gender !== 'male' && gender !== 'female') throw new HttpsError('failed-precondition', 'Gender missing')
+  if (gender !== 'male' && gender !== 'female') {
+    throw new HttpsError('failed-precondition', 'Gender missing')
+  }
 
   const field = gender === 'male' ? 'participatingMales' : 'participatingFemales'
-  await db
-    .collection('matchingRounds')
-    .doc(roundId)
-    .update({
-      [field]: admin.firestore.FieldValue.arrayUnion(auth.uid),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    })
+  await db.collection('matchingRounds').doc(roundId).update({
+    [field]: admin.firestore.FieldValue.arrayUnion(auth.uid),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  })
 
   return { ok: true }
 })
 
-/**
- * Boy confirms a girl's like – enforces subscription quota (us-central1)
- */
-export const confirmMatch = onCall({ region: 'us-central1' }, async (req) => {
+export const confirmMatch = onCall({ region: REGION }, async (req) => {
   const auth = req.auth
   if (!auth) throw new HttpsError('unauthenticated', 'Sign in required')
 
   const { roundId, girlUid } = (req.data || {}) as { roundId?: string; girlUid?: string }
-  if (!roundId || !girlUid) throw new HttpsError('invalid-argument', 'roundId and girlUid are required')
+  if (!roundId || !girlUid) {
+    throw new HttpsError('invalid-argument', 'roundId and girlUid are required')
+  }
 
   const boyUid = auth.uid
   const sub = await getActiveSubscription(boyUid)
@@ -184,15 +358,20 @@ export const confirmMatch = onCall({ region: 'us-central1' }, async (req) => {
   return { ok: true }
 })
 
-/**
- * Admin promotes to match – enforces boy's subscription quota (us-central1)
- */
-export const adminPromoteMatch = onCall({ region: 'us-central1' }, async (req) => {
+export const adminPromoteMatch = onCall({ region: REGION }, async (req) => {
   const caller = req.auth?.uid
-  if (!(await isRequesterAdmin(caller))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(await isRequesterAdmin(caller))) {
+    throw new HttpsError('permission-denied', 'Admin only')
+  }
 
-  const { roundId, boyUid, girlUid } = (req.data || {}) as { roundId?: string; boyUid?: string; girlUid?: string }
-  if (!roundId || !boyUid || !girlUid) throw new HttpsError('invalid-argument', 'roundId, boyUid, girlUid required')
+  const { roundId, boyUid, girlUid } = (req.data || {}) as {
+    roundId?: string
+    boyUid?: string
+    girlUid?: string
+  }
+  if (!roundId || !boyUid || !girlUid) {
+    throw new HttpsError('invalid-argument', 'roundId, boyUid, girlUid required')
+  }
 
   const sub = await getActiveSubscription(boyUid)
   if (!sub || (sub.remainingMatches ?? 0) <= 0) {
@@ -243,14 +422,12 @@ export const adminPromoteMatch = onCall({ region: 'us-central1' }, async (req) =
   return { ok: true }
 })
 
-/**
- * Admin approves a payment and provisions subscription immediately (us-central1)
- * (This repo version calls createOrMergeSubscriptionFromPayment and then best-effort joins round.)
- */
-export const adminApprovePayment = onCall({ region: 'us-central1' }, async (req) => {
+export const adminApprovePayment = onCall({ region: REGION }, async (req) => {
   const caller = req.auth?.uid
   if (!caller) throw new HttpsError('unauthenticated', 'Sign in required')
-  if (!(await isRequesterAdmin(caller))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(await isRequesterAdmin(caller))) {
+    throw new HttpsError('permission-denied', 'Admin only')
+  }
 
   const paymentId = (req.data as any)?.paymentId as string
   if (!paymentId) throw new HttpsError('invalid-argument', 'paymentId is required')
@@ -270,30 +447,66 @@ export const adminApprovePayment = onCall({ region: 'us-central1' }, async (req)
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   })
 
-  await createOrMergeSubscriptionFromPayment(uid, planId, fallbackQuota)
+  try {
+    await createOrMergeSubscriptionFromPayment(uid, planId, fallbackQuota)
+    await payRef.set(
+      {
+        subscriptionProvisioned: true,
+        provisionedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    )
+  } catch (e: any) {
+    logger.error('[adminApprovePayment] provision failed', {
+      paymentId,
+      error: e?.message,
+    })
+  }
 
   return { ok: true }
 })
 
-/**
- * Firestore trigger on payments → approved (asia-south2 in this repo)
- */
+/* -------------------------------------------------------------------------- */
+/*  Trigger: Payment Approved                                                 */
+/* -------------------------------------------------------------------------- */
 export const onPaymentApproved = onDocumentUpdated(
-  { document: 'payments/{paymentId}', region: 'asia-south2' },
+  { document: 'payments/{paymentId}', region: REGION },
   async (event) => {
-    const before = event.data?.before?.data() as any
-    const after = event.data?.after?.data() as any
+    const change: Change<DocumentSnapshot> | undefined = event.data
+    if (!change) return
+    const before = change.before.data() as any | undefined
+    const after = change.after.data() as any | undefined
     if (!after) return
-    if (before?.status === 'approved' || after?.status !== 'approved') return
+
+    if (before?.status === 'approved') return
+    if (after.status !== 'approved') return
+    if (after.subscriptionProvisioned === true) return
 
     const uid = after.uid as string
     const planId = after.planId as string
-    const fallbackQuota = Number(after.matchQuota ?? after.quota ?? 0)
     if (!uid || !planId) return
 
-    await createOrMergeSubscriptionFromPayment(uid, planId, fallbackQuota)
+    const fallbackQuota = Number(after.matchQuota ?? after.quota ?? 0)
+    const paymentRef = change.after.ref
+    const paymentId = event.params.paymentId
+
+    try {
+      await createOrMergeSubscriptionFromPayment(uid, planId, fallbackQuota)
+      await paymentRef.set(
+        {
+          subscriptionProvisioned: true,
+          provisionedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      )
+      logger.log('[onPaymentApproved] subscription provisioned', {
+        paymentId,
+        uid,
+        planId,
+      })
+    } catch (e: any) {
+      logger.error('[onPaymentApproved] failed', { paymentId, error: e?.message })
+      await paymentRef.set({ provisionError: e?.message || String(e) }, { merge: true })
+    }
   }
 )
-
-
-export { createRazorpayOrder, verifyRazorpayPayment } from './razorpay'

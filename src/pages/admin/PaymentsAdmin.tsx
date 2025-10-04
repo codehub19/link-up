@@ -1,96 +1,106 @@
 import React, { useEffect, useState } from 'react'
-import AdminGuard from './AdminGuard'
-import { listPendingPayments, rejectPayment, approvePayment } from '../../services/payments'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '../../firebase'
+import { collection, getDocs, getFirestore, orderBy, query, where, limit } from 'firebase/firestore'
+import { useAuth } from '../../state/AuthContext'
 import AdminHeader from '../../components/admin/AdminHeader'
 
-export default function PaymentsAdmin(){
-  const [rows, setRows] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [busyId, setBusyId] = useState<string|null>(null)
-  const [search, setSearch] = useState('')
+type AdminPayment = {
+  id: string
+  uid: string
+  planId: string
+  amount: number
+  gateway: string
+  status: string
+  razorpayOrderId?: string
+  razorpayPaymentId?: string
+  createdAt?: any
+  updatedAt?: any
+  subscriptionProvisioned?: boolean
+}
 
-  async function approve(paymentId: string) {
-    setBusyId(paymentId)
-    try {
-      await approvePayment(paymentId) // status-only; backend trigger provisions
-      alert('Approved')
-      await refresh()
-    } catch (e: any) {
-      console.error('approve error', e)
-      alert(e?.message || 'Failed to approve')
-    } finally {
-      setBusyId(null)
-    }
+export default function PaymentsAdmin() {
+  const { profile } = useAuth()
+  const db = getFirestore()
+  const [payments, setPayments] = useState<AdminPayment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!profile?.isAdmin) return
+    ;(async () => {
+      try {
+        const q = query(
+          collection(db, 'payments'),
+            where('gateway', '==', 'razorpay'),
+            where('status', '==', 'approved'),
+            orderBy('updatedAt', 'desc'),
+            limit(100)
+        )
+        const snap = await getDocs(q)
+        const rows = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
+        setPayments(rows)
+      } catch (e: any) {
+        console.error(e)
+        setError(e?.message || 'Failed to load payments')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [db, profile?.isAdmin])
+
+  if (!profile?.isAdmin) {
+    return <div style={{ padding: 24 }}>Admin access required.</div>
   }
-
-  async function refresh(){
-    setLoading(true)
-    try {
-      const pending = await listPendingPayments()
-      const enriched = await Promise.all(pending.map(async p => {
-        const u = await getDoc(doc(db, 'users', p.uid))
-        const udata = u.data() || {}
-        return { ...p, userName: udata?.name || 'User', gender: udata?.gender || '-', instagramId: udata?.instagramId || '' }
-      }))
-      setRows(enriched)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(()=>{ refresh() }, [])
-
-  const filtered = rows.filter(p =>
-    (p.userName || '').toLowerCase().includes(search.toLowerCase()) ||
-    (p.instagramId || '').toLowerCase().includes(search.toLowerCase()) ||
-    (p.planId || '').toLowerCase().includes(search.toLowerCase())
-  )
 
   return (
-    <AdminGuard>
-      <div className="container">
-        <div className="card" style={{padding:24, margin:'24px auto', maxWidth:1000}}>
-          <AdminHeader current="payments" />
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{marginTop:0}}>Payments (Pending)</h2>
-            <input className="input" placeholder="Search name/insta/plan…" value={search} onChange={e=>setSearch(e.target.value)} style={{ maxWidth: 260 }} />
+    <div className="container" style={{ padding: '24px 0' }}>
+      <AdminHeader title="Payments" />
+      <div className="card" style={{ padding: 20, marginTop: 16 }}>
+        <h2 style={{ margin: '0 0 12px' }}>Successful Razorpay Payments</h2>
+        <p className="muted" style={{ marginTop: 0 }}>
+          Read‑only list of approved payments (gateway=razorpay). Legacy manual approvals removed.
+        </p>
+        {loading && <div style={{ marginTop: 16 }}>Loading...</div>}
+        {error && <div className="banner" style={{ marginTop: 16 }}>{error}</div>}
+        {!loading && payments.length === 0 && (
+          <div style={{ marginTop: 16 }} className="muted">
+            No payments found.
           </div>
-          {loading ? <p>Loading…</p> : null}
-          <div className="stack">
-            {filtered.map(p => (
-              <div key={p.id} className="card" style={{padding:16}}>
-                <div className="row" style={{justifyContent:'space-between', alignItems:'center', gap:12, flexWrap:'wrap'}}>
-                  <div>
-                    <div><b>{p.userName}</b> • {p.gender} {p.instagramId ? <span className="muted">(@{p.instagramId})</span> : null}</div>
-                    
-                      <div style={{color:'var(--muted)', fontSize:13}}>
-                        Plan: {p.planId} • Amount: ₹{p.amount} • Gateway: {p.gateway || 'manual'}
-                        {p.razorpayPaymentId ? <> • Razorpay PID: {p.razorpayPaymentId}</> : null}
-                      </div>
-                      
-                    {p.proofUrl ? (
-                      <div style={{marginTop:6}}>
-                        <a href={p.proofUrl} target="_blank" rel="noreferrer">View proof</a>
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="row" style={{gap:8}}>
-                    <button className="btn btn-primary" disabled={busyId===p.id} onClick={()=>approve(p.id)}>
-                      {busyId===p.id ? 'Approving…' : 'Approve'}
-                    </button>
-                    <button className="btn btn-ghost" disabled={busyId===p.id} onClick={async ()=>{ await rejectPayment(p.id); await refresh() }}>
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {filtered.length === 0 && !loading ? <p style={{color:'var(--muted)'}}>No pending payments.</p> : null}
+        )}
+        {payments.length > 0 && (
+          <div style={{ overflowX: 'auto', marginTop: 12 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Plan</th>
+                  <th>Amount (₹)</th>
+                  <th>User UID</th>
+                  <th>Razorpay Order</th>
+                  <th>Razorpay Payment</th>
+                  <th>Provisioned?</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map(p => (
+                  <tr key={p.id}>
+                    <td>{p.planId}</td>
+                    <td>{p.amount}</td>
+                    <td style={{ fontSize: 12 }}>{p.uid}</td>
+                    <td style={{ fontSize: 12 }}>{p.razorpayOrderId || '-'}</td>
+                    <td style={{ fontSize: 12 }}>{p.razorpayPaymentId || '-'}</td>
+                    <td>{p.subscriptionProvisioned ? 'Yes' : 'Pending'}</td>
+                    <td style={{ fontSize: 12 }}>
+                      {p.updatedAt?.toDate
+                        ? p.updatedAt.toDate().toLocaleString()
+                        : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        )}
       </div>
-    </AdminGuard>
+    </div>
   )
 }
