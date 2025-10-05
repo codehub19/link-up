@@ -1,76 +1,79 @@
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
+import Navbar from '../../components/Navbar'
+import { useAuth } from '../../state/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { SetupShell, SetupHeader, StepFooter, CameraBadge } from './SetupShared'
+import { updateProfileAndStatus, nextSetupRoute } from '../../firebase'
+import CollegeSelect from '../../components/CollegeSelect'
 import './setup.styles.css'
 
-export default function DetailsStep() {
-  const nav = useNavigate()
-  const [first, setFirst] = useState('')
-  const [last, setLast] = useState('')
-  const [dob, setDob] = useState('')
-  const [gender, setGender] = useState('')
-  const [avatar, setAvatar] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement | null>(null)
+type Props = { embedded?: boolean; onComplete?: () => void }
 
-  const canContinue = first.trim().length > 0 && dob.length > 0
+export default function Details({ embedded, onComplete }: Props) {
+  const { user, profile, refreshProfile } = useAuth()
+  const nav = useNavigate()
+  const [name, setName] = useState(profile?.name || '')
+  const [insta, setInsta] = useState(profile?.instagramId || '')
+  const [college, setCollege] = useState(profile?.college || '')
+  const [dob, setDob] = useState(profile?.dob || '')
+  const [saving, setSaving] = useState(false)
+  const valid = name.trim() && college && dob
+
+  const save = async () => {
+    if (!user || !valid) return
+    setSaving(true)
+    try {
+      await updateProfileAndStatus(user.uid, {
+        name: name.trim(),
+        instagramId: insta.replace(/^@/, '').trim(),
+        college,
+        dob,
+      }, { profile: true })
+      await refreshProfile()
+      if (embedded && onComplete) onComplete()
+      else {
+        const next = nextSetupRoute(profile)
+        nav(next || '/setup/interests')
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
-    <SetupShell step={6} total={6} showSkip={false}>
-      <SetupHeader title="Profile details" sub="Fill in your info to finish setup." />
-      <div className="details-form">
-        <div className="avatar-upload">
-          <div className="avatar-ring">
-            {avatar ? <img src={avatar} alt="Avatar preview" /> : <span className="avatar-placeholder" />}
-            <button
-              className="avatar-pick"
-              onClick={() => inputRef.current?.click()}
-              aria-label="Upload avatar"
-            >
-              <CameraBadge />
-            </button>
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (!f) return
-                const reader = new FileReader()
-                reader.onload = () => setAvatar(String(reader.result))
-                reader.readAsDataURL(f)
-              }}
-            />
+    <>
+      {!embedded && <Navbar />}
+      <div className={embedded ? '' : 'setup-page'}>
+        <section className="setup-card setup-card-glass">
+          <h1 className="setup-title">Profile Details</h1>
+          <p className="setup-sub">Finish the basics. DOB stays private.</p>
+          <div className="details-form">
+            <label className="field">
+              <span className="field-label">First name</span>
+              <input className="field-input" value={name} onChange={e=>setName(e.target.value)} />
+            </label>
+            <label className="field">
+              <span className="field-label">Instagram</span>
+              <div className="ig-field">
+                <span>@</span>
+                <input className="field-input" value={insta.replace(/^@/,'')} onChange={e=>setInsta(e.target.value)} placeholder="yourhandle" />
+              </div>
+            </label>
+            <label className="field">
+              <span className="field-label">College</span>
+              <CollegeSelect value={college} onChange={setCollege} placeholder="Search your college (Delhi NCR)" />
+            </label>
+            <label className="field">
+              <span className="field-label">Date of Birth</span>
+              <input type="date" className="field-input" value={dob} onChange={e=>setDob(e.target.value)} />
+            </label>
           </div>
-        </div>
-
-        <label className="field">
-          <span className="field-label">First name</span>
-          <input className="field-input" value={first} onChange={(e) => setFirst(e.target.value)} placeholder="Your first name" />
-        </label>
-
-        <label className="field">
-          <span className="field-label">Last name</span>
-          <input className="field-input" value={last} onChange={(e) => setLast(e.target.value)} placeholder="Optional" />
-        </label>
-
-        <label className="field">
-          <span className="field-label">Date of birth</span>
-          <input className="field-input" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
-        </label>
-
-        <label className="field">
-          <span className="field-label">Gender</span>
-          <select className="field-input" value={gender} onChange={(e) => setGender(e.target.value)}>
-            <option value="">Select</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="prefer_not">Prefer not to say</option>
-          </select>
-        </label>
+          <div className="setup-card-footer">
+            <button className="btn-primary-lg" disabled={!valid || saving} onClick={save}>
+              {saving ? 'Saving…' : 'Continue'}
+            </button>
+          </div>
+        </section>
       </div>
-
-      <StepFooter cta="Finish" onNext={() => nav('/dashboard')} disabled={!canContinue} />
-    </SetupShell>
+    </>
   )
 }

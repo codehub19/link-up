@@ -1,40 +1,28 @@
-// Minimal, stable firebase init with region export
-
-const FUNCTIONS_REGION = 'asia-south2'  // <— Central region constant
-
 import { initializeApp } from 'firebase/app'
 import {
-  connectAuthEmulator,
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
   getAdditionalUserInfo,
   signOut as fbSignOut,
-  type User as FirebaseUser,
+  User as FirebaseUser,
 } from 'firebase/auth'
 import {
-  connectFirestoreEmulator,
+  getFirestore,
   doc,
   getDoc,
-  getFirestore,
-  serverTimestamp,
   setDoc,
   updateDoc,
+  serverTimestamp,
 } from 'firebase/firestore'
 import {
-  connectStorageEmulator,
-  getDownloadURL,
   getStorage,
   ref,
   uploadBytesResumable,
+  getDownloadURL,
 } from 'firebase/storage'
-import {
-  connectFunctionsEmulator,
-  getFunctions,
-  httpsCallable,
-} from 'firebase/functions'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 
-// Configure from .env (public client config)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -47,19 +35,9 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
-export const storage = getStorage(app, `gs://${import.meta.env.VITE_FIREBASE_STORAGE_BUCKET}`)
+export const storage = getStorage(app)
+// export const functions = getFunctions(app, 'asia-south2')
 
-// IMPORTANT: region now consistent with deployed functions
-export const functions = getFunctions(app, FUNCTIONS_REGION)
-
-if (import.meta.env.VITE_USE_EMULATORS === 'true') {
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
-  connectFirestoreEmulator(db, '127.0.0.1', 8080)
-  connectStorageEmulator(storage, '127.0.0.1', 9199)
-  connectFunctionsEmulator(functions, '127.0.0.1', 5001)
-}
-
-// Auth helpers
 export const provider = new GoogleAuthProvider()
 
 export async function signInWithGoogle(): Promise<{ user: FirebaseUser; isNewUser: boolean }> {
@@ -72,144 +50,214 @@ export async function signOut() {
   await fbSignOut(auth)
 }
 
-// Ensure user doc
-export async function ensureUserDocument(
-  userOrUid:
-    | FirebaseUser
-    | { uid: string; email?: string | null; displayName?: string | null; photoURL?: string | null }
-    | string,
-  email?: string | null,
-  displayName?: string | null,
-  photoURL?: string | null
-) {
-  let uid: string | undefined
-  let em: string | null = null
-  let nm: string | null = null
-  let photo: string | null = null
-
-  if (typeof userOrUid === 'string') {
-    uid = userOrUid
-    em = email ?? null
-    nm = displayName ?? null
-    photo = photoURL ?? null
-  } else {
-    const u = userOrUid as any
-    uid = u?.uid
-    em = u?.email ?? null
-    nm = u?.displayName ?? null
-    photo = u?.photoURL ?? null
+export type UserProfile = {
+  uid: string
+  email?: string | null
+  name?: string
+  gender?: 'male' | 'female'
+  instagramId?: string
+  college?: string
+  dob?: string
+  interests?: string[]
+  bio?: string
+  photoUrl?: string
+  communicationImportance?: 'extremely' | 'very' | 'moderate' | 'low'
+  conflictApproach?: 'address_immediately' | 'cool_down' | 'wait_other' | 'avoid'
+  sundayStyle?: 'relax_brunch' | 'active_fitness' | 'personal_project' | 'social_family'
+  travelPreference?: 'relaxing_resort' | 'explore_city' | 'active_adventure' | 'visit_family'
+  loveLanguage?: 'words' | 'quality_time' | 'acts' | 'touch' | 'gifts'
+  acceptedTermsVersion?: number
+  acceptedTermsAt?: any
+  setupStatus?: {
+    terms?: boolean
+    gender?: boolean
+    profile?: boolean
+    interests?: boolean
+    q1?: boolean
+    q2?: boolean
+    bio?: boolean
+    photos?: boolean
+    completedAt?: any
   }
+  isProfileComplete?: boolean
+  isAdmin?: boolean
+  createdAt?: any
+  updatedAt?: any
+  lastLoginAt?: any
+  // Allow unknown flattened keys for migration
+  [k: string]: any
+}
 
-  if (!uid) throw new Error('ensureUserDocument: uid missing')
+/* ---- Normalization ---- */
+export function normalizeProfile(raw: any | null): UserProfile | null {
+  if (!raw) return raw
+  const status: Record<string, any> =
+    raw.setupStatus && typeof raw.setupStatus === 'object' ? { ...raw.setupStatus } : {}
+  // Collect flattened keys like 'setupStatus.gender'
+  Object.keys(raw).forEach(k => {
+    if (k.startsWith('setupStatus.') && k !== 'setupStatus') {
+      const sub = k.split('.').slice(1).join('.')
+      if (sub) status[sub] = raw[k]
+    }
+  })
+  return { ...(raw as UserProfile), setupStatus: status }
+}
 
-  const userRef = doc(db, 'users', uid)
-  const snap = await getDoc(userRef)
+/* ---- Completion logic ---- */
+export function computeIsProfileComplete(p?: UserProfile | null): boolean {
+  if (!p) return false
+  const s = p.setupStatus || {}
+  return !!(
+    p.acceptedTermsAt &&
+    p.acceptedTermsVersion &&
+    p.gender &&
+    p.name &&
+    p.college &&
+    p.dob &&
+    s.profile &&
+    p.interests?.length &&
+    p.communicationImportance &&
+    p.conflictApproach &&
+    p.sundayStyle &&
+    p.travelPreference &&
+    p.loveLanguage &&
+    p.bio &&
+    p.photoUrl &&
+    s.photos
+  )
+}
+
+/* Unified wizard always goes here if incomplete */
+export function nextSetupRoute(p?: UserProfile | null): string | null {
+  if (!p || !p.isProfileComplete) return '/setup/profile'
+  return null
+}
+
+/* ---- User bootstrap ---- */
+export async function ensureUserDocument(user: FirebaseUser) {
+  const refDoc = doc(db, 'users', user.uid)
+  const snap = await getDoc(refDoc)
   const now = serverTimestamp()
-
   if (!snap.exists()) {
-    await setDoc(userRef, {
-      uid,
-      email: em,
-      name: nm || null,
-      photoUrl: photo || null,
+    await setDoc(refDoc, {
+      uid: user.uid,
+      email: user.email ?? null,
+      name: user.displayName || '',
+      photoUrl: user.photoURL || null,
       createdAt: now,
       updatedAt: now,
       lastLoginAt: now,
+      isProfileComplete: false,
+      setupStatus: {},
     })
   } else {
-    const existing = snap.data() as any
-    const existingName = (existing?.name ?? '').trim()
-    const existingPhoto = (existing?.photoUrl ?? '').trim()
-    const updates: Record<string, any> = {
-      email: em,
-      lastLoginAt: now,
-      updatedAt: now,
-    }
-    if (!existingName && nm) updates.name = nm
-    if (!existingPhoto && photo) updates.photoUrl = photo
-    if (Object.keys(updates).length > 0) {
-      await updateDoc(userRef, updates)
-    }
+    await updateDoc(refDoc, { lastLoginAt: now, updatedAt: now })
   }
-
-  return await getDoc(userRef)
+  const after = await getDoc(refDoc)
+  return normalizeProfile(after.data())
 }
 
-// Profile photo upload
+/* ---- Safe status merge helper (replaces dotted path writes) ---- */
+export async function mergeSetupStatus(uid: string, statusPatch: Record<string, any>) {
+  const refDoc = doc(db, 'users', uid)
+  const snap = await getDoc(refDoc)
+  const existing = snap.exists() ? normalizeProfile(snap.data()) : null
+  const mergedStatus = {
+    ...(existing?.setupStatus || {}),
+    ...statusPatch,
+  }
+  await setDoc(refDoc, {
+    setupStatus: mergedStatus,
+    updatedAt: serverTimestamp(),
+  }, { merge: true })
+  return mergedStatus
+}
+
+/* Generic field + status merge */
+export async function updateProfileAndStatus(
+  uid: string,
+  fieldPatch: Record<string, any>,
+  statusPatch?: Record<string, any>
+) {
+  const refDoc = doc(db, 'users', uid)
+  let mergedStatus = undefined
+  if (statusPatch) {
+    const snap = await getDoc(refDoc)
+    const existing = snap.exists() ? normalizeProfile(snap.data()) : null
+    mergedStatus = { ...(existing?.setupStatus || {}), ...statusPatch }
+    await setDoc(refDoc, {
+      ...fieldPatch,
+      setupStatus: mergedStatus,
+      updatedAt: serverTimestamp(),
+    }, { merge: true })
+  } else {
+    await setDoc(refDoc, {
+      ...fieldPatch,
+      updatedAt: serverTimestamp(),
+    }, { merge: true })
+  }
+  // Recompute completion
+  const fresh = await getDoc(refDoc)
+  const prof = normalizeProfile(fresh.data())
+  const complete = computeIsProfileComplete(prof)
+  if (complete && !prof?.isProfileComplete) {
+    await updateDoc(refDoc, {
+      isProfileComplete: true,
+      'setupStatus.completedAt': serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  }
+  return prof
+}
+
+/* ---- Upload photo ---- */
 export async function uploadProfilePhoto(uid: string, file: File) {
   const r = ref(storage, `users/${uid}/profile.jpg`)
   const task = uploadBytesResumable(r, file, { contentType: file.type || 'image/jpeg' })
   await new Promise<void>((resolve, reject) => {
     task.on('state_changed', undefined, reject, () => resolve())
   })
-  return getDownloadURL(r)
+  return await getDownloadURL(r)
 }
 
-// User profile type & save
-export type UserProfile = {
-  uid: string
-  name?: string
-  gender?: 'male' | 'female'
-  instagramId?: string
-  college?: string
-  bio?: string
-  interests?: string[]
-  photoUrl?: string
-  dob?: string
-  isAdmin?: boolean
-  isProfileComplete?: boolean
-  createdAt?: any
-  updatedAt?: any
-  lastLoginAt?: any
-}
-
-export async function saveUserProfile(uid: string, data: Partial<UserProfile>) {
-  const userRef = doc(db, 'users', uid)
-  const snap = await getDoc(userRef)
-  const cleaned: Partial<UserProfile> = { ...data }
-  if (typeof cleaned.instagramId === 'string') {
-    cleaned.instagramId = cleaned.instagramId.replace(/^@/, '').trim()
-  }
-  if (!snap.exists()) {
-    await setDoc(userRef, {
-      uid,
-      ...cleaned,
+export async function finalizeIfComplete(uid: string) {
+  const refDoc = doc(db, 'users', uid)
+  const snap = await getDoc(refDoc)
+  if (!snap.exists()) return
+  const prof = normalizeProfile(snap.data())
+  if (!prof?.isProfileComplete && computeIsProfileComplete(prof)) {
+    await updateDoc(refDoc, {
       isProfileComplete: true,
-      createdAt: serverTimestamp(),
+      'setupStatus.completedAt': serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-  } else {
-    await updateDoc(userRef, {
-      ...cleaned,
-      isProfileComplete: true,
-      updatedAt: serverTimestamp(),
-    } as any)
   }
 }
 
-// Callables (unchanged)
+/* Backwards compatibility wrapper */
+export async function saveUserProfile(uid: string, data: Partial<UserProfile>) {
+  await updateProfileAndStatus(uid, data)
+}
+
+/* Callables (unchanged skeleton) */
 export async function callJoinMatchingRound(payload: { roundId: string; planId?: string }) {
-  const fn = httpsCallable(functions, 'joinMatchingRound')
-  return fn(payload)
+  const fn = httpsCallable(functions, 'joinMatchingRound'); return fn(payload)
 }
-
 export async function callConfirmMatch(payload: { roundId: string; girlUid: string }) {
-  const fn = httpsCallable(functions, 'confirmMatch')
-  return fn(payload)
+  const fn = httpsCallable(functions, 'confirmMatch'); return fn(payload)
 }
-
 export async function callAdminPromoteMatch(payload: { roundId: string; boyUid: string; girlUid: string }) {
-  const fn = httpsCallable(functions, 'adminPromoteMatch')
-  return fn(payload)
+  const fn = httpsCallable(functions, 'adminPromoteMatch'); return fn(payload)
 }
-
 export async function callAdminApprovePayment(payload: { paymentId: string }) {
-  const fn = httpsCallable(functions, 'adminApprovePayment')
-  return fn(payload)
+  const fn = httpsCallable(functions, 'adminApprovePayment'); return fn(payload)
 }
 
-// Re-export Firestore helpers
 export { doc, getDoc, setDoc, updateDoc, serverTimestamp }
 
-// Export region constant for other modules
+
+const FUNCTIONS_REGION = 'asia-south2'  
+
+export const functions = getFunctions(app, FUNCTIONS_REGION)
+
 export { FUNCTIONS_REGION }

@@ -1,381 +1,244 @@
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../state/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
-import React, { useEffect, useRef, useState } from 'react'
-import './home.effects.css'
 import MetricsBand from '../components/MetricsBand'
+import './home.effects.css'
 
 
-/** Subtle layered background: gradient mesh + tiny floating hearts */
-function HomeBackground() {
-  return (
-    <div className="home-bg" aria-hidden="true">
-      <div className="mesh mesh-1" />
-      <div className="mesh mesh-2" />
-      <div className="mesh mesh-3" />
-      <div className="hearts-layer">
-        {Array.from({ length: 14 }).map((_, i) => (
-          <svg
-            key={i}
-            className={`h-heart h-heart-${i}`}
-            width="20"
-            height="20"
-            viewBox="0 0 32 32"
-            fill="none"
-          >
-            <path
-              d="M16 29s-13-8.35-13-17A7 7 0 0 1 16 7a7 7 0 0 1 13 5c0 8.65-13 17-13 17z"
-              fill="url(#hgrad)"
-            />
-            <defs>
-              <linearGradient id="hgrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#ff416c" />
-                <stop offset="1" stopColor="#ff4b2b" />
-              </linearGradient>
-            </defs>
-          </svg>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/** Tiny heart burst on click anywhere within this layer */
-function useHeartBurst() {
-  const containerRef = useRef<HTMLDivElement | null>(null)
+/* -----------------------------------------------------------------------------
+ * Rotating Keyword
+ * --------------------------------------------------------------------------- */
+const ROTATING_WORDS = ['Meaningful', 'Real', 'Safe', 'Fun']
+function useRotatingWord(interval = 2200) {
+  const [i, setI] = useState(0)
   useEffect(() => {
-    const c = containerRef.current
-    if (!c) return
-    let blocked = false
-    const handler = (e: MouseEvent) => {
-      if (blocked) return
-      blocked = true
-      const el = document.createElement('div')
-      el.className = 'heart-burst'
-      el.style.left = `${e.clientX}px`
-      el.style.top = `${e.clientY}px`
-      el.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-          <path d="M16 29s-13-8.35-13-17A7 7 0 0 1 16 7a7 7 0 0 1 13 5c0 8.65-13 17-13 17z" fill="url(#g)"/>
-          <defs><linearGradient id="g" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#ff416c"/><stop offset="1" stop-color="#ff4b2b"/></linearGradient></defs>
-        </svg>`
-      c.appendChild(el)
-      setTimeout(() => {
-        el.remove()
-        blocked = false
-      }, 900)
-    }
-    c.addEventListener('click', handler)
-    return () => c.removeEventListener('click', handler)
-  }, [])
-  return containerRef
+    const id = setInterval(() => setI(v => (v + 1) % ROTATING_WORDS.length), interval)
+    return () => clearInterval(id)
+  }, [interval])
+  return ROTATING_WORDS[i]
 }
 
-/** Parallax hearts follow the cursor slightly for depth */
-function useParallaxHearts() {
-  useEffect(() => {
-    const layer = document.querySelector<HTMLElement>('.hearts-layer')
-    if (!layer) return
-    let raf = 0
-    let tx = 0, ty = 0
-    let targetX = 0, targetY = 0
-    const onMove = (e: MouseEvent) => {
-      const cx = window.innerWidth / 2
-      const cy = window.innerHeight / 2
-      targetX = (e.clientX - cx) / 60
-      targetY = (e.clientY - cy) / 60
-      if (!raf) loop()
-    }
-    const loop = () => {
-      tx += (targetX - tx) * 0.08
-      ty += (targetY - ty) * 0.08
-      layer.style.transform = `translate3d(${tx}px, ${ty}px, 0)`
-      if (Math.abs(targetX - tx) > 0.1 || Math.abs(targetY - ty) > 0.1) {
-        raf = requestAnimationFrame(loop)
-      } else {
-        raf = 0
-      }
-    }
-    window.addEventListener('mousemove', onMove)
-    return () => {
-      window.removeEventListener('mousemove', onMove)
-      if (raf) cancelAnimationFrame(raf)
-    }
-  }, [])
-}
-
-/** Intersection-based reveal for elements with [data-reveal] */
-function useRevealOnScroll() {
-  useEffect(() => {
-    const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'))
-    if (!nodes.length) return
-    const io = new IntersectionObserver(
-      (entries) => entries.forEach((en) => en.isIntersecting && en.target.classList.add('is-visible')),
-      { threshold: 0.15 }
-    )
-    nodes.forEach((n) => io.observe(n))
-    return () => io.disconnect()
-  }, [])
-}
-
-/** Magnetic effect for buttons */
-function useMagnetic(ref: React.RefObject<HTMLElement>, strength = 16) {
+/* -----------------------------------------------------------------------------
+ * Generic Tilt (for interactive cards)
+ * --------------------------------------------------------------------------- */
+function useTilt(max = 10) {
+  const ref = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     const el = ref.current
-    if (!el) return
-    const onMove = (e: MouseEvent) => {
-      const r = el.getBoundingClientRect()
-      const x = ((e.clientX - r.left) / r.width - 0.5) * strength
-      const y = ((e.clientY - r.top) / r.height - 0.5) * strength
-      el.style.transform = `translate(${x}px, ${y}px)`
-    }
-    const onLeave = () => { el.style.transform = 'translate(0,0)' }
-    el.addEventListener('mousemove', onMove)
-    el.addEventListener('mouseleave', onLeave)
-    return () => {
-      el.removeEventListener('mousemove', onMove)
-      el.removeEventListener('mouseleave', onLeave)
-    }
-  }, [ref, strength])
-}
-
-/** Cursor spotlight inside a container */
-function useSpotlight(containerRef: React.RefObject<HTMLElement>) {
-  useEffect(() => {
-    const el = containerRef.current
     if (!el) return
     const move = (e: MouseEvent) => {
       const r = el.getBoundingClientRect()
-      const x = e.clientX - r.left
-      const y = e.clientY - r.top
-      el.style.setProperty('--spot-x', `${x}px`)
-      el.style.setProperty('--spot-y', `${y}px`)
-    }
-    el.addEventListener('mousemove', move)
-    return () => el.removeEventListener('mousemove', move)
-  }, [containerRef])
-}
-
-/** Lightweight 3D tilt wrapper with sheen */
-function TiltCard({ className = '', children, max = 10 }: { className?: string; children: React.ReactNode; max?: number }) {
-  const ref = useRef<HTMLDivElement | null>(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const onMove = (e: MouseEvent) => {
-      const rect = el.getBoundingClientRect()
-      const px = (e.clientX - rect.left) / rect.width
-      const py = (e.clientY - rect.top) / rect.height
+      const px = (e.clientX - r.left) / r.width
+      const py = (e.clientY - r.top) / r.height
       const rx = (py - 0.5) * -max
       const ry = (px - 0.5) * max
-      el.style.setProperty('--rx', `${rx.toFixed(2)}deg`)
-      el.style.setProperty('--ry', `${ry.toFixed(2)}deg`)
-      el.style.setProperty('--px', `${px}`)
-      el.style.setProperty('--py', `${py}`)
+      el.style.setProperty('--tilt-rx', rx.toFixed(2) + 'deg')
+      el.style.setProperty('--tilt-ry', ry.toFixed(2) + 'deg')
     }
-    const reset = () => {
-      el.style.setProperty('--rx', `0deg`)
-      el.style.setProperty('--ry', `0deg`)
+    const leave = () => {
+      el.style.setProperty('--tilt-rx', '0deg')
+      el.style.setProperty('--tilt-ry', '0deg')
     }
-    el.addEventListener('mousemove', onMove)
-    el.addEventListener('mouseleave', reset)
+    el.addEventListener('mousemove', move)
+    el.addEventListener('mouseleave', leave)
     return () => {
-      el.removeEventListener('mousemove', onMove)
-      el.removeEventListener('mouseleave', reset)
+      el.removeEventListener('mousemove', move)
+      el.removeEventListener('mouseleave', leave)
     }
   }, [max])
-  return (
-    <div ref={ref} className={`tilt ${className}`} data-reveal>
-      {children}
-    </div>
-  )
+  return ref
 }
 
-/** Drag-to-scroll row with arrow controls (kept for potential reuse) */
-function CarouselRow({ children }: { children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement | null>(null)
+/* -----------------------------------------------------------------------------
+ * Pulsing Score
+ * --------------------------------------------------------------------------- */
+function usePulseValue(start = 78, to = 92) {
+  const [val, setVal] = useState(start)
   useEffect(() => {
-    const scroller = ref.current
-    if (!scroller) return
-    let isDown = false
-    let startX = 0
-    let scrollLeft = 0
-
-    const onDown = (e: PointerEvent) => {
-      isDown = true
-      scroller.classList.add('dragging')
-      startX = e.clientX
-      scrollLeft = scroller.scrollLeft
-      scroller.setPointerCapture(e.pointerId)
-    }
-    const onMove = (e: PointerEvent) => {
-      if (!isDown) return
-      scroller.scrollLeft = scrollLeft - (e.clientX - startX)
-    }
-    const onUp = (e: PointerEvent) => {
-      isDown = false
-      scroller.classList.remove('dragging')
-      try { scroller.releasePointerCapture(e.pointerId) } catch {}
-    }
-
-    scroller.addEventListener('pointerdown', onDown)
-    scroller.addEventListener('pointermove', onMove)
-    scroller.addEventListener('pointerup', onUp)
-    scroller.addEventListener('pointerleave', onUp)
-    return () => {
-      scroller.removeEventListener('pointerdown', onDown)
-      scroller.removeEventListener('pointermove', onMove)
-      scroller.removeEventListener('pointerup', onUp)
-      scroller.removeEventListener('pointerleave', onUp)
-    }
-  }, [])
-
-  const scrollBy = (dir: number) => {
-    const scroller = ref.current
-    if (!scroller) return
-    scroller.scrollBy({ left: dir * Math.min(420, scroller.clientWidth * 0.9), behavior: 'smooth' })
-  }
-
-  return (
-    <div className="carousel-wrap" data-reveal>
-      <button className="arrow-btn left" aria-label="Scroll left" onClick={() => scrollBy(-1)}>‹</button>
-      <div className="reviews-drag" ref={ref}>
-        {children}
-      </div>
-      <button className="arrow-btn right" aria-label="Scroll right" onClick={() => scrollBy(1)}>›</button>
-    </div>
-  )
-}
-
-/** Count-up number that animates when visible (supports decimals) */
-function CountUp({ to, suffix = '', duration = 1200, decimals = 0 }: { to: number; suffix?: string; duration?: number; decimals?: number }) {
-  const [v, setV] = useState(0)
-  const ref = useRef<HTMLSpanElement | null>(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    let started = false
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((en) => {
-        if (en.isIntersecting && !started) {
-          started = true
-          const start = performance.now()
-          const animate = (t: number) => {
-            const p = Math.min((t - start) / duration, 1)
-            setV(p * to)
-            if (p < 1) requestAnimationFrame(animate)
-          }
-          requestAnimationFrame(animate)
-          io.disconnect()
-        }
+    let dir = 1
+    const id = setInterval(() => {
+      setVal(v => {
+        if (v >= to) dir = -1
+        if (v <= start) dir = 1
+        return Math.min(to, Math.max(start, v + dir * (Math.random() * 2 + 0.6)))
       })
-    }, { threshold: 0.3 })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [to, duration])
-  const value = decimals > 0 ? v.toFixed(decimals) : Math.round(v).toLocaleString()
-  return <span ref={ref}>{value}{suffix}</span>
+    }, 420)
+    return () => clearInterval(id)
+  }, [start, to])
+  return Math.round(val)
 }
 
-/** Stars for ratings */
-function Stars({ rating }: { rating: number }) {
-  return (
-    <div className="rv-stars" role="img" aria-label={`${rating} out of 5 stars`}>
-      {[0,1,2,3,4].map(i => (
-        <svg key={i} viewBox="0 0 24 24" className={`rv-star ${i < rating ? 'on' : ''}`} aria-hidden="true">
-          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.25l-7.19-.62L12 2 9.19 8.63 2 9.25l5.46 4.72L5.82 21z"/>
-        </svg>
-      ))}
-    </div>
-  )
-}
+/* -----------------------------------------------------------------------------
+ * Sample Profiles (Placeholder)
+ * --------------------------------------------------------------------------- */
+const sampleProfiles = [
+  {
+    name: 'Aarav',
+    age: 23,
+    tag: 'Growth Designer',
+    avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Aarav&scale=110',
+    interests: ['Travel', 'Indie', 'Climb'],
+  },
+  {
+    name: 'Ishita',
+    age: 22,
+    tag: 'AI Enthusiast',
+    avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Ishita&scale=110',
+    interests: ['Poetry', 'Art', 'Matcha'],
+  },
+  {
+    name: 'Rohan',
+    age: 24,
+    tag: 'Product Engineer',
+    avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Rohan&scale=110',
+    interests: ['Running', 'Photos', 'Coffee'],
+  },
+]
 
-/** Horizontal marquee chips (swap with logos later) */
-function CollegesMarquee() {
-  const chips = ['IIT Delhi', 'DTU', 'IIIT Delhi', 'NSUT', 'DU North', 'DU South', 'JMI', 'IITM']
+/* -----------------------------------------------------------------------------
+ * Match Preview Card
+ * --------------------------------------------------------------------------- */
+function MatchPreview() {
+  const tiltRef = useTilt()
+  const matchScore = usePulseValue()
+  const [index, setIndex] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setIndex(i => (i + 1) % sampleProfiles.length), 3600)
+    return () => clearInterval(id)
+  }, [])
+  const p = sampleProfiles[index]
   return (
-    <div className="marquee-wrap" aria-label="Participating colleges" data-reveal>
-      <div className="marquee-track">
-        {[...chips, ...chips].map((c, i) => (
-          <span key={i} className="chip interactive-chip">{c}</span>
-        ))}
+    <div ref={tiltRef} className="hero-match-card" aria-label="Live match preview demo">
+      <div className="hm-card-bg" />
+      <div className="hm-card-content">
+        <div className="hm-avatar-wrap">
+          <img src={p.avatar} alt={p.name} className="hm-avatar" loading="lazy" />
+          <span className="hm-status-dot" aria-hidden="true" />
+        </div>
+        <div className="hm-main">
+          <h4 className="hm-name">
+            {p.name}, {p.age}
+          </h4>
+          <p className="hm-tag">{p.tag}</p>
+          <ul className="hm-interests">
+            {p.interests.map(it => <li key={it}>{it}</li>)}
+          </ul>
+        </div>
+        <div className="hm-score">
+          <span className="hm-score-value">{matchScore}%</span>
+          <span className="hm-score-label">Match</span>
+        </div>
       </div>
+      <div className="hm-glow" />
     </div>
   )
 }
 
-/** Phone swipe preview */
-function SwipePreview() {
-  const cards = [
-    { name: 'Aisha, 20', bio: 'Design • Coffee • Indie', img: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=900&q=80&auto=format&fit=crop' },
-    { name: 'Rohan, 21', bio: 'MMA • Startups • Rap', img: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?w=900&q=80&auto=format&fit=crop' },
-    { name: 'Simran, 19', bio: 'Photography • Dance • Foodie', img: 'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=900&q=80&auto=format&fit=crop' },
-  ]
-
-
+/* -----------------------------------------------------------------------------
+ * HERO
+ * --------------------------------------------------------------------------- */
+function Hero() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const rotating = useRotatingWord()
+  const handlePrimary = () => {
+    if (user) navigate('/dashboard')
+    else navigate('/auth/signup')
+  }
   return (
-    <div className="phone-demo" data-reveal>
-      <div className="notch" />
-      <div className="screen">
-        {cards.map((c, i) => (
-          <div className={`card-demo cd-${i}`} key={i} style={{ backgroundImage: `url(${c.img})` }}>
-            <div className="cd-overlay">
-              <div className="cd-name">{c.name}</div>
-              <div className="cd-bio">{c.bio}</div>
+    <section className="hero-wrapper">
+      <div className="hero-back">
+        <div className="hero-gradient-layer" />
+        <div className="hero-noise-layer" />
+        <div className="hero-orbs">
+          <span className="orb orb-a" />
+          <span className="orb orb-b" />
+          <span className="orb orb-c" />
+        </div>
+      </div>
+      <div className="hero-inner container">
+        <div className="hero-left">
+          <h1 className="hero-title">
+            Find <span className="rotating-word">{rotating}</span> Connections That Actually Matter
+          </h1>
+          <p className="hero-sub">
+            LinkUp blends curated rounds, human matching signals, and a safety‑first core to help you build genuine relationships—not endless swipes.
+          </p>
+          <div className="hero-ctas">
+            <button onClick={handlePrimary} className="btn btn-primary hero-btn-main">
+              {user ? 'Go to Dashboard' : 'Get Started'}
+            </button>
+            <Link to="/how-it-works" className="btn hero-btn-secondary">How It Works</Link>
+          </div>
+          <div className="hero-mini-stats">
+            <div>
+              <strong>+92%</strong>
+              <span>report deeper chats</span>
             </div>
-            <div className="cd-actions">
-              <button className="cd-btn nope" aria-label="Nope">✕</button>
-              <button className="cd-btn like" aria-label="Like">❤</button>
+            <div>
+              <strong>Curated</strong>
+              <span>limited round spots</span>
+            </div>
+            <div>
+              <strong>Safety</strong>
+              <span>verified & guided</span>
             </div>
           </div>
-        ))}
+        </div>
+        <div className="hero-right">
+          <MatchPreview />
+          <div className="hero-callout">
+            <span className="hc-dot" />
+            Real profiles • No infinite feed • Transparent quotas
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   )
 }
 
-/** Safety section (kept as-is) */
-function SafetyGrid() {
-  const items = [
-    { title: 'Verified Profiles', desc: 'College verification and checks help keep DateU authentic.', iconId: 'g1' },
-    { title: 'Report System', desc: 'Flag suspicious or harmful behavior quickly, right from the app.', iconId: 'g2' },
-    { title: 'Privacy Controls', desc: 'Limit what you share and who can reach you with granular settings.', iconId: 'g3' },
-    { title: 'Safety Guidelines', desc: 'Practical tips for online chat and IRL meets, built for students.', iconId: 'g4' },
-  ]
-  const Icon = ({ id }: { id: string }) => {
-    switch (id) {
-      case 'g1': return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="url(#g1)" strokeWidth="1.8"/><path d="M8 12l2.2 2.2L16 8.5" stroke="url(#g1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><defs><linearGradient id="g1" x1="0" y1="0" x2="24" y2="24"><stop stopColor="#ff416c"/><stop offset="1" stopColor="#ff4b2b"/></linearGradient></defs></svg>
-      )
-      case 'g2': return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2l9 16H3L12 2z" stroke="url(#g2)" strokeWidth="1.8" fill="none"/><circle cx="12" cy="15.5" r="1" fill="#ff879d"/><path d="M12 9v4" stroke="url(#g2)" strokeWidth="2" strokeLinecap="round"/><defs><linearGradient id="g2" x1="0" y1="0" x2="24" y2="24"><stop stopColor="#ff416c"/><stop offset="1" stopColor="#ff4b2b"/></linearGradient></defs></svg>
-      )
-      case 'g3': return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="10" rx="2" stroke="url(#g3)" strokeWidth="1.8"/><path d="M8 10V8a4 4 0 018 0v2" stroke="url(#g3)" strokeWidth="1.8" strokeLinecap="round"/><defs><linearGradient id="g3" x1="0" y1="0" x2="24" y2="24"><stop stopColor="#ff416c"/><stop offset="1" stopColor="#ff4b2b"/></linearGradient></defs></svg>
-      )
-      default: return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.4-2.9 8.4-7 9-4.1-.6-7-4.6-7-9V6l7-3z" stroke="url(#g4)" strokeWidth="1.8" fill="none"/><path d="M9 12l2 2 4-4" stroke="url(#g4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><defs><linearGradient id="g4" x1="0" y1="0" x2="24" y2="24"><stop stopColor="#ff416c"/><stop offset="1" stopColor="#ff4b2b"/></linearGradient></defs></svg>
-      )
-    }
-  }
+/* -----------------------------------------------------------------------------
+ * Feature Pillars
+ * --------------------------------------------------------------------------- */
+const FEATURES = [
+  {
+    icon: '⚡',
+    title: 'Curated Rounds',
+    text: 'Short themed batches increase intent and reduce noise.',
+  },
+  {
+    icon: '💬',
+    title: 'Quality > Quantity',
+    text: 'Fewer, higher‑signal introductions encourage real dialogue.',
+  },
+  {
+    icon: '🛡️',
+    title: 'Safety Layered In',
+    text: 'Verification, reporting, and respectful design choices.',
+  },
+  {
+    icon: '✨',
+    title: 'Human + Product Blend',
+    text: 'Product logic plus human review to discourage spam & bots.',
+  },
+]
 
+function FeaturePillars() {
   return (
-    <section className="section safety-v2">
+    <section className="section feature-pillars">
       <div className="container">
-        <div className="safety-hero">
-          <h2 className="safety-title-v2"><span>Your </span><span className="accent">Safety First</span></h2>
-          <p className="safety-sub-v2">We prioritize your security with practical guidance and built-in safeguards.</p>
-        </div>
-
-        <div className="safety-grid-v2">
-          {items.map((it) => (
-            <article key={it.title} className="safety-item-v2" data-reveal>
-              <div className="safety-ic-wrap" aria-hidden="true"><Icon id={it.iconId} /></div>
-              <div className="safety-content">
-                <h3>{it.title}</h3>
-                <p>{it.desc}</p>
-              </div>
-            </article>
+        <h2 className="section-title">Why Students Choose LinkUp</h2>
+        <p className="section-sub">
+          We removed the addictive noise loops and built around trust, pace, and authenticity.
+        </p>
+        <div className="pillars-grid">
+          {FEATURES.map(f => (
+            <div key={f.title} className="pillar-card">
+              <div className="pillar-icon">{f.icon}</div>
+              <h3>{f.title}</h3>
+              <p>{f.text}</p>
+            </div>
           ))}
         </div>
       </div>
@@ -383,214 +246,420 @@ function SafetyGrid() {
   )
 }
 
-/** Top scroll progress bar */
-function ScrollProgress() {
-  const ref = useRef<HTMLDivElement | null>(null)
+/* -----------------------------------------------------------------------------
+ * Rounds Preview Carousel (Mock)
+ * --------------------------------------------------------------------------- */
+interface RoundPreview {
+  id: string
+  theme: string
+  spots: number
+  active?: boolean
+  badge?: string
+  color: string
+  desc: string
+}
+const ROUND_MOCK: RoundPreview[] = [
+  { id: 'art-vibes', theme: 'Art Vibes', spots: 40, active: true, badge: 'LIVE', color: '#ff5470', desc: 'Creative, design, visual energy' },
+  { id: 'builders', theme: 'Builders & Hackers', spots: 28, color: '#7d45ff', desc: 'Makers, coders, product minds' },
+  { id: 'travellers', theme: 'Travel Souls', spots: 32, color: '#ff8f3c', desc: 'Explorers, culture & wanderers' },
+  { id: 'music-zone', theme: 'Indie Music', spots: 25, color: '#00c2b8', desc: 'Playlists, gigs & sonic taste' },
+]
+
+function useInterval(cb: () => void, delay: number | null) {
   useEffect(() => {
-    const bar = ref.current
-    if (!bar) return
-    const onScroll = () => {
-      const h = document.documentElement
-      const p = (h.scrollTop) / (h.scrollHeight - h.clientHeight)
-      bar.style.transform = `scaleX(${Math.max(0, Math.min(1, p))})`
-    }
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-  return <div className="scroll-progress"><div className="scroll-progress-bar" ref={ref} /></div>
+    if (delay === null) return
+    const id = setInterval(cb, delay)
+    return () => clearInterval(id)
+  }, [cb, delay])
 }
 
-export default function Home() {
-  const { user, profile, login } = useAuth()
-  const nav = useNavigate()
+function RoundsCarousel() {
+  const [index, setIndex] = useState(0)
+  const advance = useCallback(() => {
+    setIndex(i => (i + 1) % ROUND_MOCK.length)
+  }, [])
+  useInterval(advance, 4000)
 
-  const burstLayerRef = useHeartBurst()
-  useParallaxHearts()
-  useRevealOnScroll()
+  return (
+    <section className="section rounds-preview">
+      <div className="container">
+        <div className="rounds-head">
+          <div>
+            <h2>Curated Matching Rounds</h2>
+            <p className="muted">Focus on one meaningful introduction at a time, inside intentionally limited themed groups.</p>
+          </div>
+          <Link to="/rounds" className="btn btn-primary btn-sm">View All Rounds</Link>
+        </div>
+        <div className="rounds-track">
+          {ROUND_MOCK.map((r, i) => {
+            const active = i === index
+            return (
+              <div
+                key={r.id}
+                className={`round-card ${active ? 'active' : ''}`}
+                style={{ '--accent-clr': r.color } as any}
+              >
+                {r.badge && <span className="round-badge">{r.badge}</span>}
+                <h3>{r.theme}</h3>
+                <p>{r.desc}</p>
+                <div className="round-meta">
+                  <span>{r.spots} spots</span>
+                  {r.active && <span className="live-dot">• enrolling now</span>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <div className="dots">
+          {ROUND_MOCK.map((_, i) => (
+            <button
+              key={i}
+              aria-label={`Show round ${i + 1}`}
+              className={i === index ? 'on' : ''}
+              onClick={() => setIndex(i)}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
 
-  const heroRef = useRef<HTMLDivElement | null>(null)
-  useSpotlight(heroRef)
+/* -----------------------------------------------------------------------------
+ * Why It Works Timeline
+ * --------------------------------------------------------------------------- */
+const TIMELINE = [
+  {
+    title: 'Intent Onboarding',
+    text: 'Short profile + interests surfaces what actually matters.',
+  },
+  {
+    title: 'Focused Rounds',
+    text: 'You’re not competing with endless scroll—just a small curated batch.',
+  },
+  {
+    title: 'Mutual Reveal',
+    text: 'Only mutual interest unlocks names / socials to cut noise & spam.',
+  },
+  {
+    title: 'Paced Discovery',
+    text: 'Limited simultaneous matches = deeper conversations, less burnout.',
+  },
+]
 
-  const ctaRef = useRef<HTMLButtonElement | null>(null)
-  useMagnetic(ctaRef, 18)
+function WhyItWorks() {
+  return (
+    <section className="section why-works">
+      <div className="container">
+        <h2>Engineered For Intent</h2>
+        <p className="section-sub">Every layer encourages authenticity, safety and better social outcomes.</p>
+        <div className="timeline">
+          {TIMELINE.map((t, i) => (
+            <div key={t.title} className="timeline-item">
+              <div className="tl-index">{i + 1}</div>
+              <div className="tl-body">
+                <h3>{t.title}</h3>
+                <p>{t.text}</p>
+              </div>
+            </div>
+          ))}
+          <div className="timeline-line" aria-hidden="true" />
+        </div>
+      </div>
+    </section>
+  )
+}
 
-  const cta = async () => {
-    if (user) {
-      if (profile?.isProfileComplete) nav('/dashboard')
-      else nav('/setup/gender')
-      return
+/* -----------------------------------------------------------------------------
+ * Animated Counters
+ * --------------------------------------------------------------------------- */
+function useCount(to: number, duration = 1400) {
+  const [val, setVal] = useState(0)
+  useEffect(() => {
+    let frame: number
+    const start = performance.now()
+    const step = (t: number) => {
+      const p = Math.min(1, (t - start) / duration)
+      setVal(Math.floor(p * to))
+      if (p < 1) frame = requestAnimationFrame(step)
     }
-    const isNew = await login()
-    nav(isNew ? '/setup/gender' : '/dashboard')
-  }
-
-  const testimonials = [
-    {
-      rating: 5,
-      text: 'Finally an app that actually cares about girls’ safety.',
-      author: 'Simran',
-      role: 'DTU',
-      avatar: '/assets/av1.jpg'
-    },
-    {
-      rating: 4,
-      text: 'Clean UI and thoughtful rounds. Matches feel more intentional.',
-      author: 'Arjun',
-      role: 'IIT Delhi',
-      avatar: '/assets/av2.jpg'
-    },
-    {
-      rating: 5,
-      text: 'Simple, respectful, and fun. Highly recommend.',
-      author: 'Karan',
-      role: 'NSUT',
-      avatar: '/assets/av3.jpg'
-    },
-    {
-      rating: 4,
-      text: 'Loved the vibe. Met great people!',
-      author: 'Nisha',
-      role: 'DU North',
-      avatar: '/assets/av4.jpg'
-    },
-    {
-      rating: 5,
-      text: 'Great onboarding and zero spam. Felt safe the whole time.',
-      author: 'Manya',
-      role: 'IIIT Delhi',
-      avatar: '/assets/av5.jpg'
-    },
+    frame = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(frame)
+  }, [to, duration])
+  return val
+}
+function Counters() {
+  const counters = [
+    { label: 'Meaningful Intros', value: 3200 },
+    { label: 'Rounds Curated', value: 57 },
+    { label: 'Reported Spam', value: 0, suffix: '%' },
+    { label: 'Campus Communities', value: 18 },
   ]
+  return (
+    <section className="section counters-glass">
+      <div className="container counters-grid">
+        {counters.map(c => {
+          const v = useCount(c.value)
+          return (
+            <div key={c.label} className="counter-card">
+              <div className="counter-value">
+                {v.toLocaleString()}{c.suffix || ''}
+              </div>
+              <div className="counter-label">{c.label}</div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
 
+/* -----------------------------------------------------------------------------
+ * Safety (refined)
+ * --------------------------------------------------------------------------- */
+function Safety() {
+  const items = [
+    { icon: '🪪', title: 'Identity Signals', text: 'Institution & manual context reduce catfishing.' },
+    { icon: '🧊', title: 'Cool Down Patterns', text: 'Encourages depth over blast DMs.' },
+    { icon: '🛟', title: 'Report & Escalate', text: 'Quick pathways if something feels off.' },
+    { icon: '🔐', title: 'Privacy Guardrails', text: 'Selective reveal of handles & info.' },
+  ]
+  return (
+    <section className="section safety-modern">
+      <div className="container">
+        <div className="safety-head">
+          <h2>Safety Baked In</h2>
+          <p className="muted">Trust layers help you feel comfortable exploring connections.</p>
+        </div>
+        <div className="safety-cards">
+          {items.map(i => (
+            <div key={i.title} className="safety-card">
+              <div className="safety-icon">{i.icon}</div>
+              <h3>{i.title}</h3>
+              <p>{i.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* -----------------------------------------------------------------------------
+ * Testimonials
+ * --------------------------------------------------------------------------- */
+interface Testimonial {
+  rating: number
+  text: string
+  author: string
+  role: string
+  avatar: string
+}
+const TESTIMONIALS: Testimonial[] = [
+  {
+    rating: 5,
+    text: 'Fewer profiles meant I actually read them. Quality uplift is real.',
+    author: 'Simran',
+    role: 'DTU',
+    avatar: '/assets/av1.jpg'
+  },
+  {
+    rating: 4,
+    text: 'It feels intentional. I don’t doom scroll and burn out.',
+    author: 'Arjun',
+    role: 'IIT Delhi',
+    avatar: '/assets/av2.jpg'
+  },
+  {
+    rating: 5,
+    text: 'Felt safe & respected, plus the UI is clean.',
+    author: 'Karan',
+    role: 'NSUT',
+    avatar: '/assets/av3.jpg'
+  },
+  {
+    rating: 5,
+    text: 'Met people I now collaborate with. Not just matches—actual network.',
+    author: 'Nisha',
+    role: 'DU North',
+    avatar: '/assets/av4.jpg'
+  },
+  {
+    rating: 5,
+    text: 'The round cadence keeps me engaged without overwhelm.',
+    author: 'Manya',
+    role: 'IIIT Delhi',
+    avatar: '/assets/av5.jpg'
+  },
+]
+
+function Stars({ rating }: { rating: number }) {
+  return (
+    <span className="stars-wrap" aria-label={`${rating} stars`}>
+      {[0,1,2,3,4].map(i => <span key={i} className={`star ${i < rating ? 'on' : ''}`}>★</span>)}
+    </span>
+  )
+}
+
+function Testimonials() {
+  const [list, setList] = useState(() => TESTIMONIALS)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setList(l => {
+        const clone = [...l]
+        const first = clone.shift()
+        if (first) clone.push(first)
+        return clone
+      })
+    }, 6500)
+    return () => clearInterval(id)
+  }, [])
+  return (
+    <section className="section testimonials-modern">
+      <div className="container">
+        <h2>What Students Say</h2>
+        <div className="testimonials-grid">
+          {list.slice(0,5).map(t => (
+            <figure key={t.text} className="testimonial-item">
+              <blockquote>{t.text}</blockquote>
+              <figcaption>
+                <img src={t.avatar} alt="" className="ti-avatar" />
+                <div>
+                  <div className="ti-name">{t.author}</div>
+                  <div className="ti-role">{t.role}</div>
+                  <Stars rating={t.rating} />
+                </div>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* -----------------------------------------------------------------------------
+ * FAQ
+ * --------------------------------------------------------------------------- */
+const FAQS = [
+  {
+    q: 'How are rounds curated?',
+    a: 'We theme and cap them. Limited supply nudges thoughtfulness and reduces message spam.'
+  },
+  {
+    q: 'Is my social handle public?',
+    a: 'No—mutual interest first. This protects your privacy and lowers cold spam.'
+  },
+  {
+    q: 'Do I have to be a student?',
+    a: 'Yes right now. Academic affiliation adds a baseline trust layer for everyone.'
+  },
+  {
+    q: 'Why not infinite swipes?',
+    a: 'Because behavioral drain & novelty chasing reduce actual connection quality.'
+  },
+]
+
+function FAQ() {
+  return (
+    <section className="section faq-modern">
+      <div className="container">
+        <h2>FAQ</h2>
+        <div className="faq-items">
+          {FAQS.map(f => (
+            <details key={f.q}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* -----------------------------------------------------------------------------
+ * Final CTA
+ * --------------------------------------------------------------------------- */
+function FinalCTA() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const go = () => {
+    if (user) navigate('/dashboard')
+    else navigate('/auth/signup')
+  }
+  return (
+    <section className="section final-cta-modern">
+      <div className="container final-cta-box">
+        <div className="final-cta-text">
+          <h2>Ready to meet someone authentic?</h2>
+          <p>Join the next curated round—intentional discovery without the noise.</p>
+          <button className="btn btn-primary btn-lg" onClick={go}>
+            {user ? 'Enter Dashboard' : 'Join Now'}
+          </button>
+        </div>
+        <div className="final-cta-art">
+          <div className="cta-orb co-a" />
+          <div className="cta-orb co-b" />
+          <div className="cta-line" />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* -----------------------------------------------------------------------------
+ * Page Assembly
+ * --------------------------------------------------------------------------- */
+export default function Home() {
   return (
     <>
       <Navbar />
-      <ScrollProgress />
-      <HomeBackground />
-      <div className="home-burst-layer" ref={burstLayerRef} aria-hidden="true" />
-      <header className="hero" ref={heroRef}>
-        <div className="cursor-spotlight" aria-hidden="true" />
-        <div className="container hero-inner">
-          <div className="hero-copy" data-reveal>
-            <h1 className="glow-title">Meaningful Connections, Made in College.</h1>
-            <p className="sub">Curated rounds. No endless swiping. Safer, smarter, and just your vibe.</p>
-            <div className="cta">
-              <button className="btn primary magnet" ref={ctaRef} onClick={cta} data-reveal>
-                {user ? 'Go to Dashboard' : 'Join Now'}
-              </button>
-              <a className="btn ghost" href="#how" data-reveal>How it Works</a>
-            </div>
-            <div className="trust-row" data-reveal>
-              <span className="trust-dot" /> Loved by students across Delhi NCR
-            </div>
-          </div>
-          <div className="hero-visual">
-            <SwipePreview />
-          </div>
-        </div>
-        <CollegesMarquee />
-      </header>
-
-      <section id="how" className="section">
-        <div className="container">
-          <h2 data-reveal>How it works</h2>
-          <div className="how-grid">
-            <TiltCard className="how-card">
-              <div className="how-num">1</div>
-              <h3>Create Your Profile</h3>
-              <p>Onboard with Google. Add your photo, bio, and interests.</p>
-            </TiltCard>
-            <TiltCard className="how-card">
-              <div className="how-num">2</div>
-              <h3>Boys Join a Round</h3>
-              <p>Enter curated rounds to be discovered by girls.</p>
-            </TiltCard>
-            <TiltCard className="how-card">
-              <div className="how-num">3</div>
-              <h3>Girls Choose</h3>
-              <p>View a handful of profiles. Tap who you vibe with.</p>
-            </TiltCard>
-            <TiltCard className="how-card">
-              <div className="how-num">4</div>
-              <h3>Connect on Insta</h3>
-              <p>Mutual likes reveal names and Insta IDs to both.</p>
-            </TiltCard>
-            <div className="how-connector" aria-hidden="true" />
-          </div>
-        </div>
-      </section>
-
-      {/* Metrics */}
+      <Hero />
+      <FeaturePillars />
+      <RoundsCarousel />
+      <WhyItWorks />
+      <Counters />
       <MetricsBand />
-
-      {/* Safety */}
-      <SafetyGrid />
-
-      {/* Reviews (dark theme + full-width container like other sections) */}
-      <section className="section reviews-section">
-        <div className="container reviews-container">
-          <h2 data-reveal>What Students Say</h2>
-          <div className="testimonial-grid">
-            {testimonials.map((t, i) => (
-              <article key={i} className="testimonial-card testimonial-dark" data-reveal>
-                <div className="testimonial-stars"><Stars rating={t.rating} /></div>
-                <p className="testimonial-text">{t.text}</p>
-                <div className="testimonial-author">
-                  <img className="testimonial-avatar" src={t.avatar} alt={`${t.author} avatar`} />
-                  <div className="testimonial-meta">
-                    <div className="testimonial-name">{t.author}</div>
-                    <div className="testimonial-role">{t.role}</div>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section faq-section">
-        <div className="container">
-          <h2 data-reveal>FAQ</h2>
-          <div className="faq-list" data-reveal>
-            <details>
-              <summary>How are rounds curated?</summary>
-              <p>We run short, themed rounds. Profiles are reviewed to keep quality high and spam low.</p>
-            </details>
-            <details>
-              <summary>Is my Insta revealed to everyone?</summary>
-              <p>No. Your Instagram is visible only on mutual matches.</p>
-            </details>
-            <details>
-              <summary>Do I need to be in college?</summary>
-              <p>Yes. We verify you with your institution details to keep DateU college‑exclusive.</p>
-            </details>
-          </div>
-        </div>
-      </section>
-
-      <section className="section final-cta">
-        <div className="container">
-          <div className="cta-card interactive-card" data-reveal>
+      <Safety />
+      <Testimonials />
+      <FAQ />
+      <FinalCTA />
+      <footer className="footer-modern">
+        <div className="container footer-inner">
+          <div className="footer-cols">
             <div>
-              <h3>Ready to vibe with someone real?</h3>
-              <p>Join the next round and let the magic happen.</p>
+              <h4>DateU</h4>
+              <p className="muted small">Built for campus connections.</p>
             </div>
-            <button className="btn primary" onClick={cta}>
-              {user ? 'Go to Dashboard' : 'Join Now'}
-            </button>
+            <div>
+              <h5>Product</h5>
+              <ul>
+                <li><Link to="/rounds">Rounds</Link></li>
+                <li><Link to="/how-it-works">How It Works</Link></li>
+                <li><Link to="/pricing">Pricing</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h5>Company</h5>
+              <ul>
+                <li><Link to="/about">About</Link></li>
+                <li><Link to="/support">Support</Link></li>
+                <li><Link to="/blog">Blog</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h5>Legal</h5>
+              <ul>
+                <li><Link to="/legal/privacy">Privacy</Link></li>
+                <li><Link to="/legal/terms">Terms</Link></li>
+                <li><Link to="/legal/cookies">Cookies</Link></li>
+              </ul>
+            </div>
           </div>
-        </div>
-      </section>
-
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-links">
-            <Link to="/">Privacy Policy</Link>
-            <Link to="/">Terms of Service</Link>
-            <Link to="/">Contact</Link>
+          <div className="copy small">
+            © {new Date().getFullYear()} DateU • Crafted for better digital social pacing.
           </div>
-          <div className="copy">© {new Date().getFullYear()} DateU</div>
         </div>
       </footer>
     </>

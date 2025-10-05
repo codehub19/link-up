@@ -1,37 +1,70 @@
-import React, { useMemo, useState } from 'react'
+import React, { useState } from 'react'
+import Navbar from '../../components/Navbar'
+import { useAuth } from '../../state/AuthContext'
+import { updateProfileAndStatus, nextSetupRoute } from '../../firebase'
 import { useNavigate } from 'react-router-dom'
-import { SetupShell, SetupHeader, StepFooter } from './SetupShared'
 import './setup.styles.css'
 
-export default function InterestsStep() {
+type Props = { embedded?: boolean; onComplete?: () => void }
+
+const ALL = ['Design','Music','Gaming','Fitness','Travel','Photography','Startups','Reading','Dance','Coding','Art','Volunteering','Food','Movies','Outdoors']
+
+export default function Interests({ embedded, onComplete }: Props) {
+  const { user, profile, refreshProfile } = useAuth()
   const nav = useNavigate()
-  const all = useMemo(
-    () => ['Photography','Cooking','Gaming','Music','Travel','Painting','Politics','Charity','Cooking','Pets','Sports','Fashion','Video Games','Shopping','Speeches','Art & Crafts','Swimming','Drinking','Extreme Sports','Fitness'],
-    []
-  )
-  const [picked, setPicked] = useState<string[]>([])
-  const toggle = (t: string) => {
-    setPicked(prev => prev.includes(t)
-      ? prev.filter(x => x !== t)
-      : prev.length < 3 ? [...prev, t] : prev
+  const [picked, setPicked] = useState<string[]>(profile?.interests ?? [])
+  const [saving, setSaving] = useState(false)
+
+  const toggle = (i: string) => {
+    setPicked(prev =>
+      prev.includes(i)
+        ? prev.filter(p => p !== i)
+        : prev.length >= 3 ? prev : [...prev, i]
     )
   }
+
+  const save = async () => {
+    if (!user || picked.length === 0) return
+    setSaving(true)
+    try {
+      await updateProfileAndStatus(user.uid, { interests: picked }, { interests: true })
+      await refreshProfile()
+      if (embedded && onComplete) onComplete()
+      else {
+        const next = nextSetupRoute(profile)
+        nav(next || '/setup/q1')
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
-    <SetupShell step={4} total={6}>
-      <SetupHeader title="Select up to 3 interests" sub="Share your likes and passions." />
-      <div className="chips-grid">
-        {all.map(t => (
-          <button
-            key={t}
-            className={`chip-pill ${picked.includes(t) ? 'is-selected' : ''}`}
-            onClick={() => toggle(t)}
-          >
-            {t}
-          </button>
-        ))}
+    <>
+      {!embedded && <Navbar />}
+      <div className={embedded ? '' : 'setup-page'}>
+        <section className="setup-card setup-card-glass">
+          <h1 className="setup-title">Your Interests</h1>
+          <p className="setup-sub">Pick up to 3.</p>
+          <div className="interest-grid">
+            {ALL.map(i => (
+              <button
+                key={i}
+                className={`interest-pill ${picked.includes(i) ? 'on' : ''}`}
+                onClick={() => toggle(i)}
+              >
+                {i}
+              </button>
+            ))}
+          </div>
+          <div className="chips-count">{picked.length}/3 selected</div>
+          <div className="setup-card-footer">
+            <button className="btn-primary-lg" disabled={picked.length===0 || saving} onClick={save}>
+              {saving ? 'Saving…' : 'Continue'}
+            </button>
+          </div>
+        </section>
       </div>
-      <div className="chips-count">{picked.length}/3 selected</div>
-      <StepFooter onNext={() => nav('/setup/photos')} disabled={picked.length === 0} />
-    </SetupShell>
+    </>
   )
 }

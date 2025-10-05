@@ -1,22 +1,19 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import { BrowserRouter} from 'react-router-dom'
-import ChatPage from './pages/dashboard/chat/ChatPage'
 import React, { Suspense, lazy } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import Home from './pages/Home'
-import Gender from './pages/setup/Gender'
-import Profile from './pages/setup/Profile' // Wizard entry (Looking For → Interests → Photos → Details)
-import { useAuth } from './state/AuthContext'
 import Protected from './components/Protected'
-import SetupGuard from './components/SetupGuard'  // ← add this import
+import SetupGuard from './components/SetupGuard'
+import { useAuth } from './state/AuthContext'
+import ProfileWizard from './pages/setup/Profile'
 
-// Lazy dashboard/admin routes (trimmed here for brevity)
+/* Lazy dashboard/admin pages (unchanged) */
+const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
 const MalePlans = lazy(() => import('./pages/dashboard/male/Plans'))
 const MaleMatches = lazy(() => import('./pages/dashboard/male/MaleMatches'))
 const MaleEditProfile = lazy(() => import('./pages/dashboard/male/EditProfile'))
 const FemaleRound = lazy(() => import('./pages/dashboard/female/MatchingRound'))
 const FemaleConnections = lazy(() => import('./pages/dashboard/female/Connections'))
 const FemaleEditProfile = lazy(() => import('./pages/dashboard/female/EditProfile'))
-const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
 const PaymentPage = lazy(() => import('./pages/PaymentPage'))
 const RoundsAdmin = lazy(() => import('./pages/admin/RoundsAdmin'))
 const PaymentsAdmin = lazy(() => import('./pages/admin/PaymentsAdmin'))
@@ -24,6 +21,7 @@ const CurationAdmin = lazy(() => import('./pages/admin/CurationAdmin'))
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 const PlansAdmin = lazy(() => import('./pages/admin/PlansAdmin'))
 const AdminHome = lazy(() => import('./pages/admin/AdminHome'))
+const ChatPage = lazy(() => import('./pages/dashboard/chat/ChatPage'))
 
 export default function App() {
   const { profile } = useAuth()
@@ -33,30 +31,29 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
 
-        {/* Onboarding (blocked if already complete) */}
-        <Route
-          path="/setup/gender"
-          element={
-            <Protected requireProfile={false}>
-              <SetupGuard>
-                <Gender />
-              </SetupGuard>
-            </Protected>
-          }
-        />
+        {/* Unified wizard */}
         <Route
           path="/setup/profile"
           element={
             <Protected requireProfile={false}>
               <SetupGuard>
-                {/* Ensure gender exists before showing the wizard */}
-                {!profile?.gender ? <Navigate to="/setup/gender" replace /> : <Profile />}
+                <ProfileWizard />
               </SetupGuard>
             </Protected>
           }
         />
 
-        {/* Dashboard entry decides male/female */}
+        {/* Redirect any legacy step URLs to the unified wizard */}
+        <Route path="/setup/gender" element={<Navigate to="/setup/profile" replace />} />
+        <Route path="/setup/details" element={<Navigate to="/setup/profile" replace />} />
+        <Route path="/setup/interests" element={<Navigate to="/setup/profile" replace />} />
+        <Route path="/setup/q1" element={<Navigate to="/setup/profile" replace />} />
+        <Route path="/setup/q2" element={<Navigate to="/setup/profile" replace />} />
+        <Route path="/setup/bio" element={<Navigate to="/setup/profile" replace />} />
+        <Route path="/setup/photos" element={<Navigate to="/setup/profile" replace />} />
+        <Route path="/setup/terms" element={<Navigate to="/setup/profile" replace />} />
+
+        {/* Dashboard root chooser */}
         <Route
           path="/dashboard"
           element={
@@ -117,61 +114,25 @@ export default function App() {
             </Protected>
           }
         />
-
-        {/* Payments */}
         <Route
-          path="/pay"
+          path="/dashboard/chat"
           element={
             <Protected>
-              <PaymentPage />
+              <ChatPage />
             </Protected>
           }
         />
+
+        {/* Payments */}
+        <Route path="/pay" element={<Protected><PaymentPage /></Protected>} />
 
         {/* Admin */}
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route
-          path="/admin"
-          element={
-            <Protected>
-              <AdminHome />
-            </Protected>
-          }
-        />
-        <Route
-          path="/admin/rounds"
-          element={
-            <Protected>
-              <RoundsAdmin />
-            </Protected>
-          }
-        />
-        <Route
-          path="/admin/payments"
-          element={
-            <Protected>
-              <PaymentsAdmin />
-            </Protected>
-          }
-        />
-        <Route
-          path="/admin/curation"
-          element={
-            <Protected>
-              <CurationAdmin />
-            </Protected>
-          }
-        />
-        <Route
-          path="/admin/plans"
-          element={
-            <Protected>
-              <PlansAdmin />
-            </Protected>
-          }
-        />
-
-         <Route path="/dashboard/chat" element={<ChatPage />} />
+        <Route path="/admin" element={<Protected><AdminHome /></Protected>} />
+        <Route path="/admin/rounds" element={<Protected><RoundsAdmin /></Protected>} />
+        <Route path="/admin/payments" element={<Protected><PaymentsAdmin /></Protected>} />
+        <Route path="/admin/curation" element={<Protected><CurationAdmin /></Protected>} />
+        <Route path="/admin/plans" element={<Protected><PlansAdmin /></Protected>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
