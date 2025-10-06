@@ -163,7 +163,7 @@ function Hero() {
             Find <span className="rotating-word">{rotating}</span> Connections That Actually Matter
           </h1>
           <p className="hero-sub">
-            LinkUp blends curated rounds, human matching signals, and a safety‑first core to help you build genuine relationships—not endless swipes.
+            DateU blends curated rounds, human matching signals, and a safety‑first core to help you build genuine relationships—not endless swipes.
           </p>
           <div className="hero-ctas">
             <button onClick={handlePrimary} className="btn btn-primary hero-btn-main">
@@ -205,7 +205,7 @@ const FEATURES = [
   {
     icon: '⚡',
     title: 'Curated Rounds',
-    text: 'Short themed batches increase intent and reduce noise.',
+    text: 'No more endless swipes with our Curated Matching Rounds.',
   },
   {
     icon: '💬',
@@ -219,7 +219,7 @@ const FEATURES = [
   },
   {
     icon: '✨',
-    title: 'Human + Product Blend',
+    title: 'Bot Deterrence',
     text: 'Product logic plus human review to discourage spam & bots.',
   },
 ]
@@ -228,7 +228,7 @@ function FeaturePillars() {
   return (
     <section className="section feature-pillars">
       <div className="container">
-        <h2 className="section-title">Why Students Choose LinkUp</h2>
+        <h2 className="section-title">Why Students Choose DateU</h2>
         <p className="section-sub">
           We removed the addictive noise loops and built around trust, pace, and authenticity.
         </p>
@@ -388,29 +388,175 @@ function useCount(to: number, duration = 1400) {
   }, [to, duration])
   return val
 }
-function Counters() {
-  const counters = [
-    { label: 'Meaningful Intros', value: 3200 },
-    { label: 'Rounds Curated', value: 57 },
-    { label: 'Reported Spam', value: 0, suffix: '%' },
-    { label: 'Campus Communities', value: 18 },
-  ]
+// import React from 'react'
+
+/**
+ * Assumes you already have a hook like:
+ * function useCount(to: number, duration = 1400) { ... }
+ * If not, a fallback inline implementation is provided (uncomment below).
+ */
+
+// Fallback (uncomment if you don't already have one):
+// function useCount(to: number, duration = 1400) {
+//   const [v, setV] = React.useState(0)
+//   React.useEffect(() => {
+//     let raf: number
+//     const start = performance.now()
+//     const tick = (t: number) => {
+//       const p = Math.min(1, (t - start) / duration)
+//       setV(p * to)
+//       if (p < 1) raf = requestAnimationFrame(tick)
+//     }
+//     raf = requestAnimationFrame(tick)
+//     return () => cancelAnimationFrame(raf)
+//   }, [to, duration])
+//   return v
+// }
+
+type CounterSpec = { label: string; value: number; suffix?: string; icon?: string }
+
+const COUNTERS: CounterSpec[] = [
+  { label: 'Meaningful Intros', value: 3200, icon: 'heart' },
+  { label: 'Rounds Curated', value: 57, icon: 'layers' },
+  { label: 'Reported Spam', value: 0, suffix: '%', icon: 'shield' },
+  { label: 'Campus Communities', value: 18, icon: 'campus' },
+]
+
+/* Small icon library (inline SVG) to keep network clean */
+function Icon({ id }: { id?: string }) {
+  switch (id) {
+    case 'heart':
+      return (
+        <svg viewBox="0 0 24 24" width={24} height={24} fill="none">
+          <path
+            d="M12 21s-1.9-1.55-4.2-3.56C4.2 15 2 12.9 2 9.9 2 7 4.1 5 6.7 5c1.6 0 3.1.9 4 2.3C11.6 5.9 13.1 5 14.7 5 17.3 5 19.5 7 19.5 9.9c0 3-2.2 5.1-5.8 7.54C13.9 19.45 12 21 12 21z"
+            stroke="url(#grad-heart)"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+            fill="rgba(255,65,108,0.12)"
+          />
+          <defs>
+            <linearGradient id="grad-heart" x1="0" y1="0" x2="24" y2="24">
+              <stop stopColor="#ff416c" />
+              <stop offset="1" stopColor="#ff4b2b" />
+            </linearGradient>
+          </defs>
+        </svg>
+      )
+    case 'layers':
+      return (
+        <svg viewBox="0 0 24 24" width={24} height={24} fill="none">
+          <path
+            d="M12 3l9 5-9 5-9-5 9-5z"
+            stroke="url(#grad-layers)"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+            fill="rgba(255,75,43,0.1)"
+          />
+          <path
+            d="M5 12l7 4 7-4M5 16.5l7 4 7-4"
+            stroke="url(#grad-layers)"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <defs>
+            <linearGradient id="grad-layers" x1="0" y1="0" x2="24" y2="24">
+              <stop stopColor="#ff416c" />
+              <stop offset="1" stopColor="#ff8f48" />
+            </linearGradient>
+          </defs>
+        </svg>
+      )
+    case 'shield':
+      return (
+        <svg viewBox="0 0 24 24" width={24} height={24} fill="none">
+          <path
+            d="M12 3l7 3v6c0 4.4-2.9 8.4-7 9-4.1-.6-7-4.6-7-9V6l7-3z"
+            stroke="url(#grad-shield)"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+            fill="rgba(255,65,108,0.08)"
+          />
+          <path
+            d="M9 12l2 2 4-4"
+            stroke="url(#grad-shield)"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <defs>
+            <linearGradient id="grad-shield" x1="0" y1="0" x2="24" y2="24">
+              <stop stopColor="#ff416c" />
+              <stop offset="1" stopColor="#ff4b2b" />
+            </linearGradient>
+          </defs>
+        </svg>
+      )
+    case 'campus':
+    default:
+      return (
+        <svg viewBox="0 0 24 24" width={24} height={24} fill="none">
+          <path
+            d="M4 19h16M4 11l8-6 8 6-8 5-8-5zM8 14v5M16 14v5"
+            stroke="url(#grad-campus)"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <defs>
+            <linearGradient id="grad-campus" x1="0" y1="0" x2="24" y2="24">
+              <stop stopColor="#ff416c" />
+              <stop offset="1" stopColor="#ff4b2b" />
+            </linearGradient>
+          </defs>
+        </svg>
+      )
+  }
+}
+
+export function Counters() {
   return (
-    <section className="section counters-glass">
-      <div className="container counters-grid">
-        {counters.map(c => {
-          const v = useCount(c.value)
-          return (
-            <div key={c.label} className="counter-card">
-              <div className="counter-value">
-                {v.toLocaleString()}{c.suffix || ''}
-              </div>
-              <div className="counter-label">{c.label}</div>
-            </div>
-          )
-        })}
+    <section className="section counters-modern" aria-labelledby="stats-heading">
+      <div className="container">
+        <h2 className="visually-hidden" id="stats-heading">
+          Platform Stats
+        </h2>
+        <div className="counters-shell">
+          {COUNTERS.map((c, i) => (
+            <CounterCard key={c.label} spec={c} index={i} />
+          ))}
+        </div>
       </div>
     </section>
+  )
+}
+
+function CounterCard({ spec, index }: { spec: CounterSpec; index: number }) {
+  const v = useCount(spec.value)
+  const display =
+    spec.value % 1 === 0
+      ? Math.round(v).toLocaleString()
+      : v.toFixed(1)
+
+  return (
+    <article
+      className="counterx"
+      style={{ animationDelay: `${index * 90}ms` }}
+      aria-label={`${spec.label}: ${spec.value}${spec.suffix || ''}`}
+    >
+      <div className="counterx-border" aria-hidden="true" />
+      <div className="counterx-inner">
+        <div className="counterx-icon">
+          <Icon id={spec.icon} />
+        </div>
+        <div className="counterx-value">
+          {display}
+          {spec.suffix || ''}
+        </div>
+        <div className="counterx-label">{spec.label}</div>
+      </div>
+    </article>
   )
 }
 
@@ -419,27 +565,61 @@ function Counters() {
  * --------------------------------------------------------------------------- */
 function Safety() {
   const items = [
-    { icon: '🪪', title: 'Identity Signals', text: 'Institution & manual context reduce catfishing.' },
-    { icon: '🧊', title: 'Cool Down Patterns', text: 'Encourages depth over blast DMs.' },
-    { icon: '🛟', title: 'Report & Escalate', text: 'Quick pathways if something feels off.' },
-    { icon: '🔐', title: 'Privacy Guardrails', text: 'Selective reveal of handles & info.' },
+    {
+      icon: '🪪',
+      title: 'Identity Signals',
+      text: 'Institution context & manual checks reduce catfishing risk.',
+    },
+    {
+      icon: '🧊',
+      title: 'Pace & Presence',
+      text: 'Interaction patterns discourage blast DMs—depth > noise.',
+    },
+    {
+      icon: '🛟',
+      title: 'Report & Escalate',
+      text: 'Fast in‑flow reporting & escalation if something feels off.',
+    },
+    {
+      icon: '🔐',
+      title: 'Privacy Guardrails',
+      text: 'Selective reveal of handles & personal info until mutual trust.',
+    },
   ]
+
   return (
-    <section className="section safety-modern">
-      <div className="container">
-        <div className="safety-head">
-          <h2>Safety Baked In</h2>
-          <p className="muted">Trust layers help you feel comfortable exploring connections.</p>
-        </div>
-        <div className="safety-cards">
-          {items.map(i => (
-            <div key={i.title} className="safety-card">
-              <div className="safety-icon">{i.icon}</div>
-              <h3>{i.title}</h3>
-              <p>{i.text}</p>
-            </div>
+    <section className="safety-modern" aria-labelledby="safety-heading">
+      <div className="safety-shell container">
+        <header className="safety-header">
+          <h2 id="safety-heading">
+            Safety <span className="grad-accent">Baked In</span>
+          </h2>
+          <p className="safety-sub">
+            Layered trust signals, controlled revelation, and fast mitigation so you
+            can explore connections comfortably.
+          </p>
+        </header>
+
+        <ul className="safety-grid" role="list">
+          {items.map((i, idx) => (
+            <li
+              key={i.title}
+              className="safety-card"
+              style={{ ['--delay' as any]: `${idx * 70}ms` }}
+              tabIndex={0}
+              aria-label={`${i.title}: ${i.text}`}
+            >
+              <div className="safety-card-border" aria-hidden="true" />
+              <div className="safety-card-bg" aria-hidden="true" />
+              <div className="safety-icon-wrap" aria-hidden="true">
+                <span className="icon-emoji">{i.icon}</span>
+                <span className="icon-ring" />
+              </div>
+              <h3 className="safety-card-title">{i.title}</h3>
+              <p className="safety-card-text">{i.text}</p>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </section>
   )
@@ -617,10 +797,10 @@ export default function Home() {
       <Navbar />
       <Hero />
       <FeaturePillars />
-      <RoundsCarousel />
+      {/* <RoundsCarousel /> */}
       <WhyItWorks />
       <Counters />
-      <MetricsBand />
+      {/* <MetricsBand /> */}
       <Safety />
       <Testimonials />
       <FAQ />
