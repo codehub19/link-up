@@ -139,12 +139,12 @@ function MatchPreview() {
  * HERO
  * --------------------------------------------------------------------------- */
 function Hero() {
-  const { user } = useAuth()
+  const { user , login} = useAuth()
   const navigate = useNavigate()
   const rotating = useRotatingWord()
   const handlePrimary = () => {
     if (user) navigate('/dashboard')
-    else navigate('/auth/signup')
+    else login()
   }
   return (
     <section className="hero-wrapper">
@@ -228,7 +228,7 @@ function FeaturePillars() {
   return (
     <section className="section feature-pillars">
       <div className="container">
-        <h2 className="section-title">Why Students Choose DateU</h2>
+        <h2 className="section-title">Why Students Choose <span className="grad-accent">DateU</span></h2>
         <p className="section-sub">
           We removed the addictive noise loops and built around trust, pace, and authenticity.
         </p>
@@ -330,46 +330,49 @@ function RoundsCarousel() {
  * --------------------------------------------------------------------------- */
 const TIMELINE = [
   {
-    title: 'Intent Onboarding',
-    text: 'Short profile + interests surfaces what actually matters.',
+    title: "Intent Onboarding",
+    text: "Short profile + interests surfaces what actually matters.",
   },
   {
-    title: 'Focused Rounds',
-    text: 'You’re not competing with endless scroll—just a small curated batch.',
+    title: "Focused Rounds",
+    text: "You’re not competing with endless scroll—just a small curated batch.",
   },
   {
-    title: 'Mutual Reveal',
-    text: 'Only mutual interest unlocks names / socials to cut noise & spam.',
+    title: "Mutual Reveal",
+    text: "Only mutual interest unlocks names / socials to cut noise & spam.",
   },
   {
-    title: 'Paced Discovery',
-    text: 'Limited simultaneous matches = deeper conversations, less burnout.',
+    title: "Paced Discovery",
+    text: "Limited simultaneous matches = deeper conversations, less burnout.",
   },
-]
+];
 
 function WhyItWorks() {
   return (
-    <section className="section why-works">
+    <section className="section why-works-minimal">
       <div className="container">
-        <h2>Engineered For Intent</h2>
-        <p className="section-sub">Every layer encourages authenticity, safety and better social outcomes.</p>
-        <div className="timeline">
+        <h2 className="why-works-title">Engineered For Intent</h2>
+        <p className="why-works-sub">
+          Every layer encourages authenticity, safety and better social outcomes.
+        </p>
+        <div className="why-works-timeline">
+          <div className="why-works-flowline" aria-hidden="true"></div>
           {TIMELINE.map((t, i) => (
-            <div key={t.title} className="timeline-item">
-              <div className="tl-index">{i + 1}</div>
-              <div className="tl-body">
-                <h3>{t.title}</h3>
-                <p>{t.text}</p>
+            <div className="why-works-step" key={t.title} style={{ animationDelay: `${i * 120}ms` }}>
+              <div className="why-works-dot">
+                <span className="why-works-dot-inner">{i + 1}</span>
+              </div>
+              <div className="why-works-card">
+                <div className="why-works-step-title">{t.title}</div>
+                <div className="why-works-step-text">{t.text}</div>
               </div>
             </div>
           ))}
-          <div className="timeline-line" aria-hidden="true" />
         </div>
       </div>
     </section>
-  )
+  );
 }
-
 /* -----------------------------------------------------------------------------
  * Animated Counters
  * --------------------------------------------------------------------------- */
@@ -563,29 +566,31 @@ function CounterCard({ spec, index }: { spec: CounterSpec; index: number }) {
 /* -----------------------------------------------------------------------------
  * Safety (refined)
  * --------------------------------------------------------------------------- */
+// import React from "react";
+
 function Safety() {
   const items = [
     {
-      icon: '🪪',
-      title: 'Identity Signals',
-      text: 'Institution context & manual checks reduce catfishing risk.',
+      icon: "🪪",
+      title: "Identity Signals",
+      text: "Institution context & manual checks reduce catfishing risk.",
     },
     {
-      icon: '🧊',
-      title: 'Pace & Presence',
-      text: 'Interaction patterns discourage blast DMs—depth > noise.',
+      icon: "🧊",
+      title: "Pace & Presence",
+      text: "Interaction patterns discourage blast DMs—depth > noise.",
     },
     {
-      icon: '🛟',
-      title: 'Report & Escalate',
-      text: 'Fast in‑flow reporting & escalation if something feels off.',
+      icon: "🛟",
+      title: "Report & Escalate",
+      text: "Fast in‑flow reporting & escalation if something feels off.",
     },
     {
-      icon: '🔐',
-      title: 'Privacy Guardrails',
-      text: 'Selective reveal of handles & personal info until mutual trust.',
+      icon: "🔐",
+      title: "Privacy Guardrails",
+      text: "Selective reveal of handles & personal info until mutual trust.",
     },
-  ]
+  ];
 
   return (
     <section className="safety-modern" aria-labelledby="safety-heading">
@@ -599,146 +604,166 @@ function Safety() {
             can explore connections comfortably.
           </p>
         </header>
-
         <ul className="safety-grid" role="list">
-          {items.map((i, idx) => (
-            <li
-              key={i.title}
-              className="safety-card"
-              style={{ ['--delay' as any]: `${idx * 70}ms` }}
-              tabIndex={0}
-              aria-label={`${i.title}: ${i.text}`}
-            >
-              <div className="safety-card-border" aria-hidden="true" />
-              <div className="safety-card-bg" aria-hidden="true" />
-              <div className="safety-icon-wrap" aria-hidden="true">
-                <span className="icon-emoji">{i.icon}</span>
-                <span className="icon-ring" />
-              </div>
-              <h3 className="safety-card-title">{i.title}</h3>
-              <p className="safety-card-text">{i.text}</p>
+          {items.map((i) => (
+            <li key={i.title} className="safety-card" tabIndex={0} aria-label={`${i.title}: ${i.text}`}>
+              <div className="card-icon">{i.icon}</div>
+              <div className="card-title">{i.title}</div>
+              <div className="card-text">{i.text}</div>
             </li>
           ))}
         </ul>
       </div>
     </section>
-  )
+  );
 }
 
 /* -----------------------------------------------------------------------------
  * Testimonials
  * --------------------------------------------------------------------------- */
+// import React, { useRef, useEffect } from "react";
+
 interface Testimonial {
-  rating: number
-  text: string
-  author: string
-  role: string
-  avatar: string
+  rating: number;
+  text: string;
+  author: string;
+  role: string;
+  avatar: string;
 }
+
+// Add more testimonials for a smoother scroll
 const TESTIMONIALS: Testimonial[] = [
   {
     rating: 5,
-    text: 'Fewer profiles meant I actually read them. Quality uplift is real.',
-    author: 'Simran',
-    role: 'DTU',
-    avatar: '/assets/av1.jpg'
+    text: "Fewer profiles meant I actually read them. Quality uplift is real.",
+    author: "Simran",
+    role: "DTU",
+    avatar: "/assets/av1.jpg",
   },
   {
     rating: 4,
-    text: 'It feels intentional. I don’t doom scroll and burn out.',
-    author: 'Arjun',
-    role: 'IIT Delhi',
-    avatar: '/assets/av2.jpg'
+    text: "It feels intentional. I don’t doom scroll and burn out.",
+    author: "Arjun",
+    role: "IIT Delhi",
+    avatar: "/assets/av2.jpg",
   },
   {
     rating: 5,
-    text: 'Felt safe & respected, plus the UI is clean.',
-    author: 'Karan',
-    role: 'NSUT',
-    avatar: '/assets/av3.jpg'
+    text: "Felt safe & respected, plus the UI is clean.",
+    author: "Karan",
+    role: "NSUT",
+    avatar: "/assets/av3.jpg",
   },
   {
     rating: 5,
-    text: 'Met people I now collaborate with. Not just matches—actual network.',
-    author: 'Nisha',
-    role: 'DU North',
-    avatar: '/assets/av4.jpg'
+    text: "Met people I now collaborate with. Not just matches—actual network.",
+    author: "Nisha",
+    role: "DU North",
+    avatar: "/assets/av4.jpg",
   },
   {
     rating: 5,
-    text: 'The round cadence keeps me engaged without overwhelm.',
-    author: 'Manya',
-    role: 'IIIT Delhi',
-    avatar: '/assets/av5.jpg'
+    text: "The round cadence keeps me engaged without overwhelm.",
+    author: "Manya",
+    role: "IIIT Delhi",
+    avatar: "/assets/av5.jpg",
   },
-]
+];
 
-function Stars({ rating }: { rating: number }) {
+function TestimonialCard({ t }: { t: Testimonial }) {
   return (
-    <span className="stars-wrap" aria-label={`${rating} stars`}>
-      {[0,1,2,3,4].map(i => <span key={i} className={`star ${i < rating ? 'on' : ''}`}>★</span>)}
-    </span>
-  )
+    <div className="testi-card">
+      <span className="testi-quote">“</span>
+      <blockquote>{t.text}</blockquote>
+      <div className="testi-author">
+        <img src={t.avatar} alt={t.author} className="testi-avatar" />
+        <div>
+          <div className="testi-name">{t.author}</div>
+          <div className="testi-role">{t.role}</div>
+          <div className="testi-stars">
+            {Array.from({ length: 5 }, (_, i) => (
+              <span key={i} className={i < t.rating ? "star on" : "star"}>★</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Duplicate testimonials for seamless loop (3x is safe!)
+function getInfiniteRow(testimonials: Testimonial[], repeat = 3, reverse = false) {
+  let arr: Testimonial[] = [];
+  for (let i = 0; i < repeat; i++) arr = arr.concat(testimonials);
+  return reverse ? [...arr].reverse() : arr;
 }
 
 function Testimonials() {
-  const [list, setList] = useState(() => TESTIMONIALS)
+  const row1Ref = useRef<HTMLDivElement>(null);
+  const row2Ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const id = setInterval(() => {
-      setList(l => {
-        const clone = [...l]
-        const first = clone.shift()
-        if (first) clone.push(first)
-        return clone
-      })
-    }, 6500)
-    return () => clearInterval(id)
-  }, [])
+    // Pause animation on hover (accessibility)
+    const rows = [row1Ref.current, row2Ref.current];
+    rows.forEach(row => {
+      if (!row) return;
+      row.addEventListener("mouseenter", () => row.style.animationPlayState = "paused");
+      row.addEventListener("mouseleave", () => row.style.animationPlayState = "running");
+    });
+    return () => {
+      rows.forEach(row => {
+        if (!row) return;
+        row.removeEventListener("mouseenter", () => row.style.animationPlayState = "paused");
+        row.removeEventListener("mouseleave", () => row.style.animationPlayState = "running");
+      });
+    };
+  }, []);
+
+  // Adjust repeat (number of times the array is duplicated) for longer rows if needed
   return (
-    <section className="section testimonials-modern">
+    <section className="section testimonials-auto">
       <div className="container">
-        <h2>What Students Say</h2>
-        <div className="testimonials-grid">
-          {list.slice(0,5).map(t => (
-            <figure key={t.text} className="testimonial-item">
-              <blockquote>{t.text}</blockquote>
-              <figcaption>
-                <img src={t.avatar} alt="" className="ti-avatar" />
-                <div>
-                  <div className="ti-name">{t.author}</div>
-                  <div className="ti-role">{t.role}</div>
-                  <Stars rating={t.rating} />
-                </div>
-              </figcaption>
-            </figure>
-          ))}
+        <h2 className="testi-title">What Students Say</h2>
+        <div className="testi-rows">
+          <div className="testi-row" ref={row1Ref}>
+            {getInfiniteRow(TESTIMONIALS, 3, false).map((t, i) => (
+              <TestimonialCard t={t} key={`row1-${i}-${t.author}-${i}`} />
+            ))}
+          </div>
+          {/* <div className="testi-row reverse" ref={row2Ref}>
+            {getInfiniteRow(TESTIMONIALS, 3, true).map((t, i) => (
+              <TestimonialCard t={t} key={`row2-${i}-${t.author}-${i}`} />
+            ))}
+          </div> */}
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 /* -----------------------------------------------------------------------------
  * FAQ
  * --------------------------------------------------------------------------- */
+// import React from "react";
+
 const FAQS = [
   {
-    q: 'How are rounds curated?',
-    a: 'We theme and cap them. Limited supply nudges thoughtfulness and reduces message spam.'
+    q: "How are rounds curated?",
+    a: "We theme and cap them. Limited supply nudges thoughtfulness and reduces message spam.",
   },
   {
-    q: 'Is my social handle public?',
-    a: 'No—mutual interest first. This protects your privacy and lowers cold spam.'
+    q: "Is my social handle public?",
+    a: "No—mutual interest first. This protects your privacy and lowers cold spam.",
   },
   {
-    q: 'Do I have to be a student?',
-    a: 'Yes right now. Academic affiliation adds a baseline trust layer for everyone.'
+    q: "Do I have to be a student?",
+    a: "Yes right now. Academic affiliation adds a baseline trust layer for everyone.",
   },
   {
-    q: 'Why not infinite swipes?',
-    a: 'Because behavioral drain & novelty chasing reduce actual connection quality.'
+    q: "Why not infinite swipes?",
+    a: "Because behavioral drain & novelty chasing reduce actual connection quality.",
   },
-]
+];
 
 function FAQ() {
   return (
@@ -746,46 +771,54 @@ function FAQ() {
       <div className="container">
         <h2>FAQ</h2>
         <div className="faq-items">
-          {FAQS.map(f => (
+          {FAQS.map((f) => (
             <details key={f.q}>
               <summary>{f.q}</summary>
-              <p>{f.a}</p>
+              <div className="faq-answer">
+                <p>{f.a}</p>
+              </div>
             </details>
           ))}
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 /* -----------------------------------------------------------------------------
  * Final CTA
  * --------------------------------------------------------------------------- */
 function FinalCTA() {
-  const { user } = useAuth()
-  const navigate = useNavigate()
+  const { user, login } = useAuth();
+  const navigate = useNavigate();
   const go = () => {
-    if (user) navigate('/dashboard')
-    else navigate('/auth/signup')
-  }
+    if (user) navigate("/dashboard");
+    else login();
+  };
+
   return (
     <section className="section final-cta-modern">
       <div className="container final-cta-box">
         <div className="final-cta-text">
           <h2>Ready to meet someone authentic?</h2>
-          <p>Join the next curated round—intentional discovery without the noise.</p>
-          <button className="btn btn-primary btn-lg" onClick={go}>
-            {user ? 'Enter Dashboard' : 'Join Now'}
-          </button>
-        </div>
-        <div className="final-cta-art">
-          <div className="cta-orb co-a" />
-          <div className="cta-orb co-b" />
-          <div className="cta-line" />
+          <p>
+            Join the next curated round—intentional discovery without the noise.
+          </p>
+          <div className="heart-burst-wrap">
+            <button className="btn btn-primary btn-lg heart-burst-btn" onClick={go}>
+              <span className="heart-burst-emoji">💖</span>
+              {user ? "Enter Dashboard" : "Join Now"}
+            </button>
+            <div className="heart-burst">
+              {[...Array(6)].map((_, i) => (
+                <span key={i} className={`heart-burst-heart heart-burst-heart${i+1}`}>💖</span>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 /* -----------------------------------------------------------------------------
