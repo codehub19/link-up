@@ -24,7 +24,7 @@ export default function Footer() {
               <ul>
                 <li><Link to="/about">About</Link></li>
                 <li><Link to="/support">Support</Link></li>
-                <li><Link to="/blog">Blog</Link></li>
+                <li><Link to="/community-guidelines">Community Guidelines</Link></li>
               </ul>
             </div>
             <div>

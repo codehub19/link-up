@@ -5,6 +5,13 @@ import Protected from './components/Protected'
 import SetupGuard from './components/SetupGuard'
 import { useAuth } from './state/AuthContext'
 import ProfileWizard from './pages/setup/Profile'
+import Legal from './pages/legal/Legal'
+import Terms from './pages/setup/Terms'
+import Support from './pages/legal/Support'
+import Pricing from './pages/legal/Pricing'
+import About from './pages/legal/About'
+import CommunityGuidelines from './pages/legal/CommunityGuidelines'
+import PrivacyPolicy from './pages/legal/PrivacyPolicy'
 
 /* Lazy dashboard/admin pages (unchanged) */
 const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
@@ -30,6 +37,14 @@ export default function App() {
     <Suspense fallback={null}>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/legal/legal" element={<Legal />} />
+        <Route path="/legal/terms" element={<Terms />} />
+        <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+        {/* <Route path="/legal/cookies" element={<Cookies />} /> */}
+        <Route path="/community-guidelines" element={<CommunityGuidelines />} />
 
         {/* Unified wizard */}
         <Route
