@@ -36,21 +36,16 @@ body{
   -moz-osx-font-smoothing:grayscale;
 }
 
-body {
-  background:
-    radial-gradient(ellipse 80% 40% at 50% 100%, var(--focus) 0%, transparent 70%),
-    linear-gradient(180deg, #15151b 0%, #181821 60%, #1a1a23 100%);
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  background-size: cover;
-}
 
 
 a{color:inherit;text-decoration:none}
 img{max-width:100%;display:block}
 
 /* Layout helpers */
-.container{width:min(1100px, 100% - 32px); margin:0 auto}
+.container{
+  width:min(1100px, 100% - 32px);
+  /* margin:0 auto; */
+}
 .row{display:flex;align-items:center;gap:12px}
 .stack{display:flex;flex-direction:column;gap:12px}
 .muted{color:var(--muted)}
@@ -222,7 +217,10 @@ th{color:#c9cad6; text-align:left; font-weight:600}
 }
 
 /* Legacy support for existing pages */
-.container.narrow{max-width:720px; padding:24px}
+.container.narrow{
+  max-width:720px;
+   padding:24px
+  }
 
 .banner{background:rgba(255,65,108,0.12);border:1px solid rgba(255,65,108,0.25);color:#ffb3c6;padding:12px 14px;border-radius:12px;margin:16px 0}
 .banner.ghost{background:rgba(255,255,255,0.05); border:1px solid var(--card-border); color:var(--muted)}

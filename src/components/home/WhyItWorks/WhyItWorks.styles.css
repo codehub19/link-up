@@ -150,8 +150,8 @@
 
 .container h2{
   margin: 0 0 10px;
-  font-size: clamp(2.2rem, 5vw, 3.1rem);
-  font-weight: 700;
+  /* font-size: clamp(2.2rem, 5vw, 3.1rem);
+  font-weight: 700; */
   letter-spacing: .5px;
   line-height: 1.05;
   background: linear-gradient(90deg,#fff,#f2e9ea 30%,#fff);
