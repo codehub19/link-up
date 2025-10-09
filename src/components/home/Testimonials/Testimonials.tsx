@@ -91,6 +91,15 @@ export default function Testimonials() {
 
   return (
     <section className="section testimonials-auto">
+      <div className="hero-back">
+        <div className="hero-gradient-layer" />
+        <div className="hero-noise-layer" />
+        <div className="hero-orbs">
+          <span className="orb orb-a" />
+          <span className="orb orb-b" />
+          <span className="orb orb-c" />
+        </div>
+      </div>
       <div className="container">
         <h2 className="testi-title">What Students Say</h2>
         <div className="testi-rows">

@@ -23,8 +23,17 @@ const TIMELINE = [
 export default function WhyItWorks() {
   return (
     <section className="section why-works-minimal">
+      <div className="hero-back">
+        <div className="hero-gradient-layer" />
+        <div className="hero-noise-layer" />
+        <div className="hero-orbs">
+          <span className="orb orb-a" />
+          <span className="orb orb-b" />
+          <span className="orb orb-c" />
+        </div>
+      </div>
       <div className="container">
-        <h2 className="why-works-title">Engineered For Intent</h2>
+        <h2 className="why-works-title">Why <span className="grad-accent">DateU</span> Works</h2>
         <p className="why-works-sub">
           Every layer encourages authenticity, safety and better social outcomes.
         </p>

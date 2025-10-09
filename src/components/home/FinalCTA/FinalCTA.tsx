@@ -13,6 +13,15 @@ export default function FinalCTA() {
 
   return (
     <section className="section final-cta-modern">
+      <div className="hero-back">
+        <div className="hero-gradient-layer" />
+        <div className="hero-noise-layer" />
+        <div className="hero-orbs">
+          <span className="orb orb-a" />
+          <span className="orb orb-b" />
+          <span className="orb orb-c" />
+        </div>
+      </div>
       <div className="container final-cta-box">
         <div className="final-cta-text">
           <h2>Ready to meet someone authentic?</h2>

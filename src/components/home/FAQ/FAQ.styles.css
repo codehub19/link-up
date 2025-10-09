@@ -1,21 +1,24 @@
-
 /* ========================================================================== */
-/* FAQ                                                                        */
+/* FAQ — Global Dark Theme with Pink-Red Accent                               */
 /* ========================================================================== */
 :root {
-  --faq-card-bg: linear-gradient(120deg,rgba(255,65,108,0.08),rgba(255,143,72,0.10)), #1c0f12;
-  --faq-card-bg-open: linear-gradient(120deg,rgba(255,65,108,0.13),rgba(255,143,72,0.15)), #210f14;
-  --faq-card-border: 1.2px solid #ff416c33;
-  --faq-card-radius: 18px;
-  --faq-card-shadow: 0 4px 20px -10px #ff416c22;
-  --faq-accent: #ff416c;
+  --faq-card-bg: linear-gradient(120deg, var(--bg-elev-2) 80%, var(--bg-elev) 100%);
+  --faq-card-bg-open: linear-gradient(120deg, var(--bg-elev) 85%, var(--bg-elev-2) 100%);
+  --faq-card-border: 1.2px solid var(--brand-pink)33;
+  --faq-card-radius: var(--radius);
+  --faq-card-shadow: 0 4px 20px -10px var(--brand-pink)22;
+  --faq-accent: var(--brand-pink);
   --faq-title-grad: linear-gradient(90deg,#fff,#fde3e6);
-  --faq-text-soft: #d9cfd7;
+  --faq-text-soft: var(--muted);
 }
 
 .faq-modern {
-  background: linear-gradient(180deg,#12090d,#160b0e 100%);
+  background:
+    radial-gradient(ellipse 80% 40% at 50% 100%, var(--focus) 0%, transparent 70%),
+    linear-gradient(180deg, #15151b 0%, var(--bg-elev-2) 60%, #1a1a23 100%);
   padding: clamp(48px,7vw,88px) 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .faq-modern h2 {
@@ -36,8 +39,9 @@
 }
 
 .faq-items details {
-  background: var(--faq-card-bg);
-  border: var(--faq-card-border);
+ background: linear-gradient(#201318,#151014) padding-box,
+              linear-gradient(140deg,#ff416c40,#ff8f4840) border-box;
+  border:1px solid transparent;
   border-radius: var(--faq-card-radius);
   box-shadow: var(--faq-card-shadow);
   padding: 22px 28px;
@@ -49,15 +53,17 @@
 }
 
 .faq-items details[open] {
-  background: var(--faq-card-bg-open);
-  box-shadow: 0 8px 38px -14px #ff416c33;
+  background: linear-gradient(#201318,#151014) padding-box,
+              linear-gradient(140deg,#ff416c40,#ff8f4840) border-box;
+  border:1px solid transparent;
+  box-shadow: 0 8px 38px -14px var(--brand-pink)33;
 }
 
 .faq-items summary {
   cursor: pointer;
   font-weight: 700;
   font-size: 1.06rem;
-  color: #fff;
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -104,7 +110,7 @@
 
 .faq-items details[open] .faq-answer {
   opacity: 1;
-  max-height: 200px; /* large enough for the answer */
+  max-height: 200px;
   pointer-events: auto;
 }
 

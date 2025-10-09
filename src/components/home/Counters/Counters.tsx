@@ -141,6 +141,15 @@ function CounterCard({ spec, index }: { spec: CounterSpec; index: number }) {
 export default function Counters() {
   return (
     <section className="section counters-modern" aria-labelledby="stats-heading">
+      <div className="hero-back">
+        <div className="hero-gradient-layer" />
+        <div className="hero-noise-layer" />
+        <div className="hero-orbs">
+          <span className="orb orb-a" />
+          <span className="orb orb-b" />
+          <span className="orb orb-c" />
+        </div>
+      </div>
       <div className="container">
         <h2 className="visually-hidden" id="stats-heading">
           Platform Stats

@@ -51,7 +51,8 @@
   color: transparent;
 }
 
-.safety-header .grad-accent {
+/* .safety-header  */
+.grad-accent {
   background: linear-gradient(90deg,var(--safety-grad-1),var(--safety-grad-2));
   -webkit-background-clip: text;
   color: transparent;
