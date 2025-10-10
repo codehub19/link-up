@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { createRound, listRounds, setActiveRound, syncApprovedMalesToActiveRound } from '../../services/rounds'
 import AdminGuard from './AdminGuard'
+import { AdminHeader } from './AdminHome'
 
 export default function RoundsAdmin(){
   const [rounds, setRounds] = useState<any[]>([])
@@ -37,6 +38,7 @@ export default function RoundsAdmin(){
     <AdminGuard>
       <div className="container">
         <div className="card" style={{padding:24, margin:'24px auto', maxWidth:900}}>
+          <AdminHeader title="Rounds" />
           <h2 style={{marginTop:0}}>Rounds Admin</h2>
 
           <form className="row" onSubmit={onCreate} style={{gap:12, marginTop:12, flexWrap:'wrap'}}>

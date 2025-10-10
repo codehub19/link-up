@@ -25,7 +25,7 @@ export default function AdminLogin(){
         await signOut(auth)
         throw new Error('Not an admin account')
       }
-      nav('/admin/rounds')
+      nav('/admin/home')
     } catch (e: any) {
       setError(e?.message || 'Login failed')
     } finally {
