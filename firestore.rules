@@ -35,13 +35,13 @@ service cloud.firestore {
     }
 
     // Payments
-match /payments/{paymentId} {
-  // Allow only admin reads of others; user reads own.
-  allow read: if request.auth != null
-              && (resource.data.uid == request.auth.uid || isAdmin());
-  // Block direct user creation now (all via functions)
-  allow create, update, delete: if isAdmin();
-}
+    match /payments/{paymentId} {
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'pending';
+      allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
 
     // Matching rounds and assignments
     match /matchingRounds/{roundId} {

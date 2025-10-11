@@ -186,3 +186,7 @@ export async function getPlan(planId: string): Promise<Plan | null> {
 export function getPlanSyncOrNull(planId: string): Plan | null {
   return _plansCache.find(p => p.id === planId) || null
 }
+
+
+export const UPI_ID = 'your-upi-id@bank'       // TODO: set this
+export const UPI_QR_URL = '/assets/upi-qr.png' // TODO: ensure file exists at public/assets/upi-qr.png
