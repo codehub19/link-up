@@ -39,6 +39,12 @@ export default function Details({ embedded, onComplete }: Props) {
     }
   }
 
+  const today = new Date()
+  const year = today.getFullYear() - 18
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  const maxDate = `${year}-${month}-${day}`
+
   return (
     <>
       {!embedded && <Navbar />}
@@ -64,7 +70,20 @@ export default function Details({ embedded, onComplete }: Props) {
             </label>
             <label className="field">
               <span className="field-label">Date of Birth</span>
-              <input type="date" className="field-input" value={dob} onChange={e=>setDob(e.target.value)} />
+              <input
+                id="dob"
+                type="date"
+                className="field-input"
+                value={dob}
+                onChange={e => setDob(e.target.value)}
+                max={maxDate}  // ✅ Restrict to 18+ users
+                required
+              />
+              {dob && new Date(dob) > new Date(maxDate) && (
+                <p style={{ color: 'red', marginTop: 8 }}>
+                  You must be at least 18 years old to continue.
+                </p>
+              )}
             </label>
           </div>
           <div className="setup-card-footer">

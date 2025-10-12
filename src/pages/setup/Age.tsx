@@ -18,21 +18,12 @@ export default function AgeStep() {
     el.scrollTop = Math.max(0, idx * itemH - itemH * 2)
   }, [ages, age])
 
-  const onScroll = () => {
-    const el = listRef.current
-    if (!el) return
-    const itemH = 48
-    const idx = Math.round(el.scrollTop / itemH) + 2 // center line
-    const val = ages[Math.min(ages.length - 1, Math.max(0, idx))]
-    if (val) setAge(val)
-  }
-
   return (
     <SetupShell step={1} total={6}>
       <SetupHeader title="How old are you?" sub="Provide your age in years." />
       <div className="age-wheel">
         <div className="age-wheel-mask" aria-hidden />
-        <div className="age-wheel-list" ref={listRef} onScroll={onScroll}>
+        <div className="age-wheel-list" ref={listRef}>
           {ages.map(a => (
             <div key={a} className={`age-item ${a === age ? 'is-active' : ''}`}>{a}</div>
           ))}

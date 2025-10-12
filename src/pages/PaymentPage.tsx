@@ -42,6 +42,7 @@ export default function PaymentPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [provisionPending, setProvisionPending] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   const loadPlan = useCallback(async () => {
     setLoadingPlan(true)
@@ -188,6 +189,12 @@ export default function PaymentPage() {
     }).catch(()=>{})
   }
 
+  useEffect(() => {
+    // Simple mobile device detection
+    const mobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    setIsMobile(mobile)
+  }, [])
+
   if (!resolvedPlan) {
     return (
       <>
@@ -204,41 +211,124 @@ export default function PaymentPage() {
     <>
       <Navbar />
       <div className="container" style={{ maxWidth: 820, padding: '24px 0' }}>
-        <div className="card" style={{maxWidth: 820, margin: '24px auto', padding: 24}}>
-          <h2 style={{marginTop:0}}>Complete Payment</h2>
-          <p style={{marginTop:6, color:'var(--muted)'}}>Plan: <b>{resolvedPlan.name}</b> • Amount: <b>₹{amount}</b></p>
+        <div className="card" style={{ maxWidth: 820, margin: '24px auto', padding: 24 }}>
+        <h2 style={{ marginTop: 0 }}>Complete Payment</h2>
+        <p style={{ marginTop: 6, color: 'var(--muted)' }}>
+          Plan: <b>{resolvedPlan.name}</b> • Amount: <b>₹{amount}</b>
+        </p>
 
-          <div className="row" style={{gap:24, alignItems:'flex-start', flexWrap:'wrap', marginTop:16}}>
-            <div className="stack" style={{minWidth:260}}>
-              <img
-                src={UPI_QR_URL}
-                alt="UPI QR"
-                style={{width:260, height:260, objectFit:'contain', borderRadius:12, border:'1px solid var(--card-border)'}}
-              />
-              <small style={{color:'var(--muted)'}}>Scan the QR with your UPI app</small>
+        <div
+          className="row"
+          style={{ gap: 24, alignItems: 'flex-start', flexWrap: 'wrap', marginTop: 16 }}
+        >
+          <div className="stack" style={{ minWidth: 260 }}>
+            <img
+              src={UPI_QR_URL}
+              alt="UPI QR"
+              style={{
+                width: 260,
+                height: 260,
+                objectFit: 'contain',
+                borderRadius: 12,
+                border: '1px solid var(--card-border)',
+              }}
+            />
+            <small style={{ color: 'var(--muted)' }}>Scan the QR with your UPI app</small>
+          </div>
+
+          <div className="stack" style={{ flex: 1, minWidth: 260 }}>
+            <label style={{ fontWeight: 600 }}>UPI ID</label>
+            <div className="row" style={{ gap: 8 }}>
+              <input className="input" readOnly value={UPI_ID} />
+              <button type="button" className="btn btn-primary" onClick={copyUPI}>
+                Copy
+              </button>
             </div>
 
-            <div className="stack" style={{flex:1, minWidth:260}}>
-              <label style={{fontWeight:600}}>UPI ID</label>
-              <div className="row" style={{gap:8}}>
-                <input className="input" readOnly value={UPI_ID} />
-                <button type="button" className="btn btn-primary" onClick={copyUPI}>Copy</button>
-              </div>
+            {/* ✅ Conditional UPI Buttons Section (Mobile Only) */}
+            {isMobile && (
+              <div style={{ marginTop: 20 }}>
+                <label style={{ fontWeight: 600 }}>Pay Using</label>
+                <div
+                  className="row"
+                  style={{
+                    flexWrap: 'wrap',
+                    gap: 8,
+                    marginTop: 8,
+                  }}
+                >
+                  <a
+                    href={`upi://pay?pa=${encodeURIComponent(
+                      UPI_ID
+                    )}&pn=DateU&am=${amount}&cu=INR`}
+                    className="btn"
+                    style={{
+                      background: '#4285F4',
+                      color: 'white',
+                      flex: '1 1 45%',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Pay with GPay
+                  </a>
 
-              <div className="stack" style={{marginTop:16}}>
-                <label style={{fontWeight:600}}>Payment screenshot (IMPORTANT)</label>
-                <input className="input" type="file" accept="image/*" onChange={(e)=> setProof(e.target.files?.[0] || null)} />
-                <small style={{color:'var(--muted)'}}>Attach proof to speed up approval.</small>
-              </div>
+                  <a
+                    href={`upi://pay?pa=${encodeURIComponent(
+                      UPI_ID
+                    )}&pn=DateU&am=${amount}&cu=INR`}
+                    className="btn"
+                    style={{
+                      background: '#5D3FD3',
+                      color: 'white',
+                      flex: '1 1 45%',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Pay with PhonePe
+                  </a>
 
-              <div className="row" style={{justifyContent:'flex-end', marginTop:16}}>
-                <button className="btn btn-primary" onClick={onConfirmPaid} disabled={submitting}>
-                  {submitting ? 'Submitting…' : 'I have paid'}
-                </button>
+                  <a
+                    href={`upi://pay?pa=${encodeURIComponent(
+                      UPI_ID
+                    )}&pn=DateU&am=${amount}&cu=INR`}
+                    className="btn"
+                    style={{
+                      background: '#02b1ff',
+                      color: 'white',
+                      flex: '1 1 45%',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Pay with Paytm
+                  </a>
+                </div>
+                <small style={{ color: 'var(--muted)', display: 'block', marginTop: 6 }}>
+                  Works best on mobile devices with these apps installed.
+                </small>
               </div>
+            )}
+            {/* ✅ End conditional section */}
+
+            <div className="stack" style={{ marginTop: 16 }}>
+              <label style={{ fontWeight: 600 }}>Payment screenshot (IMPORTANT)</label>
+              <input
+                className="input"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setProof(e.target.files?.[0] || null)}
+              />
+              <small style={{ color: 'var(--muted)' }}>Attach proof to speed up approval.</small>
+            </div>
+
+            <div className="row" style={{ justifyContent: 'flex-end', marginTop: 16 }}>
+              <button className="btn btn-primary" onClick={onConfirmPaid} disabled={submitting}>
+                {submitting ? 'Submitting…' : 'I have paid'}
+              </button>
             </div>
           </div>
         </div>
+      </div>
+
         <div className="card" style={{ padding: 28 }}>
           <h2 style={{ marginTop: 0 }}>Complete Payment</h2>
 
@@ -281,20 +371,16 @@ export default function PaymentPage() {
 
           <div style={{ marginTop: 30 }}>
             <button
-              className="btn btn-primary"
-              onClick={startPayment}
-              disabled={initializing || loadingPlan || !plan}
+              className="btn btn-secondary"
+              disabled
+              title="Coming soon"
             >
-              {initializing
-                ? 'Initializing...'
-                : !plan
-                  ? 'Plan Unavailable'
-                  : 'Pay with Razorpay'}
+              Payment Gateway (Coming Soon)
             </button>
           </div>
 
           <small style={{ display: 'block', marginTop: 24, color: 'var(--muted)' }}>
-            If money is deducted but your plan does not appear after a few minutes, contact support with your Razorpay payment id.
+            Payment Gateway integration is coming soon! Please use the UPI payment option above for now.
           </small>
         </div>
       </div>

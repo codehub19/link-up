@@ -4,22 +4,22 @@ import "./MatchPreview.styles.css";
 const sampleProfiles = [
   {
     name: "Aarav",
-    age: 23,
-    tag: "Growth Designer",
+    age: 19,
+    college: "NSUT Delhi",
     avatar: "https://api.dicebear.com/7.x/thumbs/svg?seed=Aarav&scale=110",
     interests: ["Travel", "Indie", "Climb"],
   },
   {
     name: "Ishita",
     age: 22,
-    tag: "AI Enthusiast",
+    college: "Amity University",
     avatar: "https://api.dicebear.com/7.x/thumbs/svg?seed=Ishita&scale=110",
     interests: ["Poetry", "Art", "Matcha"],
   },
   {
     name: "Rohan",
-    age: 24,
-    tag: "Product Engineer",
+    age: 21,
+    college: "IIT Delhi",
     avatar: "https://api.dicebear.com/7.x/thumbs/svg?seed=Rohan&scale=110",
     interests: ["Running", "Photos", "Coffee"],
   },
@@ -90,7 +90,7 @@ export default function MatchPreview() {
           <h4 className="hm-name">
             {p.name}, {p.age}
           </h4>
-          <p className="hm-tag">{p.tag}</p>
+          <p className="hm-tag">{p.college}</p>
           <ul className="hm-interests">
             {p.interests.map((it) => (
               <li key={it}>{it}</li>

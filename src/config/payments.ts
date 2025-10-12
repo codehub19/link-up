@@ -188,5 +188,5 @@ export function getPlanSyncOrNull(planId: string): Plan | null {
 }
 
 
-export const UPI_ID = 'your-upi-id@bank'       // TODO: set this
-export const UPI_QR_URL = '/assets/upi-qr.png' // TODO: ensure file exists at public/assets/upi-qr.png
+export const UPI_ID = '6221302@ybl'       // TODO: set this
+export const UPI_QR_URL = './assets/upi-qr.png' // TODO: ensure file exists at public/assets/upi-qr.png
