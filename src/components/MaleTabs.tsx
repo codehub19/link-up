@@ -6,9 +6,10 @@ export default function MaleTabs() {
 
   return (
     <div className="tab-btn-row">
+
       <Link className={`tab-btn${is('/dashboard/plans') ? ' tab-btn-active' : ''}`} to="/dashboard/plans">
         <span className="tab-btn-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Plans">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Plans">
             <title>Plans</title>
             <path d="M2 10l4 2 4-6 4 6 4-2 4-6v14H2z"/>
           </svg>
@@ -16,9 +17,28 @@ export default function MaleTabs() {
         <span className="tab-btn-label">Plans</span>
       </Link>
 
+      {/* Rounds */}
+      <Link
+        className={`tab-btn${is('/dashboard/male/rounds') ? ' tab-btn-active' : ''}`}
+        to="/dashboard/male/rounds"
+      >
+        <span className="tab-btn-icon">
+          {/* Calendar/rounds icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Rounds">
+            <title>Rounds</title>
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+            <path d="M9 16l2 2 4-4" />
+          </svg>
+        </span>
+        <span className="tab-btn-label">Rounds</span>
+      </Link>
+
       <Link className={`tab-btn${is('/dashboard/matches') ? ' tab-btn-active' : ''}`} to="/dashboard/matches">
         <span className="tab-btn-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF1493" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Matches">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF1493" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Matches">
             <title>Matches</title>
             <g transform="translate(-1.6 0)" strokeOpacity="0.45">
               <path d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.682 4.318 12.682a4.5 4.5 0 010-6.364z"/>
@@ -42,7 +62,7 @@ export default function MaleTabs() {
             <circle cx="15.5" cy="11.5" r="0.8"/>
           </svg> */}
 
-           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" role="img" aria-labelledby="chatOutlineTitle">
+           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" role="img" aria-labelledby="chatOutlineTitle">
           <title id="chatOutlineTitle">Chat</title>
           <path fill="none" stroke="#7DD3FC" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
                 d="M21 15a2 2 0 0 1-2 2H8l-4 3V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/>
@@ -53,7 +73,7 @@ export default function MaleTabs() {
 
       <Link className={`tab-btn${is('/dashboard/edit-profile') ? ' tab-btn-active' : ''}`} to="/dashboard/edit-profile">
         <span className="tab-btn-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6CA0DC" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Profile">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6CA0DC" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Profile">
             <title>User Profile</title>
             <circle cx="12" cy="7" r="4"/>
             <path d="M6 21v-2a6 6 0 0 1 12 0v2"/>

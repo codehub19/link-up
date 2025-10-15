@@ -9,11 +9,14 @@ export type ActiveSubscription = {
   remainingMatches: number
   matchQuota: number
   supportAvailable?: boolean
+  roundsUsed?: number
+  roundsAllowed?: number
   plan?: {
     id: string
     name: string
     price: number
     matchQuota: number
+    roundsAllowed: number
     offers?: string[]
     supportAvailable?: boolean
   }
@@ -31,6 +34,7 @@ export async function getActiveSubscription(uid: string): Promise<ActiveSubscrip
               || null
   if (!active) return null
 
+  // Ensure roundsAllowed is present in subscription (from plan if missing)
   if (active.planId) {
     const p = await getDoc(doc(db, 'plans', active.planId))
     if (p.exists()) {
@@ -40,11 +44,19 @@ export async function getActiveSubscription(uid: string): Promise<ActiveSubscrip
         name: pd.name,
         price: pd.price,
         matchQuota: pd.matchQuota ?? pd.quota,
+        roundsAllowed: pd.roundsAllowed ?? 1,
         offers: pd.offers,
         supportAvailable: pd.supportAvailable
       }
+      // If subscription roundsAllowed is missing, set from plan
+      if (active.roundsAllowed == null && pd.roundsAllowed != null) {
+        active.roundsAllowed = pd.roundsAllowed
+      }
     }
   }
+  // Ensure roundsAllowed is never undefined
+  if (active.roundsAllowed == null) active.roundsAllowed = active.plan?.roundsAllowed ?? 1
+
   return active
 }
 

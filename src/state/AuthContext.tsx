@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u)
-      if (u) {
+      if (u && u.uid) {
         await ensureUserDocument(u)
         await loadProfile(u.uid)
       } else {
@@ -70,8 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     login: async () => {
       const { user: u, isNewUser } = await signInWithGoogle()
-      await ensureUserDocument(u)
-      await loadProfile(u.uid)
+      if (u && u.uid) {
+        await ensureUserDocument(u)
+        await loadProfile(u.uid)
+      }
       return isNewUser
     },
     logout: async () => { await signOut() },

@@ -12,6 +12,7 @@ import Pricing from './pages/legal/Pricing'
 import About from './pages/legal/About'
 import CommunityGuidelines from './pages/legal/CommunityGuidelines'
 import PrivacyPolicy from './pages/legal/PrivacyPolicy'
+import MaleRound from './pages/dashboard/male/MatchingRounds'
 
 /* Lazy dashboard/admin pages (unchanged) */
 const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
@@ -92,6 +93,14 @@ export default function App() {
           element={
             <Protected>
               {profile?.gender === 'male' ? <MaleMatches /> : <Navigate to="/dashboard" replace />}
+            </Protected>
+          }
+        />
+        <Route
+          path="/dashboard/male/rounds"
+          element={
+            <Protected>
+              {profile?.gender === 'male' ? <MaleRound /> : <Navigate to="/dashboard" replace />}
             </Protected>
           }
         />

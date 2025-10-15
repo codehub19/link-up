@@ -1,11 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import AdminGuard from './AdminGuard'
-import { getActiveRound } from '../../services/rounds'
+import {
+  getActiveRound,
+  getRoundPhase,
+  setRoundPhase,
+  getAssignedGirlsForBoy,
+  getAssignedBoysForGirl,
+  assignGirlsToBoy,
+  assignBoysToGirl,
+  getPhaseTimes,
+} from '../../services/rounds'
 import { listFemaleUsers } from '../../services/admin'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
-import { getAssignments, setAssignments } from '../../services/assignments'
-import { listLikesByGirl } from '../../services/likes'
+import { listLikesByGirl, getBoysWhoLikedGirl } from '../../services/likes'
 import { callAdminPromoteMatch } from '../../firebase'
 import AdminHeader from '../../components/admin/AdminHeader'
 
@@ -20,119 +28,200 @@ type UserLite = {
   gender?: 'male' | 'female'
 }
 
-export default function CurationAdmin(){
-  const [activeRound, setActiveRound] = useState<any|null>(null)
+export default function CurationAdmin() {
+  const [activeRound, setActiveRound] = useState<any | null>(null)
+  const [phase, setPhase] = useState<'boys' | 'girls'>('boys')
   const [girls, setGirls] = useState<UserLite[]>([])
+  const [boys, setBoys] = useState<UserLite[]>([])
   const [filter, setFilter] = useState('')
-  const [selectedGirl, setSelectedGirl] = useState<UserLite | null>(null)
-  const [verifiedMales, setVerifiedMales] = useState<UserLite[]>([])
+  const [selectedUser, setSelectedUser] = useState<UserLite | null>(null)
   const [assigned, setAssigned] = useState<string[]>([])
   const [likes, setLikes] = useState<any[]>([])
-  const [likedMales, setLikedMales] = useState<UserLite[]>([])
+  const [likedUsers, setLikedUsers] = useState<UserLite[]>([])
+  const [phaseTimes, setPhaseTimesState] = useState<{boys?:any,girls?:any}>({})
   const roundId = activeRound?.id
 
-  useEffect(()=>{ (async ()=>{
-    const r = await getActiveRound()
-    setActiveRound(r)
-    if (r) {
-      const roundSnap = await getDoc(doc(db, 'matchingRounds', r.id))
-      const males: string[] = (roundSnap.data() as any)?.participatingMales || []
-      const profiles: UserLite[] = []
-      for (const uid of males) {
-        const u = await getDoc(doc(db, 'users', uid))
-        if (u.exists()) {
-          const data = u.data() as any
-          // UI guard: only keep males
-          if (data?.gender === 'male') {
-            profiles.push({ uid, ...(data as any) })
+  // Load active round, phase, and phase times
+  useEffect(() => {
+    (async () => {
+      const r = await getActiveRound()
+      setActiveRound(r)
+      if (r) {
+        const ph = await getRoundPhase(r.id)
+        setPhase(ph)
+        const roundSnap = await getDoc(doc(db, 'matchingRounds', r.id))
+        const males: string[] = (roundSnap.data() as any)?.participatingMales || []
+        const malesProfiles: UserLite[] = []
+        for (const uid of males) {
+          const u = await getDoc(doc(db, 'users', uid))
+          if (u.exists()) {
+            const data = u.data() as any
+            if (data?.gender === 'male') {
+              malesProfiles.push({ uid, ...(data as any) })
+            }
           }
         }
+        setBoys(malesProfiles)
+        // Load phase times
+        const pt = await getPhaseTimes(r.id)
+        setPhaseTimesState(pt)
       }
-      setVerifiedMales(profiles)
-    }
-    const gs = await listFemaleUsers()
-    setGirls(gs as any)
-  })() }, [])
+      const gs = await listFemaleUsers()
+      setGirls(gs as any)
+    })()
+  }, [])
 
-  useEffect(()=>{ (async ()=>{
-    if (!roundId || !selectedGirl) { setAssigned([]); setLikes([]); setLikedMales([]); return }
-    const a = await getAssignments(roundId, selectedGirl.uid)
-    setAssigned(a.maleCandidates || [])
-
-    const l = await listLikesByGirl(roundId, selectedGirl.uid)
-    setLikes(l)
-
-    const uniqueBoyUids = Array.from(new Set((l || []).map((x: any) => x.likedUserUid)))
-    const likedProfiles: UserLite[] = []
-    for (const uid of uniqueBoyUids) {
-      const u = await getDoc(doc(db, 'users', uid))
-      if (u.exists()) {
-        const data = u.data() as any
-        // UI guard: only show males in "Girl’s likes"
-        if (data?.gender === 'male') {
-          likedProfiles.push({ uid, ...(data as any) })
+  // Load assignments and likes for selected user based on phase
+  useEffect(() => {
+    (async () => {
+      if (!roundId || !selectedUser) {
+        setAssigned([])
+        setLikes([])
+        setLikedUsers([])
+        return
+      }
+      if (phase === 'boys' && selectedUser.gender === 'male') {
+        // Boys round: assign girls to boy
+        const assignedGirls = await getAssignedGirlsForBoy(roundId, selectedUser.uid)
+        setAssigned(assignedGirls)
+        setLikedUsers([]) // not relevant
+      } else if (phase === 'girls' && selectedUser.gender === 'female') {
+        // Girls round: assign boys (from likes) to girl
+        const assignedBoys = await getAssignedBoysForGirl(roundId, selectedUser.uid)
+        setAssigned(assignedBoys)
+        // Get boys who liked this girl
+        const likedBoyUids = await getBoysWhoLikedGirl(roundId, selectedUser.uid)
+        const likedProfiles: UserLite[] = []
+        for (const uid of likedBoyUids) {
+          const u = await getDoc(doc(db, 'users', uid))
+          if (u.exists()) {
+            const data = u.data() as any
+            if (data?.gender === 'male') {
+              likedProfiles.push({ uid, ...(data as any) })
+            }
+          }
         }
+        setLikedUsers(likedProfiles)
+      } else {
+        setAssigned([])
+        setLikedUsers([])
       }
-    }
-    setLikedMales(likedProfiles)
-  })() }, [roundId, selectedGirl])
+    })()
+  }, [roundId, selectedUser, phase])
 
-  async function persistAssignments(){
-    if (!roundId || !selectedGirl) return
-    await setAssignments(roundId, selectedGirl.uid, assigned)
+  async function persistAssignments() {
+    if (!roundId || !selectedUser) return
+    if (phase === 'boys' && selectedUser.gender === 'male') {
+      await assignGirlsToBoy(roundId, selectedUser.uid, assigned)
+    } else if (phase === 'girls' && selectedUser.gender === 'female') {
+      await assignBoysToGirl(roundId, selectedUser.uid, assigned)
+    }
     alert('Assignments saved')
   }
 
-  async function promoteLike(maleUid: string){
-    if (!roundId || !selectedGirl) return
-    await callAdminPromoteMatch({ roundId, boyUid: maleUid, girlUid: selectedGirl.uid })
+  async function promoteLike(boyUid: string) {
+    if (!roundId || !selectedUser) return
+    await callAdminPromoteMatch({ roundId, boyUid, girlUid: selectedUser.uid })
     alert('Match created')
   }
 
-  const assignedSet = useMemo(()=> new Set(assigned), [assigned])
-  const filteredGirls = useMemo(
-    () => girls.filter(g =>
-      (g.name || '').toLowerCase().includes(filter.toLowerCase()) ||
-      (g.instagramId || '').toLowerCase().includes(filter.toLowerCase())
-    ),
-    [girls, filter]
-  )
+  // Phase switcher
+  async function handlePhaseSwitch(newPhase: 'boys' | 'girls') {
+    // Only allow switching to girls phase if boys phase has ended
+    if (!roundId) return
+    if (newPhase === 'girls') {
+      if (!phaseTimes.boys?.endAt) {
+        alert('Please set Boys round end time before starting Girls round.')
+        return
+      }
+    }
+    await setRoundPhase(roundId, newPhase)
+    setPhase(newPhase)
+    setSelectedUser(null)
+    setAssigned([])
+    setLikedUsers([])
+  }
+
+  const assignedSet = useMemo(() => new Set(assigned), [assigned])
+
+  // Filter users to display in left panel
+  const filteredUsers = useMemo(() => {
+    if (phase === 'boys') {
+      return boys.filter(b =>
+        (b.name || '').toLowerCase().includes(filter.toLowerCase()) ||
+        (b.instagramId || '').toLowerCase().includes(filter.toLowerCase())
+      )
+    } else {
+      return girls.filter(g =>
+        (g.name || '').toLowerCase().includes(filter.toLowerCase()) ||
+        (g.instagramId || '').toLowerCase().includes(filter.toLowerCase())
+      )
+    }
+  }, [boys, girls, filter, phase])
 
   return (
     <AdminGuard>
       <div className="container">
-        <div className="card" style={{padding:24, margin:'24px auto', maxWidth:1300}}>
+        <div className="card" style={{ padding: 24, margin: '24px auto', maxWidth: 1300 }}>
           <AdminHeader current="curation" />
-          <h2 style={{marginTop:0}}>Round Curation</h2>
-          {!activeRound ? <p>No active round</p> : <p style={{color:'var(--muted)'}}>Active round: <b>{roundId}</b></p>}
+          <h2 style={{ marginTop: 0 }}>Round Curation</h2>
+          {!activeRound ? (
+            <p>No active round</p>
+          ) : (
+            <p style={{ color: 'var(--muted)' }}>
+              Active round: <b>{roundId}</b> | Current phase: <b>{phase.toUpperCase()}</b>
+              <span style={{ marginLeft: 20 }}>
+                <button
+                  className={`btn ${phase === 'boys' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => handlePhaseSwitch('boys')}
+                  disabled={phase === 'boys'}
+                >
+                  Boys Round
+                </button>
+                <button
+                  className={`btn ${phase === 'girls' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => handlePhaseSwitch('girls')}
+                  disabled={phase === 'girls'}
+                  style={{ marginLeft: 8 }}
+                >
+                  Girls Round
+                </button>
+              </span>
+              {/* Show phase times */}
+              <div style={{marginTop:8}}>
+                <span><b>Boys Round:</b> {phaseTimes.boys?.startAt ? new Date(phaseTimes.boys.startAt.seconds*1000).toLocaleString() : '--'} to {phaseTimes.boys?.endAt ? new Date(phaseTimes.boys.endAt.seconds*1000).toLocaleString() : '--'}</span>
+                <span style={{marginLeft:12}}><b>Girls Round:</b> {phaseTimes.girls?.startAt ? new Date(phaseTimes.girls.startAt.seconds*1000).toLocaleString() : '--'} to {phaseTimes.girls?.endAt ? new Date(phaseTimes.girls.endAt.seconds*1000).toLocaleString() : '--'}</span>
+              </div>
+            </p>
+          )}
 
-          <div className="row" style={{gap:16, alignItems:'flex-start', flexWrap:'wrap'}}>
-            <div className="card" style={{padding:16, width:340, maxHeight:560, overflow:'auto'}}>
-              <div className="row" style={{justifyContent:'space-between', alignItems:'center', marginBottom:8}}>
-                <b>Girls</b>
+          <div className="row" style={{ gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div className="card" style={{ padding: 16, width: 340, maxHeight: 560, overflow: 'auto' }}>
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <b>{phase === 'boys' ? 'Boys' : 'Girls'}</b>
                 <input
                   className="input"
                   placeholder="Search by name or insta"
-                  style={{maxWidth:180}}
+                  style={{ maxWidth: 180 }}
                   value={filter}
-                  onChange={(e)=> setFilter(e.target.value)}
+                  onChange={e => setFilter(e.target.value)}
                 />
               </div>
               <div className="stack">
-                {filteredGirls.map(g => (
+                {filteredUsers.map(u => (
                   <button
-                    key={g.uid}
-                    className={`btn ${selectedGirl?.uid === g.uid ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={()=> setSelectedGirl(prev => prev?.uid === g.uid ? null : g)}
-                    style={{justifyContent:'flex-start'}}
+                    key={u.uid}
+                    className={`btn ${selectedUser?.uid === u.uid ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setSelectedUser(prev => prev?.uid === u.uid ? null : u)}
+                    style={{ justifyContent: 'flex-start' }}
                   >
-                    <div className="row" style={{gap:10, alignItems:'center'}}>
-                      <div className="avatar" style={{width:28, height:28, borderRadius:999, overflow:'hidden', background:'#f3f3f3'}}>
-                        {g.photoUrl ? <img src={g.photoUrl} style={{width:'100%', height:'100%', objectFit:'cover'}}/> : null}
+                    <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+                      <div className="avatar" style={{ width: 28, height: 28, borderRadius: 999, overflow: 'hidden', background: '#f3f3f3' }}>
+                        {u.photoUrl ? <img src={u.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
                       </div>
                       <div>
-                        <div>{g.name || g.uid}</div>
-                        <small style={{color:'var(--muted)'}}>@{g.instagramId}</small>
+                        <div>{u.name || u.uid}</div>
+                        <small style={{ color: 'var(--muted)' }}>@{u.instagramId}</small>
                       </div>
                     </div>
                   </button>
@@ -140,78 +229,95 @@ export default function CurationAdmin(){
               </div>
             </div>
 
-            <div className="card" style={{padding:16, flex:1, minWidth:420}}>
-              {!selectedGirl ? <p>Select a girl to curate</p> : (
+            <div className="card" style={{ padding: 16, flex: 1, minWidth: 420 }}>
+              {!selectedUser ? (
+                <p>Select a {phase === 'boys' ? 'boy' : 'girl'} to curate</p>
+              ) : (
                 <>
-                  <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
-                    <div className="row" style={{gap:12, alignItems:'center'}}>
-                      <div className="avatar" style={{width:56, height:56, borderRadius:999, overflow:'hidden', background:'#f3f3f3'}}>
-                        {selectedGirl.photoUrl ? <img src={selectedGirl.photoUrl} style={{width:'100%', height:'100%', objectFit:'cover'}}/> : null}
+                  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="row" style={{ gap: 12, alignItems: 'center' }}>
+                      <div className="avatar" style={{ width: 56, height: 56, borderRadius: 999, overflow: 'hidden', background: '#f3f3f3' }}>
+                        {selectedUser.photoUrl ? <img src={selectedUser.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
                       </div>
                       <div>
-                        <div style={{fontWeight:700}}>{selectedGirl.name || selectedGirl.uid}</div>
-                        <div style={{color:'var(--muted)'}}>@{selectedGirl.instagramId} {selectedGirl.college ? `• ${selectedGirl.college}` : ''}</div>
+                        <div style={{ fontWeight: 700 }}>{selectedUser.name || selectedUser.uid}</div>
+                        <div style={{ color: 'var(--muted)' }}>
+                          @{selectedUser.instagramId} {selectedUser.college ? `• ${selectedUser.college}` : ''}
+                        </div>
                       </div>
                     </div>
                     <button className="btn btn-primary" onClick={persistAssignments}>Save assignments</button>
                   </div>
 
-                  <div className="row" style={{gap:16, flexWrap:'wrap', marginTop:12}}>
-                    <div className="card" style={{padding:12, flex:1, minWidth:320}}>
-                      <b>Approved males (toggle to assign)</b>
-                      <div className="grid cols-2" style={{gap:8, marginTop:8}}>
-                        {verifiedMales.map(m => (
-                          <div key={m.uid} className={`card ${assignedSet.has(m.uid) ? 'selected' : ''}`} style={{padding:10}}>
-                            <div className="row" style={{gap:10}}>
-                              <div className="avatar" style={{width:44, height:44, borderRadius:8, overflow:'hidden', background:'#f3f3f3'}}>
-                                {m.photoUrl ? <img src={m.photoUrl} style={{width:'100%', height:'100%', objectFit:'cover'}}/> : null}
+                  <div className="row" style={{ gap: 16, flexWrap: 'wrap', marginTop: 12 }}>
+                    <div className="card" style={{ padding: 12, flex: 1, minWidth: 320 }}>
+                      <b>
+                        {phase === 'boys'
+                          ? 'Assign girls to this boy (toggle to assign)'
+                          : 'Assign boys to this girl (from her likes, toggle to assign)'}
+                      </b>
+                      <div className="grid cols-2" style={{ gap: 8, marginTop: 8 }}>
+                        {(phase === 'boys'
+                          ? girls
+                          : likedUsers
+                        ).map(u => (
+                          <div key={u.uid} className={`card ${assignedSet.has(u.uid) ? 'selected' : ''}`} style={{ padding: 10 }}>
+                            <div className="row" style={{ gap: 10 }}>
+                              <div className="avatar" style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', background: '#f3f3f3' }}>
+                                {u.photoUrl ? <img src={u.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
                               </div>
-                              <div style={{flex:1}}>
-                                <div style={{fontWeight:600}}>{m.name || m.uid}</div>
-                                <small style={{color:'var(--muted)'}}>@{m.instagramId}{m.college ? ` • ${m.college}` : ''}</small>
-                                {m.bio ? <div style={{fontSize:12, marginTop:6, color:'var(--muted)'}}>{m.bio}</div> : null}
-                                <div className="row" style={{gap:6, flexWrap:'wrap', marginTop:6}}>
-                                  {(m.interests ?? []).slice(0,4).map(i => <span key={i} className="tag">{i}</span>)}
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 600 }}>{u.name || u.uid}</div>
+                                <small style={{ color: 'var(--muted)' }}>@{u.instagramId}{u.college ? ` • ${u.college}` : ''}</small>
+                                {u.bio ? <div style={{ fontSize: 12, marginTop: 6, color: 'var(--muted)' }}>{u.bio}</div> : null}
+                                <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                                  {(u.interests ?? []).slice(0, 4).map(i => <span key={i} className="tag">{i}</span>)}
                                 </div>
                               </div>
                               <div>
                                 <input
                                   type="checkbox"
-                                  checked={assignedSet.has(m.uid)}
-                                  onChange={()=>{
-                                    setAssigned(prev => assignedSet.has(m.uid) ? prev.filter(x=>x!==m.uid) : [...prev, m.uid])
+                                  checked={assignedSet.has(u.uid)}
+                                  onChange={() => {
+                                    setAssigned(prev => assignedSet.has(u.uid) ? prev.filter(x => x !== u.uid) : [...prev, u.uid])
                                   }}
                                 />
                               </div>
                             </div>
                           </div>
                         ))}
-                        {verifiedMales.length === 0 ? <div style={{color:'var(--muted)'}}>No approved males yet.</div> : null}
+                        {(phase === 'boys' ? girls : likedUsers).length === 0
+                          ? <div style={{ color: 'var(--muted)' }}>{phase === 'boys' ? 'No girls available.' : 'No boys liked this girl yet.'}</div>
+                          : null}
                       </div>
                     </div>
 
-                    <div className="card" style={{padding:12, flex:1, minWidth:320}}>
-                      <b>Girl’s likes (this round)</b>
-                      <div className="grid cols-2" style={{gap:8, marginTop:8}}>
-                        {likedMales.map(m => (
-                          <div key={m.uid} className="card" style={{padding:10}}>
-                            <div className="row" style={{gap:10}}>
-                              <div className="avatar" style={{width:44, height:44, borderRadius:8, overflow:'hidden', background:'#f3f3f3'}}>
-                                {m.photoUrl ? <img src={m.photoUrl} style={{width:'100%', height:'100%', objectFit:'cover'}}/> : null}
-                              </div>
-                              <div style={{flex:1}}>
-                                <div style={{fontWeight:600}}>{m.name || m.uid}</div>
-                                <small style={{color:'var(--muted)'}}>@{m.instagramId}{m.college ? ` • ${m.college}` : ''}</small>
-                              </div>
-                              <div>
-                                <button className="btn btn-primary" onClick={()=>promoteLike(m.uid)}>Promote</button>
+                    {phase === 'girls' && (
+                      <div className="card" style={{ padding: 12, flex: 1, minWidth: 320 }}>
+                        <b>Girl’s likes (this round)</b>
+                        <div className="grid cols-2" style={{ gap: 8, marginTop: 8 }}>
+                          {likedUsers.map(u => (
+                            <div key={u.uid} className="card" style={{ padding: 10 }}>
+                              <div className="row" style={{ gap: 10 }}>
+                                <div className="avatar" style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', background: '#f3f3f3' }}>
+                                  {u.photoUrl ? <img src={u.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: 600 }}>{u.name || u.uid}</div>
+                                  <small style={{ color: 'var(--muted)' }}>@{u.instagramId}{u.college ? ` • ${u.college}` : ''}</small>
+                                </div>
+                                <div>
+                                  <button className="btn btn-primary" onClick={() => promoteLike(u.uid)}>Promote</button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                        {likedMales.length === 0 ? <div style={{color:'var(--muted)'}}>No likes yet.</div> : null}
+                          ))}
+                          {likedUsers.length === 0
+                            ? <div style={{ color: 'var(--muted)' }}>No likes yet.</div>
+                            : null}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </>
               )}

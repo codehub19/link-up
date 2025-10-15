@@ -640,6 +640,9 @@ body {
 
 
 /* --- Dedicated tab buttons for MaleTabs --- */
+/* ...other styles above... */
+
+/* --- Dedicated tab buttons for MaleTabs & FemaleTabs --- */
 .tab-btn-row {
   display: flex;
   gap: 24px;
@@ -647,8 +650,8 @@ body {
   align-items: stretch;
   margin-bottom: 20px;
   flex-wrap: wrap;
-  margin-top: 24px;     /* adds breathing room below navbar */
-  margin-bottom: 20px;  /* keeps space below tabs */
+  margin-top: 24px;
+  margin-bottom: 20px;
 }
 
 .tab-btn {
@@ -676,12 +679,9 @@ body {
 .tab-btn:focus {
   filter: brightness(1.06) saturate(1.07);
   box-shadow: 0 6px 24px rgba(255,65,108,0.19);
-  /* border-color: #ff416c; */
 }
 .tab-btn-active {
-  /* background: linear-gradient(97deg, #ff416c 65%, #ff4b2b 100%); */
   color: #fff;
-  /* box-shadow: 0 6px 24px rgba(255,65,108,0.19); */
   border-color: #ff416c;
 }
 
@@ -720,50 +720,28 @@ body {
   }
 }
 
-/* Responsive - stack tabs on mobile */
+/* --- Responsive: Tabs layout for mobile screens (both male & female tabs) --- */
 @media (max-width: 600px) {
   .tab-btn-row {
-    gap: 10px;
-    justify-content: center;   /* <-- Center tabs horizontally */
-    align-items: flex-end;
-    margin-top: 24px;
-    margin-bottom: 18px;
-  }
-  .tab-btn {
-    min-width: 68px;
-    min-height: 66px;
-    padding: 10px 6px 7px 6px;
-    font-size: 0.98rem;
-    margin: 0 auto;            /* <-- Center each button */
-  }
-  .tab-btn-label {
-    font-size: 0.85rem;
-  }
-}
-
-
-/* Mobile: keep all tabs in a single row (MaleTabs and FemaleTabs) */
-@media (max-width: 600px) {
-  .tab-btn-row {
-    /* one row only */
     display: flex;
     flex-wrap: nowrap;
     gap: 8px;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: stretch;
-    /* ensure no accidental horizontal scrolling required */
-    overflow-x: visible;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    margin-bottom: 12px;
   }
 
   .tab-btn {
-    /* exactly 4 items across: (total width - 3 gaps) / 4 */
-    flex: 0 0 calc((100% - 24px) / 4);
-    width: calc((100% - 24px) / 4);
-    min-width: 0;              /* allow shrinking to fit row */
+    flex: 1 1 0;
+    min-width: 68px;
     min-height: 66px;
-    padding: 10px 6px 7px 6px; /* compact padding to help fit */
-    margin: 0;                 /* no extra margins so math stays exact */
+    padding: 10px 6px 7px 6px;
+    margin: 0;
     text-align: center;
+    /* Remove forced width, let tabs shrink and scroll horizontally if needed */
   }
 
   .tab-btn-icon {
@@ -773,7 +751,8 @@ body {
   .tab-btn-label {
     font-size: 0.75rem;
     line-height: 1.1;
-    white-space: nowrap; /* keep label on one line inside each tab */
+    white-space: nowrap;
+    padding: 0 2px;
   }
 }
 

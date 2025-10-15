@@ -456,6 +456,107 @@ export const confirmMatch = onCall({ region: REGION }, async (req) => {
   return { ok: true }
 })
 
+export const confirmMatchByGirl = onCall({ region: REGION }, async (req) => {
+  const auth = req.auth
+  if (!auth) throw new HttpsError('unauthenticated', 'Sign in required')
+
+  const { roundId, boyUid } = (req.data || {}) as { roundId?: string; boyUid?: string }
+  const girlUid = auth.uid
+  if (!roundId || !boyUid) {
+    throw new HttpsError('invalid-argument', 'roundId and boyUid are required')
+  }
+
+  // Check that the boy actually liked the girl in this round
+  const likeId = `${roundId}_${boyUid}_${girlUid}`
+  const likeRef = admin.firestore().collection('likes').doc(likeId)
+  const likeSnap = await likeRef.get()
+  if (!likeSnap.exists) throw new HttpsError('failed-precondition', 'Like not found')
+
+  const matchId = `${roundId}_${boyUid}_${girlUid}`
+  const matchRef = admin.firestore().collection('matches').doc(matchId)
+
+  // Get the boy's active subscription (for quota and rounds logic)
+  const subsSnap = await admin.firestore()
+    .collection('subscriptions')
+    .where('uid', '==', boyUid)
+    .where('status', '==', 'active')
+    .get()
+
+  if (subsSnap.empty) {
+    throw new HttpsError('failed-precondition', 'Boy has no active subscription')
+  }
+
+  const subDoc = subsSnap.docs[0]
+  const subRef = subDoc.ref
+  const subData = subDoc.data()
+  const remainingMatches = Number(subData.remainingMatches ?? 0)
+  const roundsUsed = Number(subData.roundsUsed ?? 0)
+  const roundsAllowed = Number(subData.roundsAllowed ?? 1)
+
+  if (remainingMatches <= 0) {
+    throw new HttpsError('failed-precondition', 'Boy’s match quota exhausted')
+  }
+  if (roundsUsed >= roundsAllowed) {
+    throw new HttpsError('failed-precondition', 'Boy’s allowed rounds exhausted')
+  }
+
+  await admin.firestore().runTransaction(async (tx) => {
+    // READS FIRST
+    const matchSnap = await tx.get(matchRef)
+    const roundRef = admin.firestore().collection('matchingRounds').doc(roundId)
+    const roundSnap = await tx.get(roundRef)
+
+    if (matchSnap.exists) return
+
+    // Create the match
+    tx.set(matchRef, {
+      roundId,
+      participants: [boyUid, girlUid],
+      boyUid,
+      girlUid,
+      status: 'confirmed',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true })
+
+    // Decrement quota
+    const nextMatches = remainingMatches - 1
+    const nextRoundsUsed = nextMatches <= 0 ? roundsUsed + 1 : roundsUsed
+    tx.update(subRef, {
+      remainingMatches: nextMatches,
+      roundsUsed: nextRoundsUsed,
+      status: (nextMatches <= 0 || nextRoundsUsed >= roundsAllowed) ? 'expired' : 'active',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    })
+
+    // Remove boy from round and all girls' lists if quota/rounds exhausted
+    if (nextMatches <= 0 || nextRoundsUsed >= roundsAllowed) {
+      if (roundSnap.exists) {
+        const data = roundSnap.data()
+        tx.update(roundRef, {
+          participatingMales: admin.firestore.FieldValue.arrayRemove(boyUid),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        })
+        // assignedBoysToGirls logic
+        let assignedBoysToGirls = (data?.assignedBoysToGirls ?? {})
+        if (
+          assignedBoysToGirls &&
+          typeof assignedBoysToGirls === 'object' &&
+          !Array.isArray(assignedBoysToGirls)
+        ) {
+          Object.keys(assignedBoysToGirls).forEach(girlKey => {
+            if (Array.isArray(assignedBoysToGirls[girlKey])) {
+              assignedBoysToGirls[girlKey] = assignedBoysToGirls[girlKey].filter((uid: string) => uid !== boyUid)
+            }
+          })
+          tx.update(roundRef, { assignedBoysToGirls })
+        }
+      }
+    }
+  })
+
+  return { ok: true }
+})
+
 export const adminPromoteMatch = onCall({ region: REGION }, async (req) => {
   const caller = req.auth?.uid
   if (!(await isRequesterAdmin(caller))) {

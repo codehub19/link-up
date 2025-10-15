@@ -1,16 +1,15 @@
 import Navbar from '../../../components/Navbar'
-import { useEffect, useState } from 'react'
-import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore'
-import { db } from '../../../firebase'
+import FemaleTabs from '../../../components/FemaleTabs'
 import { useAuth } from '../../../state/AuthContext'
-import { toast } from 'sonner'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { getActiveRound } from '../../../services/rounds'
+import { getBoysWhoLikedGirl } from '../../../services/likes'
+import { collection, getDocs, query, where } from 'firebase/firestore'
+import { db, callConfirmMatchByGirl } from '../../../firebase' // <--- use the new function here!
 import ProfileMiniCard from '../../../components/ProfileMiniCard'
 import Carousel from '../../../components/Carousel'
-import { listLikesByGirl } from '../../../services/likes'
-import { getActiveRound } from '../../../services/rounds'
-import { getAssignments } from '../../../services/assignments'
-import FemaleTabs from '../../../components/FemaleTabs'
+import { toast } from 'sonner'
+import { Link } from 'react-router-dom'
 
 type UserDoc = {
   uid: string
@@ -25,9 +24,9 @@ type UserDoc = {
 export default function MatchingRound() {
   const { user } = useAuth()
   const [roundId, setRoundId] = useState<string | null>(null)
-  const [assignedUids, setAssignedUids] = useState<string[]>([])
-  const [males, setMales] = useState<UserDoc[]>([])
-  const [liked, setLiked] = useState<Set<string>>(new Set())
+  const [boyUids, setBoyUids] = useState<string[]>([])
+  const [boys, setBoys] = useState<UserDoc[]>([])
+  const [confirmedBoyUids, setConfirmedBoyUids] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const run = async () => {
@@ -44,58 +43,59 @@ export default function MatchingRound() {
   useEffect(() => {
     const run = async () => {
       if (!roundId || !user) {
-        setAssignedUids([])
+        setBoyUids([])
         return
       }
-      const a = await getAssignments(roundId, user.uid)
-      setAssignedUids(a.maleCandidates || [])
+      const uids = await getBoysWhoLikedGirl(roundId, user.uid)
+      setBoyUids(uids || [])
     }
     run()
   }, [roundId, user])
 
   useEffect(() => {
     const run = async () => {
-      if (assignedUids.length === 0) {
-        setMales([])
+      if (boyUids.length === 0) {
+        setBoys([])
         return
       }
       const users: UserDoc[] = []
-      for (const uid of assignedUids) {
+      for (const uid of boyUids) {
         const s = await getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
         if (!s.empty) users.push(s.docs[0].data() as UserDoc)
       }
-      setMales(users)
+      setBoys(users)
     }
     run()
-  }, [assignedUids])
+  }, [boyUids])
 
+  // Load already confirmed matches for this girl
   useEffect(() => {
-    const loadLiked = async () => {
+    const loadConfirmed = async () => {
       if (!user || !roundId) return
-      const ls = await listLikesByGirl(roundId, user.uid)
-      const set = new Set<string>(ls.map((l: any) => l.likedUserUid))
-      setLiked(set)
+      const q = query(
+        collection(db, 'matches'),
+        where('roundId', '==', roundId),
+        where('girlUid', '==', user.uid)
+      )
+      const snap = await getDocs(q)
+      const set = new Set<string>(snap.docs.map(d => d.data().boyUid))
+      setConfirmedBoyUids(set)
     }
-    loadLiked()
+    loadConfirmed()
   }, [user, roundId])
 
-  const like = async (boyUid: string) => {
+  // Use the new function for girls to confirm a match!
+  const confirm = async (boyUid: string) => {
     if (!user || !roundId) return
-    if (liked.has(boyUid)) return
+    if (confirmedBoyUids.has(boyUid)) return
     try {
-      const newId = `${roundId}_${user.uid}_${boyUid}`
-      await setDoc(doc(db, 'likes', newId), {
-        roundId,
-        likingUserUid: user.uid,
-        likedUserUid: boyUid,
-        timestamp: new Date(),
-      })
-      const next = new Set(liked)
+      await callConfirmMatchByGirl({ roundId, boyUid })
+      const next = new Set(confirmedBoyUids)
       next.add(boyUid)
-      setLiked(next)
-      toast.success('Liked!')
+      setConfirmedBoyUids(next)
+      toast.success('Connection revealed to both of you!')
     } catch (e: any) {
-      toast.error(e.message ?? 'Failed to like')
+      toast.error(e.message ?? 'Failed to confirm match')
     }
   }
 
@@ -117,40 +117,35 @@ export default function MatchingRound() {
       <Navbar />
       <div className="container">
         <FemaleTabs />
-        <div className="banner">Today’s picks curated just for you.</div>
+        <div className="banner">Boys who liked you this round. Select and reveal to match!</div>
 
-        {assignedUids.length === 0 ? (
-          <div className="empty">No profiles assigned to you yet. Please check back later.</div>
-        ) : males.length === 0 ? (
-          <div className="empty">Loading assigned profiles…</div>
+        {boyUids.length === 0 ? (
+          <div className="empty">No boys have liked your profile yet this round.</div>
+        ) : boys.length === 0 ? (
+          <div className="empty">Loading profiles…</div>
         ) : (
           <Carousel>
-            {males.map((m) => (
+            {boys.map((b) => (
               <ProfileMiniCard
-                key={m.uid}
-                photoUrl={m.photoUrl}
-                // Hide identity for the girl until match confirmed
-                name="Hidden until matched"
-                instagramId={undefined}
-                bio={m.bio}
-                interests={m.interests}
+                key={b.uid}
+                photoUrl={b.photoUrl}
+                name={confirmedBoyUids.has(b.uid) ? b.name : "Hidden until matched"}
+                instagramId={confirmedBoyUids.has(b.uid) ? b.instagramId : undefined}
+                bio={b.bio}
+                interests={b.interests}
                 footer={
                   <button
-                    className={`btn ${liked.has(m.uid) ? 'ghost' : 'primary'}`}
-                    onClick={() => like(m.uid)}
-                    disabled={liked.has(m.uid)}
+                    className={`btn ${confirmedBoyUids.has(b.uid) ? 'ghost' : 'primary'}`}
+                    onClick={() => confirm(b.uid)}
+                    disabled={confirmedBoyUids.has(b.uid)}
                   >
-                    {liked.has(m.uid) ? 'Liked' : 'Like'}
+                    {confirmedBoyUids.has(b.uid) ? 'Matched' : 'Select & Reveal'}
                   </button>
                 }
               />
             ))}
           </Carousel>
         )}
-{/* 
-        <div style={{ marginTop: 24 }}>
-          <Link className="btn ghost" to="/dashboard/connections">My Connections</Link>
-        </div> */}
       </div>
     </>
   )

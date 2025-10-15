@@ -9,6 +9,7 @@ type Plan = {
   name: string
   price: number
   matchQuota: number
+  roundsAllowed: number
   offers: string[]
   supportAvailable: boolean
   active: boolean
@@ -19,6 +20,7 @@ export default function PlansAdmin() {
   const [name, setName] = useState('')
   const [price, setPrice] = useState<number>(49)
   const [matchQuota, setMatchQuota] = useState<number>(1)
+  const [roundsAllowed, setRoundsAllowed] = useState<number>(1)
   const [offersText, setOffersText] = useState('')
   const [supportAvailable, setSupportAvailable] = useState<boolean>(false)
   const [active, setActive] = useState<boolean>(true)
@@ -42,10 +44,10 @@ export default function PlansAdmin() {
       const id = toSlug(name)
       const offers = offersText.split('\n').map(s => s.trim()).filter(Boolean)
       await setDoc(doc(db, 'plans', id), {
-        name, price, matchQuota, offers, supportAvailable, active,
+        name, price, matchQuota, roundsAllowed, offers, supportAvailable, active,
         createdAt: new Date(), updatedAt: new Date(),
       }, { merge: true })
-      setName(''); setOffersText(''); setPrice(49); setMatchQuota(1); setSupportAvailable(false); setActive(true)
+      setName(''); setOffersText(''); setPrice(49); setMatchQuota(1); setRoundsAllowed(1); setSupportAvailable(false); setActive(true)
       await load()
     } finally {
       setSaving(false)
@@ -85,6 +87,10 @@ export default function PlansAdmin() {
                 <label style={{ fontWeight: 600 }}>Match quota</label>
                 <input className="input" type="number" placeholder="Match quota" value={matchQuota} onChange={e=>setMatchQuota(Number(e.target.value||0))} />
               </div>
+              <div className="stack" style={{ minWidth: 160 }}>
+                <label style={{ fontWeight: 600 }}>Rounds allowed</label>
+                <input className="input" type="number" placeholder="Rounds allowed" value={roundsAllowed} onChange={e=>setRoundsAllowed(Number(e.target.value||1))} />
+              </div>
             </div>
 
             <div className="stack">
@@ -109,7 +115,7 @@ export default function PlansAdmin() {
                   <div>
                     <b>{p.name}</b> {p.active ? <span style={{ color: '#22c55e', marginLeft: 6 }}>(Active)</span> : <span style={{ color: '#ef4444', marginLeft: 6 }}>(Inactive)</span>}
                     <div style={{ color: 'var(--muted)', fontSize: 13 }}>
-                      ₹{p.price} • Quota: {p.matchQuota} • {p.supportAvailable ? 'Support included' : 'No support'}
+                      ₹{p.price} • Quota: {p.matchQuota} • Rounds: {p.roundsAllowed ?? 1} • {p.supportAvailable ? 'Support included' : 'No support'}
                     </div>
                     {p.offers?.length ? <ul style={{ margin: '6px 0 0 18px' }}>{p.offers.map((o: string) => <li key={o}>{o}</li>)}</ul> : null}
                   </div>

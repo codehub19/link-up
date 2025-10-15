@@ -135,6 +135,9 @@ export function nextSetupRoute(p?: UserProfile | null): string | null {
 
 /* ---- User bootstrap ---- */
 export async function ensureUserDocument(user: FirebaseUser) {
+  if (!user || !user.uid) {
+    throw new Error('User must be authenticated before ensuring user document.')
+  }
   const refDoc = doc(db, 'users', user.uid)
   const snap = await getDoc(refDoc)
   const now = serverTimestamp()
@@ -251,6 +254,10 @@ export async function callAdminPromoteMatch(payload: { roundId: string; boyUid: 
 }
 export async function callAdminApprovePayment(payload: { paymentId: string }) {
   const fn = httpsCallable(functions, 'adminApprovePayment'); return fn(payload)
+}
+export async function callConfirmMatchByGirl(payload: { roundId: string; boyUid: string }) {
+  const fn = httpsCallable(functions, 'confirmMatchByGirl');
+  return fn(payload);
 }
 
 export { doc, getDoc, setDoc, updateDoc, serverTimestamp }

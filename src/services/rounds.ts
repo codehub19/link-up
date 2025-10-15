@@ -1,8 +1,22 @@
 import {
   collection, getDocs, query, where, doc, setDoc, serverTimestamp, writeBatch,
-  getDoc,
+  getDoc,updateDoc,
 } from 'firebase/firestore'
 import { db } from '../firebase'
+
+
+
+export async function setPhaseTimes(roundId: string, phase: 'boys'|'girls', times: {startAt: any, endAt: any, isComplete?: boolean}) {
+  await updateDoc(doc(db, 'matchingRounds', roundId), {
+    [`phases.${phase}`]: times
+  })
+}
+
+export async function getPhaseTimes(roundId: string) {
+  const snap = await getDoc(doc(db, 'matchingRounds', roundId))
+  const data = snap.exists() ? snap.data() : {}
+  return data?.phases ?? {boys:{},girls:{}}
+}
 
 export async function getActiveRound() {
   const q = query(collection(db, 'matchingRounds'), where('isActive', '==', true))
@@ -16,16 +30,26 @@ export async function listRounds() {
 }
 
 export async function createRound(roundId: string) {
-  const ref = doc(db, 'matchingRounds', roundId)
-  await setDoc(ref, {
-    roundId,
-    isActive: false,
+  await setDoc(doc(db, "matchingRounds", roundId), {
+    id: roundId,
+    isActive: true,
     participatingMales: [],
     participatingFemales: [],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  }, { merge: true })
+    phases: {
+      boys: {
+        startAt: null,
+        endAt: null,
+        isComplete: false,
+      },
+      girls: {
+        startAt: null,
+        endAt: null,
+        isComplete: false,
+      },
+    },
+  });
 }
+
 
 export async function setActiveRound(roundId: string | '') {
   const batch = writeBatch(db)
@@ -37,13 +61,50 @@ export async function setActiveRound(roundId: string | '') {
   await batch.commit()
 }
 
-/**
- * Admin utility:
- * - Finds the active round
- * - Collects all approved payments
- * - Filters to male users with complete profiles
- * - Unions them into participatingMales
- */
+// --- PHASE MANAGEMENT ---
+export async function setRoundPhase(roundId: string, phase: 'boys' | 'girls') {
+  await setDoc(doc(db, 'matchingRounds', roundId), { phase, updatedAt: serverTimestamp() }, { merge: true })
+}
+
+export async function getRoundPhase(roundId: string): Promise<'boys' | 'girls'> {
+  const snap = await getDoc(doc(db, 'matchingRounds', roundId))
+  return (snap.data()?.phase || 'boys')
+}
+
+// --- ASSIGNMENT MANAGEMENT ---
+
+export async function assignGirlsToBoy(roundId: string, boyUid: string, girlUids: string[]) {
+  const roundRef = doc(db, 'matchingRounds', roundId)
+  const roundSnap = await getDoc(roundRef)
+  const data = roundSnap.data() || {}
+  const assigned = data.assignedGirlsToBoys || {}
+  assigned[boyUid] = girlUids
+  await setDoc(roundRef, { assignedGirlsToBoys: assigned, updatedAt: serverTimestamp() }, { merge: true })
+}
+
+export async function assignBoysToGirl(roundId: string, girlUid: string, boyUids: string[]) {
+  const roundRef = doc(db, 'matchingRounds', roundId)
+  const roundSnap = await getDoc(roundRef)
+  const data = roundSnap.data() || {}
+  const assigned = data.assignedBoysToGirls || {}
+  assigned[girlUid] = boyUids
+  await setDoc(roundRef, { assignedBoysToGirls: assigned, updatedAt: serverTimestamp() }, { merge: true })
+}
+
+export async function getAssignedGirlsForBoy(roundId: string, boyUid: string): Promise<string[]> {
+  const roundSnap = await getDoc(doc(db, 'matchingRounds', roundId))
+  const data = roundSnap.data() || {}
+  return data.assignedGirlsToBoys?.[boyUid] || []
+}
+
+export async function getAssignedBoysForGirl(roundId: string, girlUid: string): Promise<string[]> {
+  const roundSnap = await getDoc(doc(db, 'matchingRounds', roundId))
+  const data = roundSnap.data() || {}
+  return data.assignedBoysToGirls?.[girlUid] || []
+}
+
+// --- EXISTING ADMIN UTILITIES ---
+
 export async function syncApprovedMalesToActiveRound() {
   const active = await getActiveRound()
   if (!active) throw new Error('No active round')
@@ -82,9 +143,6 @@ export async function syncApprovedMalesToActiveRound() {
   }
 }
 
-/**
- * Quick helper to add a single male uid to the active round.
- */
 export async function addMaleToActiveRound(uid: string) {
   const active = await getActiveRound()
   if (!active) throw new Error('No active round')

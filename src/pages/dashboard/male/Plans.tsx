@@ -36,8 +36,8 @@ export default function MalePlans() {
   const [paymentStatusByPlan, setPaymentStatusByPlan] = useState<Record<string, Payment['status']>>({})
 
   // Subscriptions view:
-  // - activeByPlan: true when some subscription for that plan is active AND remainingMatches > 0
-  // - expiredByPlan: true when any subscription for that plan is expired or active with remainingMatches <= 0
+  // - activeByPlan: true when some subscription for that plan is active AND remainingMatches > 0 AND roundsUsed < roundsAllowed
+  // - expiredByPlan: true when any subscription for that plan is expired OR remainingMatches <= 0 OR roundsUsed >= roundsAllowed
   const [activeByPlan, setActiveByPlan] = useState<Record<string, boolean>>({})
   const [expiredByPlan, setExpiredByPlan] = useState<Record<string, boolean>>({})
 
@@ -84,7 +84,7 @@ export default function MalePlans() {
     return () => un()
   }, [user])
 
-  // Track subscriptions per plan with remainingMatches consideration
+  // Track subscriptions per plan with remainingMatches and roundsAllowed consideration
   useEffect(() => {
     if (!user) return
     const qy = query(collection(db, 'subscriptions'), where('uid', '==', user.uid))
@@ -98,12 +98,14 @@ export default function MalePlans() {
         if (!key) return
         const remaining = Number(d.remainingMatches ?? 0)
         const status = String(d.status ?? 'active')
+        const roundsUsed = Number(d.roundsUsed ?? 0)
+        const roundsAllowed = Number(d.roundsAllowed ?? 1) // use default if missing
 
-        const isActiveNow = status === 'active' && remaining > 0
+        const isActiveNow = status === 'active' && remaining > 0 && roundsUsed < roundsAllowed
         if (isActiveNow) activeMap[key] = true
 
-        // Mark expired if explicitly expired OR active but 0 remaining
-        if (status === 'expired' || (status === 'active' && remaining <= 0)) {
+        // Mark expired if explicitly expired OR active but 0 remaining OR roundsUsed >= roundsAllowed
+        if (status === 'expired' || (status === 'active' && (remaining <= 0 || roundsUsed >= roundsAllowed))) {
           expiredMap[key] = true
         }
       })
@@ -132,6 +134,11 @@ export default function MalePlans() {
     return null
   }
 
+  // Add rounds info to banner if plan exists
+  const roundsInfo = sub?.plan?.roundsAllowed
+    ? ` • Rounds allowed: ${sub.plan.roundsAllowed} • Rounds used: ${sub.roundsUsed ?? 0}`
+    : ''
+
   return (
     <>
       <Navbar />
@@ -141,6 +148,7 @@ export default function MalePlans() {
         {sub ? (
           <div className="banner" style={{ marginBottom: 16 }}>
             Current plan: <b>{sub.plan?.name ?? sub.planId}</b> • Remaining matches: <b>{sub.remainingMatches}</b>
+            {roundsInfo}
             {sub.plan?.supportAvailable ? <span style={{ marginLeft: 12 }}>Support included</span> : null}
             <button className="btn primary" style={{ marginLeft: 12 }} onClick={() => nav('/dashboard/matches')}>
               Go to Matches
@@ -166,6 +174,7 @@ export default function MalePlans() {
               const isExpired = expiredByPlan[key] === true
 
               const matchCount = (p.matchQuota ?? p.quota ?? 1)
+              const roundsAllowed = (p.roundsAllowed ?? 1)
 
               // CTA rules:
               // - Active sub → Go to Matches
@@ -189,7 +198,7 @@ export default function MalePlans() {
                       {statusChip(p.id)}
                     </div>
                     <div className="price">₹{p.price ?? p.amount}</div>
-                    <p className="muted">Includes {matchCount} match{matchCount > 1 ? 'es' : ''}</p>
+                    <p className="muted">Includes {matchCount} match{matchCount > 1 ? 'es' : ''} • Up to {roundsAllowed} round{roundsAllowed > 1 ? 's' : ''}</p>
                     {Array.isArray(p.offers) && p.offers.length ? (
                       <ul style={{ marginLeft: 16 }}>
                         {p.offers.map((o: string) => (
