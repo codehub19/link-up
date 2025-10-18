@@ -119,7 +119,6 @@ export function computeIsProfileComplete(p?: UserProfile | null): boolean {
     p.name &&
     p.college &&
     p.dob &&
-    p.phoneNumber &&
     s.profile &&
     p.interests?.length &&
     p.communicationImportance &&

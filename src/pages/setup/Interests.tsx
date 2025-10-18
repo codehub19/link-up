@@ -19,7 +19,7 @@ export default function Interests({ embedded, onComplete }: Props) {
     setPicked(prev =>
       prev.includes(i)
         ? prev.filter(p => p !== i)
-        : prev.length >= 3 ? prev : [...prev, i]
+        : prev.length >= 5 ? prev : [...prev, i]
     )
   }
 
@@ -45,7 +45,7 @@ export default function Interests({ embedded, onComplete }: Props) {
       <div className={embedded ? '' : 'setup-page'}>
         <section className="setup-card setup-card-glass">
           <h1 className="setup-title">Your Interests</h1>
-          <p className="setup-sub">Pick up to 3.</p>
+          <p className="setup-sub">Pick up to 5.</p>
           <div className="interest-grid">
             {ALL.map(i => (
               <button
@@ -57,7 +57,7 @@ export default function Interests({ embedded, onComplete }: Props) {
               </button>
             ))}
           </div>
-          <div className="chips-count">{picked.length}/3 selected</div>
+          <div className="chips-count">{picked.length}/5 selected</div>
           <div className="setup-card-footer">
             <button className="btn-primary-lg" disabled={picked.length===0 || saving} onClick={save}>
               {saving ? 'Saving…' : 'Continue'}

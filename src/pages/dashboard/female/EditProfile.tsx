@@ -105,7 +105,7 @@ export default function EditProfile() {
               <span className="field-label">Interests</span>
               <div className="interests-wrap">
                 <InterestsSelect value={interests} onChange={setInterests} />
-                <small style={{ color: '#9aa0b4' }}>Pick up to 3 that describe you best</small>
+                <small style={{ color: '#9aa0b4' }}>Pick up to 5 that describe you best</small>
               </div>
             </div>
 
