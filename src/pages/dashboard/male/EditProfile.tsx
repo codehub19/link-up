@@ -9,6 +9,7 @@ import { uploadProfilePhoto } from '../../../firebase'
 import AvatarUpload from '../../../components/AvatarUpload'
 import '../profile.edit.css'
 import InterestsSelect from '../../../components/InterestsSelect'
+import EditCollegeId from '../EditCollegeId';
 
 export default function MaleEditProfile() {
   const { user, profile, refreshProfile } = useAuth()
@@ -97,7 +98,7 @@ export default function MaleEditProfile() {
                 rows={4}
               />
             </label>
-
+            <EditCollegeId />
             <div className="field">
               <span className="field-label">Interests</span>
               <div className="interests-wrap">

@@ -32,8 +32,7 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
 }
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-// export const app = initializeApp(firebaseConfig)
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp()
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 export const storage = getStorage(app)
@@ -52,6 +51,12 @@ export async function signOut() {
   await fbSignOut(auth)
 }
 
+export type CollegeIdFiles = {
+  frontUrl?: string
+  backUrl?: string
+  verified?: boolean
+}
+
 export type UserProfile = {
   uid: string
   email?: string | null
@@ -60,9 +65,11 @@ export type UserProfile = {
   instagramId?: string
   college?: string
   dob?: string
+  phoneNumber?: string
   interests?: string[]
   bio?: string
   photoUrl?: string
+  collegeId?: CollegeIdFiles
   communicationImportance?: 'extremely' | 'very' | 'moderate' | 'low'
   conflictApproach?: 'address_immediately' | 'cool_down' | 'wait_other' | 'avoid'
   sundayStyle?: 'relax_brunch' | 'active_fitness' | 'personal_project' | 'social_family'
@@ -86,16 +93,13 @@ export type UserProfile = {
   createdAt?: any
   updatedAt?: any
   lastLoginAt?: any
-  // Allow unknown flattened keys for migration
   [k: string]: any
 }
 
-/* ---- Normalization ---- */
 export function normalizeProfile(raw: any | null): UserProfile | null {
   if (!raw) return raw
   const status: Record<string, any> =
     raw.setupStatus && typeof raw.setupStatus === 'object' ? { ...raw.setupStatus } : {}
-  // Collect flattened keys like 'setupStatus.gender'
   Object.keys(raw).forEach(k => {
     if (k.startsWith('setupStatus.') && k !== 'setupStatus') {
       const sub = k.split('.').slice(1).join('.')
@@ -105,7 +109,6 @@ export function normalizeProfile(raw: any | null): UserProfile | null {
   return { ...(raw as UserProfile), setupStatus: status }
 }
 
-/* ---- Completion logic ---- */
 export function computeIsProfileComplete(p?: UserProfile | null): boolean {
   if (!p) return false
   const s = p.setupStatus || {}
@@ -116,6 +119,7 @@ export function computeIsProfileComplete(p?: UserProfile | null): boolean {
     p.name &&
     p.college &&
     p.dob &&
+    p.phoneNumber &&
     s.profile &&
     p.interests?.length &&
     p.communicationImportance &&
@@ -129,13 +133,11 @@ export function computeIsProfileComplete(p?: UserProfile | null): boolean {
   )
 }
 
-/* Unified wizard always goes here if incomplete */
 export function nextSetupRoute(p?: UserProfile | null): string | null {
   if (!p || !p.isProfileComplete) return '/setup/profile'
   return null
 }
 
-/* ---- User bootstrap ---- */
 export async function ensureUserDocument(user: FirebaseUser) {
   if (!user || !user.uid) {
     throw new Error('User must be authenticated before ensuring user document.')
@@ -162,7 +164,6 @@ export async function ensureUserDocument(user: FirebaseUser) {
   return normalizeProfile(after.data())
 }
 
-/* ---- Safe status merge helper (replaces dotted path writes) ---- */
 export async function mergeSetupStatus(uid: string, statusPatch: Record<string, any>) {
   const refDoc = doc(db, 'users', uid)
   const snap = await getDoc(refDoc)
@@ -178,7 +179,6 @@ export async function mergeSetupStatus(uid: string, statusPatch: Record<string, 
   return mergedStatus
 }
 
-/* Generic field + status merge */
 export async function updateProfileAndStatus(
   uid: string,
   fieldPatch: Record<string, any>,
@@ -201,7 +201,6 @@ export async function updateProfileAndStatus(
       updatedAt: serverTimestamp(),
     }, { merge: true })
   }
-  // Recompute completion
   const fresh = await getDoc(refDoc)
   const prof = normalizeProfile(fresh.data())
   const complete = computeIsProfileComplete(prof)
@@ -215,7 +214,6 @@ export async function updateProfileAndStatus(
   return prof
 }
 
-/* ---- Upload photo ---- */
 export async function uploadProfilePhoto(uid: string, file: File) {
   const r = ref(storage, `users/${uid}/profile.jpg`)
   const task = uploadBytesResumable(r, file, { contentType: file.type || 'image/jpeg' })
@@ -223,6 +221,37 @@ export async function uploadProfilePhoto(uid: string, file: File) {
     task.on('state_changed', undefined, reject, () => resolve())
   })
   return await getDownloadURL(r)
+}
+
+/* ---- Upload college ID ---- */
+export async function uploadCollegeId(uid: string, frontFile: File, backFile: File) {
+  // Upload front
+  const frontRef = ref(storage, `users/${uid}/college-id/front.jpg`)
+  const frontTask = uploadBytesResumable(frontRef, frontFile, { contentType: frontFile.type || 'image/jpeg' })
+  await new Promise<void>((resolve, reject) => {
+    frontTask.on('state_changed', undefined, reject, () => resolve())
+  })
+  const frontUrl = await getDownloadURL(frontRef)
+
+  // Upload back
+  const backRef = ref(storage, `users/${uid}/college-id/back.jpg`)
+  const backTask = uploadBytesResumable(backRef, backFile, { contentType: backFile.type || 'image/jpeg' })
+  await new Promise<void>((resolve, reject) => {
+    backTask.on('state_changed', undefined, reject, () => resolve())
+  })
+  const backUrl = await getDownloadURL(backRef)
+
+  // Store URLs in Firestore
+  const refDoc = doc(db, 'users', uid)
+  await setDoc(refDoc, {
+    collegeId: {
+      frontUrl,
+      backUrl,
+      verified: false // Set true after admin verification
+    },
+    updatedAt: serverTimestamp(),
+  }, { merge: true })
+  return { frontUrl, backUrl }
 }
 
 export async function finalizeIfComplete(uid: string) {
@@ -239,9 +268,20 @@ export async function finalizeIfComplete(uid: string) {
   }
 }
 
-/* Backwards compatibility wrapper */
 export async function saveUserProfile(uid: string, data: Partial<UserProfile>) {
   await updateProfileAndStatus(uid, data)
+}
+
+/* ---- College ID admin verification ---- */
+export async function verifyCollegeId(uid: string) {
+  // Only call from admin context
+  const refDoc = doc(db, 'users', uid)
+  await setDoc(refDoc, {
+    collegeId: {
+      verified: true
+    },
+    updatedAt: serverTimestamp(),
+  }, { merge: true })
 }
 
 /* Callables (unchanged skeleton) */
@@ -265,7 +305,7 @@ export async function callConfirmMatchByGirl(payload: { roundId: string; boyUid:
 export { doc, getDoc, setDoc, updateDoc, serverTimestamp }
 
 
-const FUNCTIONS_REGION = 'asia-south2'  
+const FUNCTIONS_REGION = 'asia-south2'
 
 export const functions = getFunctions(app, FUNCTIONS_REGION)
 

@@ -31,6 +31,7 @@ const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 const PlansAdmin = lazy(() => import('./pages/admin/PlansAdmin'))
 const AdminHome = lazy(() => import('./pages/admin/AdminHome'))
 const ChatPage = lazy(() => import('./pages/dashboard/chat/ChatPage'))
+const CollegeIdVerification = lazy(() => import('./pages/admin/CollegeIdVerification'))
 
 export default function App() {
   const { profile } = useAuth()
@@ -159,6 +160,7 @@ export default function App() {
         <Route path="/admin/curation" element={<Protected><CurationAdmin /></Protected>} />
         <Route path="/admin/plans" element={<Protected><PlansAdmin /></Protected>} />
         <Route path="/admin/rounds/:roundId/matches" element={<RoundMatchesAdmin />} />
+        <Route path="/admin/college-id-verification" element={<CollegeIdVerification />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

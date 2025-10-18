@@ -32,6 +32,7 @@ const DEFAULT_NAV: AdminHeaderNavItem[] = [
   { slug: 'payments', label: 'Payments', href: '/admin/payments' },
   { slug: 'curation', label: 'Curation', href: '/admin/curation' },
   { slug: 'rounds', label: 'Rounds', href: '/admin/rounds' }, // <-- Added here
+  { slug: 'college-id-verification', label: 'College ID Verification', href: '/admin/college-id-verification' }, // <-- Added here
 ]
 
 const badgeBase: React.CSSProperties = {

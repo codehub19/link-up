@@ -15,17 +15,13 @@ service cloud.firestore {
       return l is list && l.size() == 2 && l[0] is string && l[1] is string;
     }
 
-    // Users
+
     match /users/{uid} {
       allow read: if request.auth != null;
-      allow create, update: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if (request.auth != null && request.auth.uid == uid) || isAdmin();
       allow delete: if isAdmin();
     }
-
-    // Firestore rules snippet
-    match /users/{uid} {
-      allow update: if request.auth.uid == uid;
-    }
+    
 
     // Plans
     match /plans/{planId} {

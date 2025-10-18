@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import ProfileMatchCard from "../../components/ProfileMatchCard";
+import { AdminHeader } from "./AdminHome";
 
 type UserDoc = {
   uid: string;
@@ -54,6 +55,7 @@ export default function RoundMatchesAdmin() {
 
   return (
     <div className="container">
+      <AdminHeader current="rounds" />
       <h2>Matches for Round: {roundId}</h2>
       {matchPairs.length === 0 ? (
         <div>No matches yet.</div>
