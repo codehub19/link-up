@@ -25,11 +25,13 @@ export interface AdminHeaderProps {
   onPendingCountLoaded?: (count: number) => void
 }
 
+// Added "rounds" to the default nav
 const DEFAULT_NAV: AdminHeaderNavItem[] = [
   { slug: 'dashboard', label: 'Dashboard', href: '/admin/home' },
   { slug: 'plans', label: 'Plans', href: '/admin/plans' },
   { slug: 'payments', label: 'Payments', href: '/admin/payments' },
   { slug: 'curation', label: 'Curation', href: '/admin/curation' },
+  { slug: 'rounds', label: 'Rounds', href: '/admin/rounds' }, // <-- Added here
 ]
 
 const badgeBase: React.CSSProperties = {

@@ -13,6 +13,7 @@ import About from './pages/legal/About'
 import CommunityGuidelines from './pages/legal/CommunityGuidelines'
 import PrivacyPolicy from './pages/legal/PrivacyPolicy'
 import MaleRound from './pages/dashboard/male/MatchingRounds'
+import RoundMatchesAdmin from './pages/admin/RoundMatchesAdmin'
 
 /* Lazy dashboard/admin pages (unchanged) */
 const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
@@ -157,6 +158,7 @@ export default function App() {
         <Route path="/admin/payments" element={<Protected><PaymentsAdmin /></Protected>} />
         <Route path="/admin/curation" element={<Protected><CurationAdmin /></Protected>} />
         <Route path="/admin/plans" element={<Protected><PlansAdmin /></Protected>} />
+        <Route path="/admin/rounds/:roundId/matches" element={<RoundMatchesAdmin />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

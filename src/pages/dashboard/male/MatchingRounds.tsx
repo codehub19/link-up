@@ -9,6 +9,7 @@ import { db } from '../../../firebase'
 import ProfileMiniCard from '../../../components/ProfileMiniCard'
 import Carousel from '../../../components/Carousel'
 import { toast } from 'sonner'
+import { Link } from 'react-router-dom'
 
 type UserDoc = {
   uid: string
@@ -27,9 +28,26 @@ type SubscriptionDoc = {
   validUntil?: any // timestamp
 }
 
+// Helper to get live status of a round
+function getRoundLiveStatus(phases: any): { live: boolean, phase: string | null } {
+  const now = Date.now();
+  if (phases?.boys?.startAt && phases?.boys?.endAt) {
+    const boysStart = phases.boys.startAt.seconds * 1000;
+    const boysEnd = phases.boys.endAt.seconds * 1000;
+    if (now >= boysStart && now <= boysEnd) return { live: true, phase: 'boys' };
+  }
+  if (phases?.girls?.startAt && phases?.girls?.endAt) {
+    const girlsStart = phases.girls.startAt.seconds * 1000;
+    const girlsEnd = phases.girls.endAt.seconds * 1000;
+    if (now >= girlsStart && now <= girlsEnd) return { live: true, phase: 'girls' };
+  }
+  return { live: false, phase: null };
+}
+
 export default function MatchingRounds() {
   const { user } = useAuth()
   const [roundId, setRoundId] = useState<string | null>(null)
+  const [roundObj, setRoundObj] = useState<any | null>(null)
   const [assignedUids, setAssignedUids] = useState<string[]>([])
   const [girls, setGirls] = useState<UserDoc[]>([])
   const [liked, setLiked] = useState<Set<string>>(new Set())
@@ -42,9 +60,11 @@ export default function MatchingRounds() {
       const active = await getActiveRound()
       if (!active) {
         setRoundId(null)
+        setRoundObj(null)
         return
       }
       setRoundId(active.id || active.roundId)
+      setRoundObj(active)
     }
     run()
   }, [])
@@ -60,8 +80,8 @@ export default function MatchingRounds() {
         return
       }
       const subSnap = await getDocs(
-  query(collection(db, 'subscriptions'), where('uid', '==', user.uid))
-)
+        query(collection(db, 'subscriptions'), where('uid', '==', user.uid))
+      )
       if (subSnap.empty) {
         setSubscription(null)
         setHasAnySubscription(false)
@@ -144,11 +164,36 @@ export default function MatchingRounds() {
   // UI logic
   const hasActivePlan = !!subscription && subscription.status === 'active'
 
+  // Get live status for the round
+  const roundStatus = roundObj ? getRoundLiveStatus(roundObj.phases) : { live: false, phase: null }
+
+  if (roundId === null) {
+      return (
+        <>
+          <Navbar />
+          <div className="container">
+            <MaleTabs />
+            <h2>The next round is coming soon!</h2>
+            <p className="muted">We’ll notify you when it’s live.</p>
+            <Link className="btn" to="/dashboard/connections">My Connections</Link>
+          </div>
+        </>
+      )
+    }
+  
   return (
     <>
       <Navbar />
       <div className="container">
         <MaleTabs />
+        {/* Show round live badge if round is live */}
+        {roundStatus.live && (
+          <div className="badge badge-live" style={{ marginBottom: 12 }}>
+            {roundStatus.phase === 'boys'
+              ? "Boys' Round is LIVE now!"
+              : "Girls' Round is LIVE now!"}
+          </div>
+        )}
         {!loadingSub && (
           !hasAnySubscription ? (
             <div className="empty" style={{ marginTop: 32 }}>

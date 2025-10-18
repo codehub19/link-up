@@ -3,12 +3,29 @@ import { createRound, listRounds, setActiveRound, syncApprovedMalesToActiveRound
 import AdminGuard from './AdminGuard'
 import { AdminHeader } from './AdminHome'
 import { Timestamp } from 'firebase/firestore'
+import { Link } from 'react-router-dom'
 
-function formatTimestamp(ts?: { seconds: number } | null): string {
-  if (!ts || typeof ts.seconds !== 'number') return '';
+// Helper to get live status of a round
+function getRoundLiveStatus(phases: any): { live: boolean, phase: string | null } {
+  const now = Date.now();
+  if (phases?.boys?.startAt && phases?.boys?.endAt) {
+    const boysStart = phases.boys.startAt.seconds * 1000;
+    const boysEnd = phases.boys.endAt.seconds * 1000;
+    if (now >= boysStart && now <= boysEnd) return { live: true, phase: 'boys' };
+  }
+  if (phases?.girls?.startAt && phases?.girls?.endAt) {
+    const girlsStart = phases.girls.startAt.seconds * 1000;
+    const girlsEnd = phases.girls.endAt.seconds * 1000;
+    if (now >= girlsStart && now <= girlsEnd) return { live: true, phase: 'girls' };
+  }
+  return { live: false, phase: null };
+}
+
+function formatTime(ts?: { seconds: number } | null): string {
+  if (!ts || typeof ts.seconds !== 'number') return '--';
   const d = new Date(ts.seconds * 1000);
-  if (isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0,16);
+  if (isNaN(d.getTime())) return '--';
+  return d.toLocaleString();
 }
 
 export default function RoundsAdmin() {
@@ -78,68 +95,94 @@ export default function RoundsAdmin() {
 
           <div style={{height:12}}/>
           <div className="stack">
-            {rounds.map(r => (
-              <div key={r.id} className="card" style={{padding:16}}>
-                <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
-                  <div>
-                    <b>{r.id}</b> {r.isActive ? <span style={{color:'#22c55e', marginLeft:8}}>(Active)</span> : null}
-                    <div style={{color:'var(--muted)', fontSize:13}}>
-                      Males: {r.participatingMales?.length ?? 0} • Females: {r.participatingFemales?.length ?? 0}
-                    </div>
-                  </div>
-                  <div className="row" style={{gap:8, flexWrap:'wrap'}}>
-                    <button className="btn" onClick={()=>setSelectedRound(r)}>Set phase times</button>
-                    {!r.isActive ? (
-                      <button className="btn btn-primary" onClick={()=> setActiveRound(r.id).then(refresh)}>Activate</button>
-                    ) : (
-                      <>
-                        <button className="btn btn-ghost" onClick={()=> setActiveRound('').then(refresh)}>Deactivate All</button>
-                        <button className="btn btn-primary" onClick={onSync} disabled={syncing}>
-                          {syncing ? 'Syncing…' : 'Sync approved males'}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {syncMsg && r.isActive ? <div style={{marginTop:8, color:'var(--muted)'}}>{syncMsg}</div> : null}
-                {/* Phase time setting UI */}
-                {selectedRound?.id === r.id && (
-                  <div style={{marginTop:16, padding:16, border:'1px solid #eee'}}>
-                    <h3>Phase Times</h3>
+            {rounds.map(r => {
+              const status = getRoundLiveStatus(r.phases);
+              return (
+                <div key={r.id} className="card" style={{padding:16, marginBottom:12}}>
+                  
+                  <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
                     <div>
-                      <b>Boys Round</b><br/>
-                      <input
-                        type="datetime-local"
-                        value={phaseTimes.boys?.startAt ? formatTimestamp(phaseTimes.boys.startAt) : ''}
-                        onChange={e=>setPhaseTimesState(prev=>({...prev, boys:{...prev.boys, startAt:e.target.value}}))}
-                      />
-                      <input
-                        type="datetime-local"
-                        value={phaseTimes.boys?.endAt ? formatTimestamp(phaseTimes.boys.endAt) : ''}
-                        onChange={e=>setPhaseTimesState(prev=>({...prev, boys:{...prev.boys, endAt:e.target.value}}))}
-                      />
-                      <button className="btn btn-primary" onClick={()=>handlePhaseTimeUpdate('boys', phaseTimes.boys?.startAt, phaseTimes.boys?.endAt)}>Save Boys Phase Times</button>
+                      <b>{r.id}</b>
+                      {r.isActive && <span className="badge badge-success" style={{marginLeft:8}}>ACTIVE</span>}
+                      {status.live && <span className="badge badge-live" style={{ marginLeft: 8 }}>
+                        {status.phase === 'boys' ? "Boys' Round LIVE" : "Girls' Round LIVE"}
+                      </span>}
                     </div>
-                    <div style={{marginTop:12}}>
-                      <b>Girls Round</b><br/>
-                      <input
-                        type="datetime-local"
-                        value={phaseTimes.girls?.startAt ? formatTimestamp(phaseTimes.girls.startAt) : ''}
-                        disabled={!phaseTimes.boys?.endAt}
-                        onChange={e=>setPhaseTimesState(prev=>({...prev, girls:{...prev.girls, startAt:e.target.value}}))}
-                      />
-                      <input
-                        type="datetime-local"
-                        value={phaseTimes.girls?.endAt ? formatTimestamp(phaseTimes.girls.endAt) : ''}
-                        disabled={!phaseTimes.boys?.endAt}
-                        onChange={e=>setPhaseTimesState(prev=>({...prev, girls:{...prev.girls, endAt:e.target.value}}))}
-                      />
-                      <button className="btn btn-primary" onClick={()=>handlePhaseTimeUpdate('girls', phaseTimes.girls?.startAt, phaseTimes.girls?.endAt)} disabled={!phaseTimes.boys?.endAt}>Save Girls Phase Times</button>
+                    <div className="row" style={{gap:8, flexWrap:'wrap'}}>
+                      <button className="btn" onClick={()=>setSelectedRound(r)}>Set phase times</button>
+                      <Link
+                      to={`/admin/rounds/${r.id}/matches`}
+                      className="btn"
+                      style={{ marginLeft: 8 }}
+                    >
+                      View Matches
+                    </Link>
+                      {!r.isActive ? (
+                        <button className="btn btn-primary" onClick={()=> setActiveRound(r.id).then(refresh)}>Activate</button>
+                      ) : (
+                        <>
+                          <button className="btn btn-ghost" onClick={()=> setActiveRound('').then(refresh)}>Deactivate All</button>
+                          <button className="btn btn-primary" onClick={onSync} disabled={syncing}>
+                            {syncing ? 'Syncing…' : 'Sync approved males'}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
+                  {syncMsg && r.isActive ? <div style={{marginTop:8, color:'var(--muted)'}}>{syncMsg}</div> : null}
+                  {/* Phase timeline */}
+                  <div className="phase-timeline" style={{marginTop:10}}>
+                    <div>
+                      <span>Boys: </span>
+                      <span>{formatTime(r.phases?.boys?.startAt)} – {formatTime(r.phases?.boys?.endAt)}</span>
+                      {status.phase === "boys" && <span className="badge badge-live" style={{ marginLeft: 8 }}>LIVE</span>}
+                    </div>
+                    <div>
+                      <span>Girls: </span>
+                      <span>{formatTime(r.phases?.girls?.startAt)} – {formatTime(r.phases?.girls?.endAt)}</span>
+                      {status.phase === "girls" && <span className="badge badge-live" style={{ marginLeft: 8 }}>LIVE</span>}
+                    </div>
+                  </div>
+                  {/* Phase time setting UI */}
+                  {selectedRound?.id === r.id && (
+                    <div style={{marginTop:16, padding:16, border:'1px solid #eee'}}>
+                      <h3>Phase Times</h3>
+                      <div>
+                        <b>Boys Round</b><br/>
+                        <input
+                          type="datetime-local"
+                          value={r.phases?.boys?.startAt ? new Date(r.phases.boys.startAt.seconds*1000).toISOString().slice(0,16) : ''}
+                          onChange={e=>setPhaseTimesState(prev=>({...prev, boys:{...prev.boys, startAt:e.target.value}}))}
+                        />
+                        <input
+                          type="datetime-local"
+                          value={r.phases?.boys?.endAt ? new Date(r.phases.boys.endAt.seconds*1000).toISOString().slice(0,16) : ''}
+                          onChange={e=>setPhaseTimesState(prev=>({...prev, boys:{...prev.boys, endAt:e.target.value}}))}
+                        />
+                        <button className="btn btn-primary" onClick={()=>handlePhaseTimeUpdate('boys', phaseTimes.boys?.startAt, phaseTimes.boys?.endAt)}>Save Boys Phase Times</button>
+                      </div>
+                      <div style={{marginTop:12}}>
+                        <b>Girls Round</b><br/>
+                        <input
+                          type="datetime-local"
+                          value={r.phases?.girls?.startAt ? new Date(r.phases.girls.startAt.seconds*1000).toISOString().slice(0,16) : ''}
+                          disabled={!r.phases?.boys?.endAt}
+                          onChange={e=>setPhaseTimesState(prev=>({...prev, girls:{...prev.girls, startAt:e.target.value}}))}
+                        />
+                        <input
+                          type="datetime-local"
+                          value={r.phases?.girls?.endAt ? new Date(r.phases.girls.endAt.seconds*1000).toISOString().slice(0,16) : ''}
+                          disabled={!r.phases?.boys?.endAt}
+                          onChange={e=>setPhaseTimesState(prev=>({...prev, girls:{...prev.girls, endAt:e.target.value}}))}
+                        />
+                        <button className="btn btn-primary" onClick={()=>handlePhaseTimeUpdate('girls', phaseTimes.girls?.startAt, phaseTimes.girls?.endAt)} disabled={!r.phases?.boys?.endAt}>Save Girls Phase Times</button>
+                      </div>
+                    </div>
+                  )}
+                  
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>

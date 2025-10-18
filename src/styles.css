@@ -1026,3 +1026,110 @@ body {
     font-size: 1.4rem;
   }
 }
+
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.98em;
+  font-weight: 700;
+  margin-left: 5px;
+  display: inline-block;
+}
+.badge-success { background: #16a34a; color: #fff; }
+.badge-live { background: #ff416c; color: #fff; }
+
+.badge-live {
+  background: #ff416c;
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  display: inline-block;
+  font-size: 1rem;
+}
+
+
+
+/* ===== Profile Match Card (for admin) ===== */
+.profile-match-card {
+  background: #181821;
+  border: 1px solid #23232c;
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 14px rgba(255,65,108,0.09);
+  transition: box-shadow .2s;
+}
+.profile-match-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.profile-match-photo img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 16px;
+  background: #222;
+  cursor: pointer;
+  transition: transform .2s;
+}
+.profile-match-photo img:hover {
+  transform: scale(1.06);
+}
+.profile-match-info {
+  flex: 1;
+}
+.profile-match-name {
+  font-weight: 700;
+  font-size: 1.17rem;
+  color: #fff;
+}
+.profile-match-verified {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+.profile-match-social {
+  font-size: 1rem;
+  color: #b4b4d0;
+  margin-top: 2px;
+  margin-bottom: 6px;
+}
+.profile-match-bio {
+  font-size: 1.01em;
+  color: #e9e9f2;
+  margin-bottom: 4px;
+}
+.profile-match-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.profile-match-tag {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 0.98em;
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.profile-match-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99;
+}
+.profile-match-popup img {
+  max-width: 92vw;
+  max-height: 85vh;
+  border-radius: 16px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.34);
+  background: #222;
+}

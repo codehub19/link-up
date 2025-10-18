@@ -9,6 +9,8 @@ import * as logger from 'firebase-functions/logger'
 import Razorpay from 'razorpay'
 import * as crypto from 'crypto'
 import { defineSecret } from 'firebase-functions/params'
+import { onRequest } from "firebase-functions/v2/https"
+import axios from 'axios'
 
 /* ----------------------------------------------------------------------------
  * Region & Secrets
@@ -364,6 +366,53 @@ export const verifyRazorpayPayment = onCall(
     }
   }
 )
+
+
+
+export const checkInstagramUsername = onRequest(
+  { region: "asia-south2" },
+  async (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*")
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type")
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("")
+      return
+    }
+
+    const username = req.query.username || req.body?.username
+    if (!username || typeof username !== "string") {
+      res.status(400).json({ error: "Username is required" })
+      return
+    }
+    try {
+      const response = await axios.get(`https://www.instagram.com/${username}/`, {
+        validateStatus: () => true,
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36"
+        }
+      })
+
+      const html = response.data as string;
+
+      // Improved check: look for "Sorry, this page isn't available" in the HTML
+      if (
+        response.status === 200 &&
+        typeof html === "string" &&
+        !html.includes("Sorry, this page isn't available")
+      ) {
+        res.json({ exists: true })
+      } else {
+        res.json({ exists: false })
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Internal Server Error" })
+    }
+  }
+)
+
 
 /* ----------------------------------------------------------------------------
  * Matching & Admin Callables

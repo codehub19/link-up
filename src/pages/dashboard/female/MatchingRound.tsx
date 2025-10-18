@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { getActiveRound } from '../../../services/rounds'
 import { getBoysWhoLikedGirl } from '../../../services/likes'
 import { collection, getDocs, query, where } from 'firebase/firestore'
-import { db, callConfirmMatchByGirl } from '../../../firebase' // <--- use the new function here!
+import { db, callConfirmMatchByGirl } from '../../../firebase'
 import ProfileMiniCard from '../../../components/ProfileMiniCard'
 import Carousel from '../../../components/Carousel'
 import { toast } from 'sonner'
@@ -21,9 +21,26 @@ type UserDoc = {
   college?: string
 }
 
+// Helper to get live status of a round
+function getRoundLiveStatus(phases: any): { live: boolean, phase: string | null } {
+  const now = Date.now();
+  if (phases?.boys?.startAt && phases?.boys?.endAt) {
+    const boysStart = phases.boys.startAt.seconds * 1000;
+    const boysEnd = phases.boys.endAt.seconds * 1000;
+    if (now >= boysStart && now <= boysEnd) return { live: true, phase: 'boys' };
+  }
+  if (phases?.girls?.startAt && phases?.girls?.endAt) {
+    const girlsStart = phases.girls.startAt.seconds * 1000;
+    const girlsEnd = phases.girls.endAt.seconds * 1000;
+    if (now >= girlsStart && now <= girlsEnd) return { live: true, phase: 'girls' };
+  }
+  return { live: false, phase: null };
+}
+
 export default function MatchingRound() {
   const { user } = useAuth()
   const [roundId, setRoundId] = useState<string | null>(null)
+  const [roundObj, setRoundObj] = useState<any | null>(null)
   const [boyUids, setBoyUids] = useState<string[]>([])
   const [boys, setBoys] = useState<UserDoc[]>([])
   const [confirmedBoyUids, setConfirmedBoyUids] = useState<Set<string>>(new Set())
@@ -33,9 +50,11 @@ export default function MatchingRound() {
       const active = await getActiveRound()
       if (!active) {
         setRoundId(null)
+        setRoundObj(null)
         return
       }
       setRoundId(active.id || active.roundId)
+      setRoundObj(active)
     }
     run()
   }, [])
@@ -99,11 +118,15 @@ export default function MatchingRound() {
     }
   }
 
+  // Get live status for the round
+  const roundStatus = roundObj ? getRoundLiveStatus(roundObj.phases) : { live: false, phase: null }
+
   if (roundId === null) {
     return (
       <>
         <Navbar />
         <div className="container">
+          <FemaleTabs />
           <h2>The next round is coming soon!</h2>
           <p className="muted">We’ll notify you when it’s live.</p>
           <Link className="btn" to="/dashboard/connections">My Connections</Link>
@@ -117,6 +140,14 @@ export default function MatchingRound() {
       <Navbar />
       <div className="container">
         <FemaleTabs />
+        {/* Show round live badge if round is live */}
+        {roundStatus.live && (
+          <div className="badge badge-live" style={{ marginBottom: 12 }}>
+            {roundStatus.phase === 'boys'
+              ? "Boys' Round is LIVE now!"
+              : "Girls' Round is LIVE now!"}
+          </div>
+        )}
         <div className="banner">Boys who liked you this round. Select and reveal to match!</div>
 
         {boyUids.length === 0 ? (
