@@ -52,9 +52,10 @@ export async function signOut() {
 }
 
 export type CollegeIdFiles = {
-  frontUrl?: string
-  backUrl?: string
-  verified?: boolean
+  frontUrl?: string;
+  backUrl?: string;
+  verified?: boolean;
+  rejected?: boolean;
 }
 
 export type UserProfile = {
