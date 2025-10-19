@@ -14,6 +14,9 @@ import CommunityGuidelines from './pages/legal/CommunityGuidelines'
 import PrivacyPolicy from './pages/legal/PrivacyPolicy'
 import MaleRound from './pages/dashboard/male/MatchingRounds'
 import RoundMatchesAdmin from './pages/admin/RoundMatchesAdmin'
+import NotificationsPage from './pages/dashboard/Notifications'
+import SendNotificationAdmin from './pages/admin/SendNotification'
+import NotificationsAdminList from './pages/admin/AdminNotification'
 
 /* Lazy dashboard/admin pages (unchanged) */
 const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
@@ -149,6 +152,15 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/dashboard/notifications"
+          element={
+            <Protected>
+              <NotificationsPage />
+            </Protected>
+          }
+        />
+
         {/* Payments */}
         <Route path="/pay" element={<Protected><PaymentPage /></Protected>} />
 
@@ -161,6 +173,8 @@ export default function App() {
         <Route path="/admin/plans" element={<Protected><PlansAdmin /></Protected>} />
         <Route path="/admin/rounds/:roundId/matches" element={<RoundMatchesAdmin />} />
         <Route path="/admin/college-id-verification" element={<CollegeIdVerification />} />
+        <Route path="/admin/send-notification" element={<SendNotificationAdmin />} />
+        <Route path="/admin/notifications" element={<NotificationsAdminList />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -153,5 +153,16 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow update, delete: if isAdmin();
     }
+
+      match /notifications/{id} {
+      allow read: if request.auth != null && (
+        resource.data.userUid == request.auth.uid ||
+        resource.data.userUid == null
+      );
+      allow create: if request.auth != null && isAdmin();
+      allow delete: if request.auth != null && isAdmin();
+      allow update: if false;
+    }
+
   }
 }

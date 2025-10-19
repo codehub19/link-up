@@ -6,6 +6,17 @@ import './styles.css'
 import { AuthProvider } from './state/AuthContext'
 import { Toaster } from 'sonner'
 import { registerSW } from 'virtual:pwa-register'
+import { messaging } from "./firebase";
+import { onMessage } from "firebase/messaging";
+
+onMessage(messaging, (payload) => {
+  if (Notification.permission === "granted") {
+    new Notification(payload.notification?.title || "Notification", {
+      body: payload.notification?.body,
+      icon: payload.notification?.icon,
+    });
+  }
+});
 
 // Register the service worker so the app is installable/offline
 registerSW({ immediate: true })

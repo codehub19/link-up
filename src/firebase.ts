@@ -22,6 +22,10 @@ import {
   getDownloadURL,
 } from 'firebase/storage'
 import { getFunctions, httpsCallable } from 'firebase/functions'
+import { getMessaging } from "firebase/messaging";
+
+// ...your existing Firebase config
+
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -50,6 +54,8 @@ export async function signInWithGoogle(): Promise<{ user: FirebaseUser; isNewUse
 export async function signOut() {
   await fbSignOut(auth)
 }
+
+export const messaging = getMessaging(app);
 
 export type CollegeIdFiles = {
   frontUrl?: string;

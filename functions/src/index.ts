@@ -43,6 +43,31 @@ interface ActiveSubscription {
  * Helper Functions
  * ------------------------------------------------------------------------- */
 
+/*notification function to send push notification to multiple users*/
+// ... imports and init ...
+
+// Push notification to a list of users (for any group)
+export const sendPushNotification = onCall({ region: "asia-south2" }, async (req) => {
+  const { userUids, title, body } = req.data;
+  if (!Array.isArray(userUids) || !title || !body) throw new Error("Missing fields");
+
+  const tokens: string[] = [];
+  for (const uid of userUids) {
+    const doc = await admin.firestore().collection("users").doc(uid).get();
+    const token = doc.get("fcmToken");
+    if (token) tokens.push(token);
+  }
+
+  if (tokens.length) {
+    await admin.messaging().sendEachForMulticast({
+      tokens,
+      notification: { title, body },
+    });
+  }
+
+  return { sent: tokens.length };
+});
+
 async function isRequesterAdmin(uid?: string): Promise<boolean> {
   if (!uid) return false
   const snap = await db.collection('users').doc(uid).get()
