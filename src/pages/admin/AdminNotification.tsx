@@ -14,13 +14,20 @@ export default function AdminNotificationPanel() {
     if (searchMode) return;
     setLoading(true);
     const fetchGroupNotifications = async () => {
-      const q = query(
-        collection(db, "notifications"),
-        where("userUid", "==", null),
-        where("targetType", "==", group)
-      );
-      const snap = await getDocs(q);
-      setNotifications(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      let q;
+      if (group === "all" || group === "verified" || group === "female" || group === "male") {
+        q = query(
+          collection(db, "notifications"),
+          where("userUid", "==", null),
+          where("targetType", "==", group)
+        );
+      }
+      if (q) {
+        const snap = await getDocs(q);
+        setNotifications(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } else {
+        setNotifications([]);
+      }
       setLoading(false);
     };
     fetchGroupNotifications();
@@ -31,9 +38,7 @@ export default function AdminNotificationPanel() {
     if (!searchTerm) return;
     setLoading(true);
     setSearchMode(true);
-    // Find user UID by email if needed, or use UID directly
     let userUid = searchTerm;
-    // If searching by email, fetch UID from users collection
     if (searchTerm.includes("@")) {
       const userSnap = await getDocs(query(collection(db, "users"), where("email", "==", searchTerm)));
       if (!userSnap.empty) userUid = userSnap.docs[0].id;
@@ -79,7 +84,7 @@ export default function AdminNotificationPanel() {
       {loading ? <div>Loading...</div> : notifications.length === 0 ? (
         <div>No notifications found.</div>
       ) : (
-        <ul>
+        <ul style={{ padding: 0, listStyle: "none", marginRight: "2%", marginLeft: "2%" }}>
           {notifications.map(n => (
             <li key={n.id} style={{
               margin: "18px 0",

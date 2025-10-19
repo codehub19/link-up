@@ -154,13 +154,18 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-      match /notifications/{id} {
-      allow read: if request.auth != null && (
-        resource.data.userUid == request.auth.uid ||
-        resource.data.userUid == null
-      );
-      allow create: if request.auth != null && isAdmin();
-      allow delete: if request.auth != null && isAdmin();
+    match /notifications/{id} {
+      // Admins: full access
+      allow read, create, delete: if isAdmin();
+
+      // Everyone: can read group/global notifications (userUid == null)
+      allow read: if request.auth != null && resource.data.userUid == null;
+
+      // Only owner and admin can read personal notifications
+      allow read: if request.auth != null
+        && resource.data.userUid == request.auth.uid;
+
+      // No one can update
       allow update: if false;
     }
 
