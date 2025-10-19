@@ -1,0 +1,103 @@
+.dating-spinner-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.dating-heart-loader {
+  display: inline-block;
+  animation: heartBeat 1s infinite cubic-bezier(.4,0,.6,1);
+  filter: drop-shadow(0 0 8px #ee2a7baa);
+}
+
+.dating-heart {
+  transform-origin: 50% 60%;
+}
+
+@keyframes heartBeat {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 8px #ee2a7baa);
+  }
+  10% {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 12px #ee2a7b);
+  }
+  20% {
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 10px #ee2a7b);
+  }
+  30% {
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 15px #ee2a7b);
+  }
+  40% {
+    transform: scale(0.98);
+    filter: drop-shadow(0 0 10px #ee2a7b);
+  }
+  50% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 14px #ee2a7b);
+  }
+  60% {
+    transform: scale(0.98);
+    filter: drop-shadow(0 0 10px #ee2a7b);
+  }
+  70% {
+    transform: scale(1.02);
+    filter: drop-shadow(0 0 8px #ee2a7b);
+  }
+  80% {
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 10px #ee2a7b);
+  }
+  90% {
+    transform: scale(1.02);
+    filter: drop-shadow(0 0 8px #ee2a7b);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .dating-heart-loader {
+    filter: drop-shadow(0 0 12px #ee2a7baa);
+  }
+}
+
+
+
+
+
+/* 
+.love-spinner-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.love-spinner-svg {
+  overflow: visible;
+  display: block;
+}
+
+.love-spinner-svg path#orbitPath {
+  stroke: none;
+  fill: none;
+}
+
+.love-spinner-svg .orbit-heart-pink,
+.love-spinner-svg .orbit-heart-blue {
+  filter: drop-shadow(0 0 8px #ee2a7b99);
+}
+
+.love-spinner-svg .orbit-heart-blue {
+  filter: drop-shadow(0 0 8px #3897f099);
+}
+
+.love-spinner-wrapper {
+  animation: fadeIn 0.4s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+} */

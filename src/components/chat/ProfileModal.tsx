@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react'
+import LoadingSpinner from '../LoadingSpinner';
 
 export default function ProfileModal({
   open,
@@ -22,6 +23,7 @@ export default function ProfileModal({
 
   if (!open) return null
 
+  if (!user) return <LoadingSpinner />;
   return (
     <div
       ref={overlayRef}

@@ -10,9 +10,10 @@ import AvatarUpload from '../../../components/AvatarUpload'
 import '../profile.edit.css'
 import InterestsSelect from '../../../components/InterestsSelect'
 import EditCollegeId from '../EditCollegeId';
+import LoadingSpinner from '../../../components/LoadingSpinner'
 
 export default function MaleEditProfile() {
-  const { user, profile, refreshProfile } = useAuth()
+  const { loading, user, profile, refreshProfile } = useAuth()
   const [name, setName] = useState(profile?.name ?? '')
   const [insta, setInsta] = useState(profile?.instagramId ?? '')
   const [bio, setBio] = useState(profile?.bio ?? '')
@@ -52,6 +53,7 @@ export default function MaleEditProfile() {
       setSaving(false)
     }
   }
+  if (loading) return <LoadingSpinner />;
 
   return (
     <>

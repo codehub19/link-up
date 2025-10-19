@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { uploadCollegeId } from "../../firebase";
 import { useAuth } from "../../state/AuthContext";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 export default function EditCollegeId() {
   const { user, profile, refreshProfile } = useAuth();
@@ -126,7 +127,7 @@ export default function EditCollegeId() {
               borderRadius: 10,
             }}
           >
-            {uploading ? "Uploading..." : "Upload College ID"}
+            {uploading ? <LoadingSpinner /> : "Upload College ID"}
           </button>
           {error && (
             <div style={{ color: "#f44336", marginTop: 10, fontWeight: 500 }}>
