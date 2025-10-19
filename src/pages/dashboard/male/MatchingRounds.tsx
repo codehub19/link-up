@@ -20,6 +20,7 @@ type UserDoc = {
   interests?: string[]
   college?: string
   dob?: string
+  collegeId?: { verified?: boolean }
 }
 
 type SubscriptionDoc = {
@@ -230,6 +231,8 @@ export default function MatchingRounds() {
                       instagramId={undefined}
                       bio={g.bio}
                       interests={g.interests}
+                      college={g.college}
+                      collegeId={g.collegeId}
                       footer={
                         <button
                           className={`btn ${liked.has(g.uid) ? 'ghost' : 'primary'}`}

@@ -26,6 +26,7 @@ type UserDoc = {
   interests?: string[]
   college?: string
   dob?: string // ISO (YYYY-MM-DD)
+  collegeId?: { verified?: boolean }
 }
 
 type Match = {
@@ -191,6 +192,7 @@ export default function MaleMatches() {
                   bio={g?.bio}
                   interests={g?.interests}
                   college={g?.college}
+                  collegeId={g?.collegeId}
                   age={age}
                   footer={
                     <button className="btn primary" onClick={() => confirm(l)} disabled={remaining <= 0}>
@@ -222,6 +224,7 @@ export default function MaleMatches() {
                   bio={g.bio}
                   interests={g.interests}
                   college={g.college}
+                  collegeId={g.collegeId}
                   age={age}
                   footer={
                     <div className="row" style={{ marginTop: 12 }}>

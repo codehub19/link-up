@@ -9,6 +9,7 @@ export default function ProfileMiniCard({
   college,
   age,
   footer,
+  collegeId,
 }: {
   photoUrl?: string
   name?: string
@@ -18,6 +19,7 @@ export default function ProfileMiniCard({
   college?: string
   age?: number
   footer?: React.ReactNode
+  collegeId?: { verified?: boolean }
 }) {
   const [open, setOpen] = useState(false)
 
@@ -57,6 +59,28 @@ export default function ProfileMiniCard({
         <div className="mini-body">
           <div className="mini-title">
             <strong className="ellipsis">{name ?? 'Student'}</strong>
+            {collegeId?.verified && (
+              <span title="Verified" style={{ marginLeft: 4, verticalAlign: 'middle', display: 'inline-block' }}>
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                  <defs>
+                    <linearGradient id="insta-gradient" x1="0" y1="0" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#f9ce34"/>
+                      <stop offset="0.5" stopColor="#ee2a7b"/>
+                      <stop offset="1" stopColor="#6228d7"/>
+                    </linearGradient>
+                  </defs>
+                  <circle cx="11" cy="11" r="10" fill="url(#insta-gradient)" />
+                  <path
+                    d="M7.7 11.8l2.1 2.1 4.1-4.1"
+                    stroke="#fff"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none"/>
+                </svg>
+              </span>
+            )}
             {instagramId ? <span className="muted">@{instagramId}</span> : null}
           </div>
 

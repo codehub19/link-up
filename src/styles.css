@@ -46,8 +46,9 @@ img{max-width:100%;display:block}
   width:min(1100px, 100% - 32px);
   /* margin:0 auto; */
 }
-.row{display:flex;
-  justify-content: center;
+.row{
+  display:flex;
+  justify-content: left;
   align-items:center;gap:12px}
 .stack{
   display:flex;

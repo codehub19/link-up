@@ -7,7 +7,7 @@ type ProfileMatchCardProps = {
   photoUrl?: string;
   bio?: string;
   interests?: string[];
-  verified?: boolean;
+  collegeId?: { verified?: boolean };
 };
 
 export default function ProfileMatchCard({
@@ -17,7 +17,7 @@ export default function ProfileMatchCard({
   photoUrl,
   bio,
   interests = [],
-  verified = false,
+  collegeId = { verified: false },
 }: ProfileMatchCardProps) {
   const [showPhoto, setShowPhoto] = useState(false);
 
@@ -55,19 +55,27 @@ export default function ProfileMatchCard({
           <div className="profile-match-info">
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span className="profile-match-name">{name}</span>
-              {verified && (
-                <span className="profile-match-verified" title="Verified">
-                  <svg height={18} width={18} viewBox="0 0 18 18" fill="none">
-                    <rect width="18" height="18" rx="9" fill="#8B5CF6" />
-                    <path
-                      d="M6.5 9.5l2 2 3-3"
-                      stroke="#fff"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </span>
+              {collegeId?.verified && (
+               <span title="Verified" style={{ marginLeft: 4, verticalAlign: 'middle', display: 'inline-block' }}>
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                  <defs>
+                    <linearGradient id="insta-gradient" x1="0" y1="0" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#f9ce34"/>
+                      <stop offset="0.5" stopColor="#ee2a7b"/>
+                      <stop offset="1" stopColor="#6228d7"/>
+                    </linearGradient>
+                  </defs>
+                  <circle cx="11" cy="11" r="10" fill="url(#insta-gradient)" />
+                  <path
+                    d="M7.7 11.8l2.1 2.1 4.1-4.1"
+                    stroke="#fff"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none"/>
+                </svg>
+              </span>
               )}
             </div>
             <div className="profile-match-social muted">

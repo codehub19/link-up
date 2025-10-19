@@ -19,6 +19,7 @@ type UserDoc = {
   bio?: string
   interests?: string[]
   college?: string
+  collegeId?: { verified?: boolean }
 }
 
 // Helper to get live status of a round
@@ -164,6 +165,7 @@ export default function MatchingRound() {
                 instagramId={confirmedBoyUids.has(b.uid) ? b.instagramId : undefined}
                 bio={b.bio}
                 interests={b.interests}
+                collegeId={b.collegeId}
                 footer={
                   <button
                     className={`btn ${confirmedBoyUids.has(b.uid) ? 'ghost' : 'primary'}`}

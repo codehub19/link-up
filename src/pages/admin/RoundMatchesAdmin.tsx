@@ -13,7 +13,7 @@ type UserDoc = {
   bio?: string;
   college?: string;
   interests?: string[];
-  verified?: boolean;
+  collegeId?: { verified?: boolean };
 };
 
 type MatchDoc = {
@@ -64,8 +64,8 @@ export default function RoundMatchesAdmin() {
           {matchPairs.map((pair, i) => (
             <div className="match-card" key={i}>
               <div style={{ display: "flex", gap: 16 }}>
-                <ProfileMatchCard {...{ ...pair.boy, name: pair.boy?.name ?? "No Boy Profile" }} />
-                <ProfileMatchCard {...{ ...pair.girl, name: pair.girl?.name ?? "No Girl Profile" }} />
+                <ProfileMatchCard {...{ ...pair.boy, name: pair.boy?.name ?? "No Boy Profile", collegeId: pair.boy?.collegeId }} />
+                <ProfileMatchCard {...{ ...pair.girl, name: pair.girl?.name ?? "No Girl Profile", collegeId: pair.girl?.collegeId }} />
                 <div className="match-meta" style={{ marginLeft: "auto", alignSelf: "center" }}>
                   <span>
                     {pair.match.timestamp
