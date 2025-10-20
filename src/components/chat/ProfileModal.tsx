@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import LoadingSpinner from '../LoadingSpinner';
+import LoadingHeart from '../LoadingHeart';
 
 export default function ProfileModal({
   open,
@@ -23,7 +23,9 @@ export default function ProfileModal({
 
   if (!open) return null
 
-  if (!user) return <LoadingSpinner />;
+  if (!user) return <div className="loading-page-wrapper">
+        <LoadingHeart size={72} />
+      </div>;
   return (
     <div
       ref={overlayRef}

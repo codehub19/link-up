@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import { useAuth } from "../../state/AuthContext";
 import { collection, query, where, getDocs, Timestamp, updateDoc, doc } from "firebase/firestore";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import LoadingHeart from "../../components/LoadingHeart";
 
 type Notification = {
   id: string;
@@ -76,7 +76,9 @@ export default function NotificationsPage() {
     <div>
       <h2 style={{ marginBottom: 18 }}>Notifications</h2>
       {loading ? (
-        <LoadingSpinner /> 
+        <div className="loading-page-wrapper">
+              <LoadingHeart size={72} />
+            </div> 
       ) : notifications.length === 0 ? (
         <div>No notifications in the last 7 days.</div>
       ) : notifications.length === 0 ? (

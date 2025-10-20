@@ -1136,3 +1136,12 @@ body {
 }
 
 
+.loading-page-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--background, #18151b); /* Use your site's theme color */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

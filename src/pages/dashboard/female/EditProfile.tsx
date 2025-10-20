@@ -9,6 +9,7 @@ import AvatarUpload from '../../../components/AvatarUpload'
 import '../profile.edit.css'
 import InterestsSelect from '../../../components/InterestsSelect'
 import EditCollegeId from '../EditCollegeId';
+import LoadingHeart from '../../../components/LoadingHeart'
 import LoadingSpinner from '../../../components/LoadingSpinner'
 
 export default function EditProfile() {
@@ -56,7 +57,9 @@ export default function EditProfile() {
     }
   }
   
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <div className="loading-page-wrapper">
+        <LoadingHeart size={72} />
+      </div>;
   
   return (
     <>
@@ -130,7 +133,7 @@ export default function EditProfile() {
               </button>
 
               <button className="btn-gradient" onClick={save} disabled={saving}>
-                {saving ? 'Saving…' : 'Save Changes'}
+                {saving ? <LoadingSpinner /> : 'Save Changes'}
               </button>
             </div>
           </div>

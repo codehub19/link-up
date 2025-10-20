@@ -17,7 +17,7 @@ import RoundMatchesAdmin from './pages/admin/RoundMatchesAdmin'
 import NotificationsPage from './pages/dashboard/Notifications'
 import SendNotificationAdmin from './pages/admin/SendNotification'
 import NotificationsAdminList from './pages/admin/AdminNotification'
-import LoadingSpinner from './components/LoadingSpinner'
+import LoadingHeart from './components/LoadingHeart'
 
 /* Lazy dashboard/admin pages (unchanged) */
 const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
@@ -39,7 +39,9 @@ const CollegeIdVerification = lazy(() => import('./pages/admin/CollegeIdVerifica
 
 export default function App() {
   const { loading, profile } = useAuth();
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <div className="loading-page-wrapper">
+      <LoadingHeart size={72} />
+    </div>;
   return (
     <Suspense fallback={null}>
       <Routes>
