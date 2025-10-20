@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { uploadCollegeId } from "../../firebase";
 import { useAuth } from "../../state/AuthContext";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import { compressImage } from "../../utils/compressImage";
 
 export default function EditCollegeId() {
   const { user, profile, refreshProfile } = useAuth();
@@ -20,15 +21,28 @@ export default function EditCollegeId() {
     (!collegeId.frontUrl && !collegeId.backUrl) ||
     (collegeId.verified === false && collegeId.rejected === true);
 
-  const handleFrontChange = (file: File | null) => {
-    setFront(file);
-    setFrontPreview(file ? URL.createObjectURL(file) : null);
-  };
+  const handleFrontChange = async (file: File | null) => {
+  if (file) {
+    const compressed = await compressImage(file);
+    setFront(compressed);
+    setFrontPreview(URL.createObjectURL(compressed));
+  } else {
+    setFront(null);
+    setFrontPreview(null);
+  }
+};
 
-  const handleBackChange = (file: File | null) => {
-    setBack(file);
-    setBackPreview(file ? URL.createObjectURL(file) : null);
-  };
+
+  const handleBackChange = async (file: File | null) => {
+  if (file) {
+    const compressed = await compressImage(file);
+    setBack(compressed);
+    setBackPreview(URL.createObjectURL(compressed));
+  } else {
+    setBack(null);
+    setBackPreview(null);
+  }
+};
 
   const handleUpload = async () => {
     setError(null);

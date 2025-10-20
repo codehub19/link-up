@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { compressImage } from '../utils/compressImage'
 
 export default function FileUpload({
   onFile,
@@ -11,13 +12,14 @@ export default function FileUpload({
 }) {
   const [local, setLocal] = useState<string | undefined>(previewUrl)
 
-  const handle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (f) {
-      setLocal(URL.createObjectURL(f))
-      onFile(f)
-    }
+ const handle = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const f = e.target.files?.[0]
+  if (f) {
+    const compressed = await compressImage(f);
+    setLocal(URL.createObjectURL(compressed));
+    onFile(compressed);
   }
+}
 
   return (
     <div className="upload">

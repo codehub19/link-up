@@ -1,10 +1,12 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /users/{uid}/profile.jpg {
-      allow read: if true; // public profile photo
-      allow write: if request.auth != null && request.auth.uid == uid
-                   && request.resource.contentType.matches('image/.*');
+    match /users/{uid}/{fileName} {
+      allow read: if true; // public profile photos
+      allow write: if request.auth != null
+                   && request.auth.uid == uid
+                   && request.resource.contentType.matches('image/.*')
+                   && fileName.matches('profile(_[0-9]+)?\\.jpg');
     }
     match /{allPaths=**} {
       allow read, write: if false;

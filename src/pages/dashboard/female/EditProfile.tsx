@@ -11,6 +11,7 @@ import InterestsSelect from '../../../components/InterestsSelect'
 import EditCollegeId from '../EditCollegeId';
 import LoadingHeart from '../../../components/LoadingHeart'
 import LoadingSpinner from '../../../components/LoadingSpinner'
+import { compressImage } from '../../../utils/compressImage' // <-- ADD THIS IMPORT
 
 export default function EditProfile() {
   const { loading, user, profile, refreshProfile } = useAuth()
@@ -29,6 +30,16 @@ export default function EditProfile() {
       setInterests(profile.interests ?? [])
     }
   }, [profile])
+
+  // compress before upload
+  const handleFile = async (f: File | null) => {
+    if (!f) {
+      setFile(null)
+      return
+    }
+    const compressed = await compressImage(f)
+    setFile(compressed)
+  }
 
   const save = async () => {
     if (!user) return
@@ -70,7 +81,7 @@ export default function EditProfile() {
 
         <div className="edit-card">
           <div className="edit-head">
-            <AvatarUpload previewUrl={profile?.photoUrl} onFile={setFile} />
+            <AvatarUpload previewUrl={profile?.photoUrl} onFile={handleFile} />
           </div>
 
           <div className="edit-body">

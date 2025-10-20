@@ -220,8 +220,18 @@ export async function updateProfileAndStatus(
   return prof
 }
 
-export async function uploadProfilePhoto(uid: string, file: File) {
-  const r = ref(storage, `users/${uid}/profile.jpg`)
+// export async function uploadProfilePhoto(uid: string, file: File) {
+//   const r = ref(storage, `users/${uid}/profile.jpg`)
+//   const task = uploadBytesResumable(r, file, { contentType: file.type || 'image/jpeg' })
+//   await new Promise<void>((resolve, reject) => {
+//     task.on('state_changed', undefined, reject, () => resolve())
+//   })
+//   return await getDownloadURL(r)
+// }
+
+export async function uploadProfilePhoto(uid: string, file: File, index?: number) {
+  const fileName = typeof index === 'number' ? `profile_${index}.jpg` : 'profile.jpg'
+  const r = ref(storage, `users/${uid}/profile_images/${fileName}`)
   const task = uploadBytesResumable(r, file, { contentType: file.type || 'image/jpeg' })
   await new Promise<void>((resolve, reject) => {
     task.on('state_changed', undefined, reject, () => resolve())

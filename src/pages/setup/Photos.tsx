@@ -4,6 +4,8 @@ import { useAuth } from '../../state/AuthContext'
 import { uploadProfilePhoto, updateProfileAndStatus, finalizeIfComplete, nextSetupRoute } from '../../firebase'
 import { useNavigate } from 'react-router-dom'
 import './setup.styles.css'
+import { compressImage } from '../../utils/compressImage' // Add compression utility
+import LoadingSpinner from '../../components/LoadingSpinner' // Add spinner
 
 type Slot = { id:number; url?:string; file?:File }
 type Props = { embedded?: boolean; onComplete?: () => void }
@@ -14,18 +16,33 @@ export default function Photos({ embedded, onComplete }: Props) {
   const [slots, setSlots] = useState<Slot[]>(() => Array.from({ length: 4 }, (_,i)=>({ id:i })))
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [saving, setSaving] = useState(false)
+  const [isCompressing, setIsCompressing] = useState<boolean[]>(Array(4).fill(false)) // Add compression state
 
   const pick = (i:number) => {
     const input = inputRef.current
     if (!input) return
-    input.onchange = (e:any) => {
+    input.onchange = async (e:any) => {
       const f = e.target.files?.[0]
       if (f) {
-        const reader = new FileReader()
-        reader.onload = () => {
-          setSlots(prev => prev.map(s => s.id===i ? { ...s, url:String(reader.result), file:f } : s))
+        setIsCompressing(prev => {
+          const next = [...prev]
+          next[i] = true
+          return next
+        })
+        try {
+          const compressed = await compressImage(f)
+          const reader = new FileReader()
+          reader.onload = () => {
+            setSlots(prev => prev.map(s => s.id===i ? { ...s, url:String(reader.result), file:compressed } : s))
+          }
+          reader.readAsDataURL(compressed)
+        } finally {
+          setIsCompressing(prev => {
+            const next = [...prev]
+            next[i] = false
+            return next
+          })
         }
-        reader.readAsDataURL(f)
       }
       e.target.value = ''
     }
@@ -65,7 +82,11 @@ export default function Photos({ embedded, onComplete }: Props) {
           <div className="photo-grid">
             {slots.map((s,i)=>(
               <div key={s.id} className={`photo-slot ${s.url ? 'has-image':''}`}>
-                {s.url ? (
+                {isCompressing[i] ? (
+                  <div style={{textAlign: 'center', color: '#ff5d7c'}}>
+                    <LoadingSpinner color='#ff5d7c'/>
+                  </div>
+                ) : s.url ? (
                   <>
                     <img src={s.url} alt={`Photo ${i+1}`} />
                     <button className="photo-remove" aria-label="Remove"
@@ -73,14 +94,19 @@ export default function Photos({ embedded, onComplete }: Props) {
                     >✕</button>
                   </>
                 ) : (
-                  <button className="photo-add" onClick={()=>pick(i)} aria-label="Add photo">+</button>
+                  <button
+                    className="photo-add"
+                    onClick={()=>pick(i)}
+                    aria-label="Add photo"
+                    disabled={isCompressing.some(Boolean)} // Disable during any compression
+                  >+</button>
                 )}
               </div>
             ))}
           </div>
           <div className="setup-card-footer">
-            <button className="btn-primary-lg" disabled={!filled || saving} onClick={finish}>
-              {saving ? 'Saving…' : 'Finish'}
+            <button className="btn-primary-lg" disabled={!filled || saving || isCompressing.some(Boolean)} onClick={finish}>
+              {saving ? <LoadingSpinner/> : 'Finish'}
             </button>
           </div>
         </section>
