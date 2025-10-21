@@ -33,7 +33,10 @@ export default function Navbar() {
   const navigate = useNavigate()
   const [hasUnread, setHasUnread] = useState(false)
 
-  const isActive = (p: string) => loc.pathname === p || loc.pathname.startsWith(p)
+  // Only active for exact dashboard path
+  const dashboardActive = loc.pathname === '/dashboard' || loc.pathname === '/dashboard/'
+  // Only active for notifications
+  const notificationsActive = loc.pathname === '/dashboard/notifications'
   const profilePath = profile?.gender === 'male' ? '/dashboard' : '/dashboard/'
 
   // Listen for new notification events to show badge
@@ -45,7 +48,7 @@ export default function Navbar() {
 
   // Clear badge when visiting notifications page
   useEffect(() => {
-    if (loc.pathname === '/dashboard/notifications') setHasUnread(false)
+    if (notificationsActive) setHasUnread(false)
   }, [loc.pathname])
 
   return (
@@ -59,11 +62,11 @@ export default function Navbar() {
             <>
               <Link
                 to={profilePath}
-                className={`nav-link icon-btn ${isActive(profilePath) ? 'active' : ''}`}
+                className={`nav-link icon-btn ${dashboardActive ? 'active' : ''}`}
                 title="Dashboard"
                 style={{ display: "inline-flex", alignItems: "center", marginRight: 8 }}
               >
-                <DashboardIcon size={24} color="#ff5d7c" />
+                <DashboardIcon size={24} color={dashboardActive ? "#ff5d7c" : "#fff"} />
               </Link>
               {/* Notifications Bell */}
               <div
@@ -77,11 +80,12 @@ export default function Navbar() {
                   setHasUnread(false)
                   navigate('/dashboard/notifications')
                 }}
+                className={`icon-btn ${notificationsActive ? 'active' : ''}`}
                 title="Notifications"
                 aria-label="Notifications"
               >
-                <BellIcon size={28} color="#ff5d7c" />
-                {hasUnread && (
+                <BellIcon size={28} color={notificationsActive ? "#ff5d7c" : "#fff"} />
+                {hasUnread && !notificationsActive && (
                   <span style={{
                     position: "absolute",
                     top: 2,
@@ -96,8 +100,9 @@ export default function Navbar() {
               </div>
             </>
           )}
-          <InstallPWAButton className="btn btn-ghost" label="Install App" />
-          <div className="row" style={{ marginLeft: 4 }}>
+          {/* Responsive row for buttons */}
+          <div className="row nav-actions-mobile">
+            <InstallPWAButton className="btn btn-ghost" label="Install App" />
             {user && profile?.isProfileComplete ? null : user ? (
               <Link to="/setup/gender" className="btn btn-primary">Complete Profile</Link>
             ) : (
@@ -106,6 +111,22 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+      {/* Minimal mobile media query for action buttons */}
+      <style>{`
+        @media (max-width: 600px) {
+          .nav-actions-mobile {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+          .nav-actions-mobile .btn,
+          .nav-actions-mobile .btn-primary,
+          .nav-actions-mobile .btn-ghost {
+            width: 100%;
+            margin: 0;
+          }
+        }
+      `}</style>
     </nav>
   )
 }

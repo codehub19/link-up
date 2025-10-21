@@ -12,7 +12,7 @@ import {
   finalizeIfComplete,
   normalizeProfile,
 } from '../firebase'
-import { getToken } from 'firebase/messaging'
+import { getToken, onMessage } from 'firebase/messaging'
 import { messaging } from '../firebase'
 
 type AuthCtx = {
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Only try if Notification API is available and permission is granted
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        const token = await getToken(messaging, { vapidKey: "YOUR_VAPID_KEY_HERE" })
+        const token = await getToken(messaging, { vapidKey: "BJMro5dKsOYThOeAFmzgqyZ5a5wUzlFQjEMNGChI6KxSqQHPCw_6_NcPNuLt0O-gR04SR-QeCCUhezAIQjC3s_U" })
         if (token) {
           await setDoc(doc(db, "users", u.uid), { fcmToken: token }, { merge: true })
         }
@@ -81,6 +81,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsub()
     // eslint-disable-next-line
   }, [])
+
+  // Listen for foreground FCM messages, but DO NOT show browser notification (avoid duplicates!)
+  useEffect(() => {
+    if (!messaging) return
+    const unsub = onMessage(messaging, (payload) => {
+      // Only update app UI here (toast, badge, etc). DO NOT call new Notification or showNotification.
+      // Example: showToast(payload.notification?.title || 'New Notification')
+    });
+    return () => { unsub() }
+  }, []);
 
   const value = useMemo(() => ({
     user,

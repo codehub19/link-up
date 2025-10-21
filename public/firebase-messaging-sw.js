@@ -13,15 +13,14 @@ const messaging = firebase.messaging();
 
 // Handle background push messages
 messaging.onBackgroundMessage(function(payload) {
-  // Defensive: fallback in case notification property is missing
   const notification = payload.notification || {};
   self.registration.showNotification(
     notification.title || "Notification",
     {
       body: notification.body || "",
-      icon: notification.icon || "/logo192.png", // fallback icon
+      icon: "/icons/icon-192.png", 
+      badge: "/icons/icon-192.png",
       data: payload.data || {},
-      // tag: notification.tag, // Optional, to group notifications
     }
   );
 });
