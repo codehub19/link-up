@@ -1,5 +1,5 @@
 import { onAuthStateChanged, User } from 'firebase/auth'
-import { doc, getDoc,setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import {
   auth,
@@ -12,6 +12,8 @@ import {
   finalizeIfComplete,
   normalizeProfile,
 } from '../firebase'
+import { getToken } from 'firebase/messaging'
+import { messaging } from '../firebase'
 
 type AuthCtx = {
   user: User | null
@@ -38,7 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let data = normalizeProfile(snap.data())
     // Auto repair: if flattened keys exist and nested is empty
     if (data && Object.keys(data.setupStatus || {}).length === 0) {
-      // implicit repair handled by normalizeProfile; we can optionally write back
       const statusCopy = data.setupStatus || {}
       await setDoc(doc(db, 'users', uid), { setupStatus: statusCopy }, { merge: true })
     }
@@ -50,18 +51,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(data)
   }
 
+  // Save FCM token to Firestore for the user
+  const saveFcmToken = async (u: User) => {
+    try {
+      // Only try if Notification API is available and permission is granted
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        const token = await getToken(messaging, { vapidKey: "YOUR_VAPID_KEY_HERE" })
+        if (token) {
+          await setDoc(doc(db, "users", u.uid), { fcmToken: token }, { merge: true })
+        }
+      }
+    } catch (e) {
+      // Optionally handle errors or prompt the user
+    }
+  }
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u)
       if (u && u.uid) {
         await ensureUserDocument(u)
         await loadProfile(u.uid)
+        await saveFcmToken(u)
       } else {
         setProfile(null)
       }
       setLoading(false)
     })
     return () => unsub()
+    // eslint-disable-next-line
   }, [])
 
   const value = useMemo(() => ({
@@ -73,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (u && u.uid) {
         await ensureUserDocument(u)
         await loadProfile(u.uid)
+        await saveFcmToken(u)
       }
       return isNewUser
     },

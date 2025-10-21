@@ -8,6 +8,8 @@ import { Toaster } from 'sonner'
 import { registerSW } from 'virtual:pwa-register'
 import { messaging } from "./firebase";
 import { onMessage } from "firebase/messaging";
+import { NotificationPrompt } from './components/NotificationPrompt'
+import { toast } from 'sonner';
 
 onMessage(messaging, (payload) => {
   if (Notification.permission === "granted") {
@@ -16,6 +18,13 @@ onMessage(messaging, (payload) => {
       icon: payload.notification?.icon,
     });
   }
+  // In-app toast
+  toast(payload.notification?.title || "Notification", {
+    description: payload.notification?.body,
+    duration: 6000,
+    icon: payload.notification?.icon,
+  });
+  window.dispatchEvent(new Event("new-notification"));
 });
 
 // Register the service worker so the app is installable/offline
@@ -27,6 +36,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <AuthProvider>
         <App />
         <Toaster position="top-center" richColors />
+        <NotificationPrompt />
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
