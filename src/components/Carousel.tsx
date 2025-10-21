@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
  * - Mobile: arrows visible; swipe disabled (as requested).
  * - Desktop: arrows + keyboard; swipe enabled.
  * - Keeps child card markup intact; we only wrap them.
+ * - Now supports onChange callback for slide changes.
  */
 export default function Carousel({
   children,
@@ -13,6 +14,7 @@ export default function Carousel({
   widthPercent = 80,    // consume ~80% page width and center
   stackDepth = 4,       // how many cards are visible behind the active one (desktop)
   ariaLabel = 'Carousel',
+  onChange,             // <-- ADDED: callback for slide change
 }: {
   children: React.ReactNode
   itemWidth?: number
@@ -20,6 +22,7 @@ export default function Carousel({
   widthPercent?: number
   stackDepth?: number
   ariaLabel?: string
+  onChange?: (newIndex: number) => void // <-- ADDED
 }) {
   const slides = useMemo(() => React.Children.toArray(children), [children])
   const count = slides.length
@@ -88,6 +91,11 @@ export default function Carousel({
     pointerId: 0 as number | undefined,
   })
 
+  const handleIdxChange = (newIdx: number) => {
+    setIdx(newIdx)
+    if (onChange) onChange(newIdx)
+  }
+
   const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
     if (!swipeEnabled || count === 0) return
     drag.current.active = true
@@ -109,23 +117,23 @@ export default function Carousel({
     const dx = drag.current.dx
     drag.current.active = false
     const threshold = Math.max(48, itemWidth * 0.18)
-    if (dx <= -threshold) setIdx((i) => (i + 1) % Math.max(1, count))
-    else if (dx >= threshold) setIdx((i) => (i - 1 + Math.max(1, count)) % Math.max(1, count))
+    if (dx <= -threshold) handleIdxChange((idx + 1) % Math.max(1, count))
+    else if (dx >= threshold) handleIdxChange((idx - 1 + Math.max(1, count)) % Math.max(1, count))
   }
 
   // keyboard (desktop)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (count <= 1) return
-      if (e.key === 'ArrowRight') setIdx((i) => (i + 1) % count)
-      if (e.key === 'ArrowLeft') setIdx((i) => (i - 1 + count) % count)
+      if (e.key === 'ArrowRight') handleIdxChange((idx + 1) % count)
+      if (e.key === 'ArrowLeft') handleIdxChange((idx - 1 + count) % count)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [count])
+  }, [count, idx])
 
-  const prev = () => setIdx((i) => (i - 1 + Math.max(1, count)) % Math.max(1, count))
-  const next = () => setIdx((i) => (i + 1) % Math.max(1, count))
+  const prev = () => handleIdxChange((idx - 1 + Math.max(1, count)) % Math.max(1, count))
+  const next = () => handleIdxChange((idx + 1) % Math.max(1, count))
 
   // center + breathing room
   const minPad = isMobile ? 16 : 32

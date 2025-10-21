@@ -55,6 +55,7 @@ export default function MatchingRound() {
   const [boyUids, setBoyUids] = useState<string[]>([])
   const [boys, setBoys] = useState<UserDoc[]>([])
   const [confirmedBoyUids, setConfirmedBoyUids] = useState<Set<string>>(new Set())
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -132,6 +133,10 @@ export default function MatchingRound() {
   // Get live status for the round
   const roundStatus = roundObj ? getRoundLiveStatus(roundObj.phases) : { live: false, phase: null }
 
+  const handleCarouselChange = () => {
+    setExpandedIdx(null); // Always close expanded profile on carousel change
+  };
+
   if (roundId === null) {
     return (
       <>
@@ -166,11 +171,14 @@ export default function MatchingRound() {
         ) : boys.length === 0 ? (
           <div className="empty">Loading profiles…</div>
         ) : (
-          <Carousel>
-            {boys.map((b) => (
+          <Carousel onChange={handleCarouselChange}>
+            {boys.map((b, idx) => (
               <ProfileMiniCard
                 key={b.uid}
                 user={b}
+                expanded={expandedIdx === idx}
+                onExpand={() => setExpandedIdx(idx)}
+                onCollapse={() => setExpandedIdx(null)}
                 footer={
                   <button
                     className={`btn ${confirmedBoyUids.has(b.uid) ? 'ghost' : 'primary'}`}

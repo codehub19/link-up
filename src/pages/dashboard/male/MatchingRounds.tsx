@@ -64,6 +64,7 @@ export default function MatchingRounds() {
   const [subscription, setSubscription] = useState<SubscriptionDoc | null>(null)
   const [loadingSub, setLoadingSub] = useState(true)
   const [hasAnySubscription, setHasAnySubscription] = useState<boolean>(false)
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -177,6 +178,10 @@ export default function MatchingRounds() {
   // Get live status for the round
   const roundStatus = roundObj ? getRoundLiveStatus(roundObj.phases) : { live: false, phase: null }
 
+  const handleCarouselChange = () => {
+    setExpandedIdx(null); // Always close expanded profile on carousel change
+  };
+
   if (roundId === null) {
       return (
         <>
@@ -231,11 +236,14 @@ export default function MatchingRounds() {
               ) : girls.length === 0 ? (
                 <div className="empty">Loading assigned profiles…</div>
               ) : (
-                <Carousel>
-                  {girls.map((g) => (
+                <Carousel onChange={handleCarouselChange}>
+                  {girls.map((g, idx) => (
                     <ProfileMiniCard
                       key={g.uid}
                       user={g}
+                      expanded={expandedIdx === idx}
+                      onExpand={() => setExpandedIdx(idx)}
+                      onCollapse={() => setExpandedIdx(null)}
                       footer={
                         <button
                           className={`btn ${liked.has(g.uid) ? 'ghost' : 'primary'}`}
