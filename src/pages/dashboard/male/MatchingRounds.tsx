@@ -16,11 +16,20 @@ type UserDoc = {
   name?: string
   instagramId?: string
   photoUrl?: string
+  photoUrls?: string[]
   bio?: string
   interests?: string[]
   college?: string
   dob?: string
   collegeId?: { verified?: boolean }
+  loveLanguage?: string
+  travelPreference?: string
+  sundayStyle?: string
+  communicationImportance?: string
+  conflictApproach?: string
+  email?: string
+  gender?: string
+  verified?: boolean
 }
 
 type SubscriptionDoc = {
@@ -226,13 +235,7 @@ export default function MatchingRounds() {
                   {girls.map((g) => (
                     <ProfileMiniCard
                       key={g.uid}
-                      photoUrl={g.photoUrl}
-                      name="Hidden until matched"
-                      instagramId={undefined}
-                      bio={g.bio}
-                      interests={g.interests}
-                      college={g.college}
-                      collegeId={g.collegeId}
+                      user={g}
                       footer={
                         <button
                           className={`btn ${liked.has(g.uid) ? 'ghost' : 'primary'}`}

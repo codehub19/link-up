@@ -16,10 +16,20 @@ type UserDoc = {
   name?: string
   instagramId?: string
   photoUrl?: string
+  photoUrls?: string[]
   bio?: string
   interests?: string[]
   college?: string
+  dob?: string
   collegeId?: { verified?: boolean }
+  loveLanguage?: string
+  travelPreference?: string
+  sundayStyle?: string
+  communicationImportance?: string
+  conflictApproach?: string
+  email?: string
+  gender?: string
+  verified?: boolean
 }
 
 // Helper to get live status of a round
@@ -160,12 +170,7 @@ export default function MatchingRound() {
             {boys.map((b) => (
               <ProfileMiniCard
                 key={b.uid}
-                photoUrl={b.photoUrl}
-                name={confirmedBoyUids.has(b.uid) ? b.name : "Hidden until matched"}
-                instagramId={confirmedBoyUids.has(b.uid) ? b.instagramId : undefined}
-                bio={b.bio}
-                interests={b.interests}
-                collegeId={b.collegeId}
+                user={b}
                 footer={
                   <button
                     className={`btn ${confirmedBoyUids.has(b.uid) ? 'ghost' : 'primary'}`}

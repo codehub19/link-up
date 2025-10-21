@@ -22,6 +22,7 @@ type UserDoc = {
   name?: string
   instagramId?: string
   photoUrl?: string
+  photoUrls?: string[]
   bio?: string
   interests?: string[]
   college?: string
@@ -48,8 +49,8 @@ function ageFromDob(dob?: string): number | undefined {
   return age >= 0 ? age : undefined
 }
 
-const CARD_WIDTH = 300  // portrait-friendly width (reduce to 280 if you want even narrower)
-const CARD_GAP = 16
+const CARD_WIDTH = 370
+const CARD_GAP = 18
 
 export default function MaleMatches() {
   const { user } = useAuth()
@@ -59,6 +60,7 @@ export default function MaleMatches() {
   const [girls, setGirls] = useState<Record<string, UserDoc>>({})
   const [matches, setMatches] = useState<Match[]>([])
   const [remaining, setRemaining] = useState<number>(0)
+  const [liked, setLiked] = useState<Set<string>>(new Set())
 
   // Set of girl uids already confirmed with me
   const confirmedGirlIds = useMemo(
@@ -124,6 +126,11 @@ export default function MaleMatches() {
     }
   }
 
+  // Like button logic for demo purposes (local only)
+  const like = (uid: string) => {
+    setLiked((prev) => new Set(prev).add(uid))
+  }
+
   // Pending: unique by girl uid, excluding already confirmed girls
   const pendingUnique: Like[] = useMemo(() => {
     const raw = likes.filter((l) => !confirmedGirlIds.has(l.likingUserUid))
@@ -151,11 +158,6 @@ export default function MaleMatches() {
     return out
   }, [matches])
 
-  const openChat = (peerUid: string) => {
-    // Adjust this route to your actual chat route if different
-    nav(`/chat?with=${encodeURIComponent(peerUid)}`)
-  }
-
   return (
     <>
       <Navbar />
@@ -178,25 +180,21 @@ export default function MaleMatches() {
         {pendingUnique.length === 0 ? (
           <div className="empty">No matches yet. When a girl likes your profile from a matching round, she will appear here.</div>
         ) : (
-          <Carousel itemWidth={300} gap={16} widthPercent={80} ariaLabel="Pending likes">
+          <Carousel itemWidth={CARD_WIDTH} gap={CARD_GAP} widthPercent={80} ariaLabel="Pending likes">
             {pendingUnique.map((l) => {
               const g = girls[l.likingUserUid]
-              const age = ageFromDob(g?.dob)
+              if (!g) return null
               return (
                 <ProfileMiniCard
-                  key={l.likingUserUid}
-                  photoUrl={g?.photoUrl}
-                  // Hide identity until confirmed
-                  name="Hidden until matched"
-                  instagramId={undefined}
-                  bio={g?.bio}
-                  interests={g?.interests}
-                  college={g?.college}
-                  collegeId={g?.collegeId}
-                  age={age}
+                  key={g.uid}
+                  user={g}
                   footer={
-                    <button className="btn primary" onClick={() => confirm(l)} disabled={remaining <= 0}>
-                      {remaining <= 0 ? 'Quota used' : 'Select & Reveal'}
+                    <button
+                      className={`btn ${liked.has(g.uid) ? 'ghost' : 'primary'}`}
+                      onClick={() => like(g.uid)}
+                      disabled={liked.has(g.uid)}
+                    >
+                      {liked.has(g.uid) ? 'Liked' : 'Like'}
                     </button>
                   }
                 />
@@ -209,23 +207,14 @@ export default function MaleMatches() {
         {confirmedUnique.length === 0 ? (
           <div className="empty">No confirmed connections yet.</div>
         ) : (
-          <Carousel itemWidth={300} gap={16} widthPercent={80} ariaLabel="Confirmed matches">
+          <Carousel itemWidth={CARD_WIDTH} gap={CARD_GAP} widthPercent={80} ariaLabel="Confirmed matches">
             {confirmedUnique.map((m) => {
               const g = girls[m.girlUid]
               if (!g) return null
-              const age = ageFromDob(g?.dob)
               return (
                 <ProfileMiniCard
-                  key={m.girlUid}
-                  photoUrl={g.photoUrl}
-                  // Reveal identity
-                  name={g.name}
-                  instagramId={g.instagramId}
-                  bio={g.bio}
-                  interests={g.interests}
-                  college={g.college}
-                  collegeId={g.collegeId}
-                  age={age}
+                  key={g.uid}
+                  user={g}
                   footer={
                     <div className="row" style={{ marginTop: 12 }}>
                       <Link className="btn primary" to={`/dashboard/chat?with=${encodeURIComponent(m.girlUid)}`}>

@@ -18,56 +18,70 @@ export default function Photos({ embedded, onComplete }: Props) {
   const [saving, setSaving] = useState(false)
   const [isCompressing, setIsCompressing] = useState<boolean[]>(Array(4).fill(false)) // Add compression state
 
-  const pick = (i:number) => {
-    const input = inputRef.current
-    if (!input) return
-    input.onchange = async (e:any) => {
-      const f = e.target.files?.[0]
-      if (f) {
+  // Updated pick function for instant preview and async compress/upload
+ const pick = (i:number) => {
+  const input = inputRef.current
+  if (!input) return
+  input.onchange = async (e:any) => {
+    const f = e.target.files?.[0]
+    if (f) {
+      // Show instant local preview
+      const previewUrl = URL.createObjectURL(f)
+      setSlots(prev => prev.map(s => s.id === i ? { ...s, url: previewUrl, file: f } : s))
+      setIsCompressing(prev => {
+        const next = [...prev]
+        next[i] = true
+        return next
+      })
+      try {
+        if (!user) return // <-- Fix here
+        const compressed = await compressImage(f)
+        await uploadProfilePhoto(user.uid, compressed, i)
+      } finally {
         setIsCompressing(prev => {
           const next = [...prev]
-          next[i] = true
+          next[i] = false
           return next
         })
-        try {
-          const compressed = await compressImage(f)
-          const reader = new FileReader()
-          reader.onload = () => {
-            setSlots(prev => prev.map(s => s.id===i ? { ...s, url:String(reader.result), file:compressed } : s))
-          }
-          reader.readAsDataURL(compressed)
-        } finally {
-          setIsCompressing(prev => {
-            const next = [...prev]
-            next[i] = false
-            return next
-          })
-        }
       }
-      e.target.value = ''
     }
-    input.click()
+    e.target.value = ''
   }
+  input.click()
+}
 
   const filled = slots.some(s => s.file)
 
   const finish = async () => {
-    if (!user) return
-    const primary = slots.find(s => s.file)
-    if (!primary?.file) return
-    setSaving(true)
+    if (!user) return;
+    // Get all slots with a file
+    const files: File[] = slots.filter(s => s.file).map(s => s.file as File);
+    if (files.length === 0) return; // Require at least one photo
+
+    setSaving(true);
     try {
-      const url = await uploadProfilePhoto(user.uid, primary.file)
-      await updateProfileAndStatus(user.uid, { photoUrl: url }, { photos: true })
-      await refreshProfile()
-      await finalizeIfComplete(user.uid)
-      if (embedded && onComplete) onComplete()
+      // Upload all photos, get URLs
+      const urls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const url = await uploadProfilePhoto(user.uid, files[i], i);
+        urls.push(url);
+      }
+      // Save photoUrls array and first photo as photoUrl
+      await updateProfileAndStatus(user.uid, {
+        photoUrls: urls, // all uploaded photos
+        photoUrl: urls[0], // first photo as profile photo
+      }, { photos: true });
+
+      await refreshProfile();
+      await finalizeIfComplete(user.uid);
+
+      if (embedded && onComplete) onComplete();
       else {
-        const next = nextSetupRoute(profile)
-        nav(next || '/dashboard')
+        const next = nextSetupRoute(profile);
+        nav(next || '/dashboard');
       }
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
