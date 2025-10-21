@@ -72,8 +72,8 @@ export default function FemaleTabs() {
 
       {/* Profile */}
       <Link
-        className={`tab-btn${is('/dashboard/female/edit-profile') ? ' tab-btn-active' : ''}`}
-        to="/dashboard/female/edit-profile"
+        className={`tab-btn${is('/dashboard/female/profile') ? ' tab-btn-active' : ''}`}
+        to="/dashboard/female/profile"
       >
         <span className="tab-btn-icon">
           {/* User profile */}

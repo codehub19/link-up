@@ -23,10 +23,10 @@ import LoadingHeart from './components/LoadingHeart'
 const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
 const MalePlans = lazy(() => import('./pages/dashboard/male/Plans'))
 const MaleMatches = lazy(() => import('./pages/dashboard/male/MaleMatches'))
-const MaleEditProfile = lazy(() => import('./pages/dashboard/male/EditProfile'))
+const MaleProfile = lazy(() => import('./pages/dashboard/male/Profile'))
 const FemaleRound = lazy(() => import('./pages/dashboard/female/MatchingRound'))
 const FemaleConnections = lazy(() => import('./pages/dashboard/female/Connections'))
-const FemaleEditProfile = lazy(() => import('./pages/dashboard/female/EditProfile'))
+const FemaleProfile = lazy(() => import('./pages/dashboard/female/Profile'))
 const PaymentPage = lazy(() => import('./pages/PaymentPage'))
 const RoundsAdmin = lazy(() => import('./pages/admin/RoundsAdmin'))
 const PaymentsAdmin = lazy(() => import('./pages/admin/PaymentsAdmin'))
@@ -36,6 +36,7 @@ const PlansAdmin = lazy(() => import('./pages/admin/PlansAdmin'))
 const AdminHome = lazy(() => import('./pages/admin/AdminHome'))
 const ChatPage = lazy(() => import('./pages/dashboard/chat/ChatPage'))
 const CollegeIdVerification = lazy(() => import('./pages/admin/CollegeIdVerification'))
+const EditProfile = lazy(() => import('./pages/dashboard/EditProfile'))
 
 export default function App() {
   const { loading, profile } = useAuth();
@@ -113,10 +114,10 @@ export default function App() {
           }
         />
         <Route
-          path="/dashboard/edit-profile"
+          path="/dashboard/male/profile"
           element={
             <Protected>
-              {profile?.gender === 'male' ? <MaleEditProfile /> : <Navigate to="/dashboard" replace />}
+              {profile?.gender === 'male' ? <MaleProfile /> : <Navigate to="/dashboard" replace />}
             </Protected>
           }
         />
@@ -139,10 +140,10 @@ export default function App() {
           }
         />
         <Route
-          path="/dashboard/female/edit-profile"
+          path="/dashboard/female/profile"
           element={
             <Protected>
-              {profile?.gender === 'female' ? <FemaleEditProfile /> : <Navigate to="/dashboard" replace />}
+              {profile?.gender === 'female' ? <FemaleProfile /> : <Navigate to="/dashboard" replace />}
             </Protected>
           }
         />
@@ -160,6 +161,15 @@ export default function App() {
           element={
             <Protected>
               <NotificationsPage />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/dashboard/edit-profile"
+          element={
+            <Protected>
+              <EditProfile />
             </Protected>
           }
         />

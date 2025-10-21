@@ -71,7 +71,7 @@ export default function MaleTabs() {
         <span className="tab-btn-label">Chat</span>
       </Link>
 
-      <Link className={`tab-btn${is('/dashboard/edit-profile') ? ' tab-btn-active' : ''}`} to="/dashboard/edit-profile">
+      <Link className={`tab-btn${is('/dashboard/male/profile') ? ' tab-btn-active' : ''}`} to="/dashboard/male/profile">
         <span className="tab-btn-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6CA0DC" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Profile">
             <title>User Profile</title>
