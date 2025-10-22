@@ -25,18 +25,16 @@ export default function Photos({ embedded, onComplete }: Props) {
   input.onchange = async (e:any) => {
     const f = e.target.files?.[0]
     if (f) {
-      // Show instant local preview
       const previewUrl = URL.createObjectURL(f)
-      setSlots(prev => prev.map(s => s.id === i ? { ...s, url: previewUrl, file: f } : s))
       setIsCompressing(prev => {
         const next = [...prev]
         next[i] = true
         return next
       })
       try {
-        if (!user) return // <-- Fix here
+        if (!user) return
         const compressed = await compressImage(f)
-        await uploadProfilePhoto(user.uid, compressed, i)
+        setSlots(prev => prev.map(s => s.id === i ? { ...s, url: previewUrl, file: compressed } : s))
       } finally {
         setIsCompressing(prev => {
           const next = [...prev]

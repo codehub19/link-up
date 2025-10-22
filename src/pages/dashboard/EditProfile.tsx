@@ -10,6 +10,7 @@ import CollegeSelect from '../../components/CollegeSelect'
 import { useNavigate } from 'react-router-dom'
 import { compressImage } from '../../utils/compressImage'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import './dashboard.css'
 
 type PhotoSlot = { id: number; url?: string; file?: File | null }
 const MAX_PHOTOS = 4
@@ -102,36 +103,35 @@ export default function EditProfile() {
   }, [profile])
 
   // Pick photo for a slot (instant preview, compress, upload)
-  const pick = (i: number) => {
-    const input = inputRef.current
-    if (!input) return
-    input.onchange = async (e: any) => {
-      const f = e.target.files?.[0]
-      if (f) {
-        const previewUrl = URL.createObjectURL(f)
-        setPhotoSlots(prev => prev.map(s => s.id === i ? { ...s, url: previewUrl, file: f } : s))
+ const pick = (i:number) => {
+  const input = inputRef.current
+  if (!input) return
+  input.onchange = async (e:any) => {
+    const f = e.target.files?.[0]
+    if (f) {
+      const previewUrl = URL.createObjectURL(f)
+      setIsCompressing(prev => {
+        const next = [...prev]
+        next[i] = true
+        return next
+      })
+      try {
+        if (!user) return
+        const compressed = await compressImage(f)
+        setPhotoSlots(prev => prev.map(s => s.id === i ? { ...s, url: previewUrl, file: compressed } : s))
+        // Optionally, uploadProfilePhoto(user.uid, compressed, i) here only for instant preview upload.
+      } finally {
         setIsCompressing(prev => {
           const next = [...prev]
-          next[i] = true
+          next[i] = false
           return next
         })
-        try {
-          if (!user) return
-          const compressed = await compressImage(f)
-          await uploadProfilePhoto(user.uid, compressed, i)
-        } finally {
-          setIsCompressing(prev => {
-            const next = [...prev]
-            next[i] = false
-            return next
-          })
-        }
       }
-      e.target.value = ''
     }
-    input.click()
+    e.target.value = ''
   }
-
+  input.click()
+}
   const filledCount = photoSlots.filter((s) => s.file || s.url).length
 
   const removePhoto = (idx: number) => {
@@ -175,7 +175,7 @@ export default function EditProfile() {
       })
       await refreshProfile()
       toast.success('Profile updated')
-      nav('/dashboard/profile')
+      nav(`/dashboard/${profile?.gender}/profile`)
     } catch (e: any) {
       toast.error(e.message ?? 'Failed to update')
     } finally {
@@ -206,7 +206,7 @@ export default function EditProfile() {
     <>
       <Navbar />
       <div className="container edit-profile-container">
-        <button className="edit-profile-back-btn" onClick={() => nav('/dashboard/profile')}>
+        <button className="edit-profile-back-btn" onClick={() => nav(`/dashboard/${profile?.gender}/profile`)}>
           ← Back to Profile
         </button>
         <div className="edit-profile-hero">
@@ -374,325 +374,9 @@ export default function EditProfile() {
           </div>
         </form>
       </div>
-      <style>{`
-        .edit-profile-back-btn {
-          background: none;
-          color: #ff5d7c;
-          border: none;
-          font-weight: 700;
-          font-size: 1.08rem;
-          margin-bottom: 18px;
-          cursor: pointer;
-          transition: color 0.2s;
-          padding: 0 0 3px 0;
-        }
-        .edit-profile-back-btn:hover {
-          color: #ea3d3d;
-          text-decoration: underline;
-        }
-        .edit-profile-container {
-          max-width: 590px;
-          margin: 0 auto;
-        }
-        .edit-profile-hero {
-          background: linear-gradient(120deg, #181923 90%, #1f1d2c 100%);
-          border-radius: 20px;
-          padding: 34px 20px 30px 20px;
-          margin-bottom: 34px;
-          box-shadow: 0 2px 22px 0 #18192355;
-          display: flex;
-          align-items: flex-start;
-          flex-direction: column;
-        }
-        .edit-profile-photos-area {
-          width: 100%;
-          margin-bottom: 10px;
-        }
-        .edit-profile-photos-grid {
-          display: flex;
-          gap: 28px;
-          justify-content: flex-start;
-          align-items: center;
-          margin-bottom: 4px;
-          flex-wrap: wrap;
-        }
-        .edit-profile-photo-slot {
-          background: #232a38;
-          border-radius: 19px;
-          width: 108px;
-          height: 108px;
-          min-width: 88px;
-          min-height: 88px;
-          max-width: 128px;
-          max-height: 128px;
-          box-shadow: 0 2px 16px 0 #232a3870;
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: border 0.2s;
-          border: 2.2px solid #232a38;
-        }
-        .edit-profile-photo-slot.has-image {
-          border: 2.2px solid #ff5d7c;
-        }
-        .edit-profile-photo-inner {
-          width: 100%;
-          height: 100%;
-          border-radius: 16px;
-          overflow: hidden;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-        .edit-profile-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          border-radius: 16px;
-        }
-        .photo-remove {
-          position: absolute;
-          top: 7px;
-          right: 7px;
-          background: rgba(30,26,54,0.7);
-          color: #ff5d7c;
-          border: none;
-          font-size: 1.14rem;
-          border-radius: 50%;
-          width: 28px;
-          height: 28px;
-          cursor: pointer;
-          transition: background 0.2s;
-          z-index: 2;
-        }
-        .photo-remove:hover:not(:disabled) {
-          background: #ff5d7c;
-          color: #fff;
-        }
-        .photo-add {
-          width: 100%;
-          height: 100%;
-          background: #232a38;
-          border-radius: 16px;
-          border: 2.6px dashed #ff5d7c;
-          color: #ff5d7c;
-          font-size: 2.2rem;
-          cursor: pointer;
-          transition: background 0.2s, color 0.2s;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-        }
-        .photo-add:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-        .edit-profile-primary-label {
-          position: absolute;
-          left: 50%;
-          bottom: -15px;
-          transform: translateX(-50%);
-          background: #232a38;
-          color: #ff5d7c;
-          font-size: 0.92rem;
-          font-weight: 600;
-          border-radius: 11px;
-          padding: 2px 14px;
-          box-shadow: 0 1px 6px #232a3860;
-        }
-        .edit-profile-photos-caption {
-          text-align: left;
-          color: #9aa0b4;
-          font-size: 0.97rem;
-          margin-top: 8px;
-        }
-        .edit-profile-user-details {
-          margin-top: 17px;
-          width: 100%;
-        }
-        .edit-profile-main-row {
-          font-size: 1.32rem;
-          font-weight: bold;
-          color: #fff;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 7px;
-        }
-        .edit-profile-verified {
-          display: flex;
-          align-items: center;
-        }
-        .edit-profile-main-instagram {
-          color: #ff5d7c;
-          font-size: 1.03rem;
-          font-weight: 600;
-        }
-        .edit-profile-form-section {
-          background: #181923;
-          border-radius: 14px;
-          padding: 24px 20px 18px 20px;
-          margin-bottom: 34px;
-          box-shadow: 0 2px 22px 0 #18192338;
-        }
-        .field {
-          margin-bottom: 18px;
-        }
-        .field-label {
-          font-weight: 600;
-          font-size: 1rem;
-          margin-bottom: 6px;
-          display: block;
-          color: #ff5d7c;
-        }
-        .field-input, .field-textarea {
-          width: 100%;
-          padding: 11px 15px;
-          border-radius: 7px;
-          border: none;
-          background: #232a38;
-          color: #fff;
-          font-size: 1.06rem;
-          margin-top: 2px;
-        }
-        .field-textarea {
-          resize: vertical;
-        }
-        .ig-field {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-        }
-        .interests-wrap {
-          margin-top: 6px;
-        }
-        .qa-group {
-          border: none;
-          margin-bottom: 18px;
-          margin-top: 14px;
-        }
-        .qa-group legend {
-          font-size: 1.08rem;
-          color: #ff5d7c;
-          font-weight: bold;
-          margin-bottom: 7px;
-        }
-        .qa-option {
-          display: flex;
-          align-items: center;
-          background: #232a38;
-          border-radius: 7px;
-          padding: 8px 13px;
-          margin-bottom: 8px;
-          cursor: pointer;
-          transition: background 0.2s, color 0.2s;
-          font-size: 0.97rem;
-          color: #eaeaea;
-          border: 2px solid transparent;
-        }
-        .qa-option.on,
-        .qa-option:hover {
-          background: #ff5d7c22;
-          border: 2px solid #ff5d7c;
-          color: #ff5d7c;
-        }
-        .qa-option input[type="radio"] {
-          margin-right: 11px;
-          accent-color: #ff5d7c;
-        }
-        .save-row {
-          display: flex;
-          gap: 18px;
-          justify-content: flex-end;
-          margin-top: 22px;
-        }
-        .btn-ghost {
-          background: #232a38;
-          color: #ff5d7c;
-          border: none;
-          border-radius: 8px;
-          padding: 10px 26px;
-          font-size: 1.07rem;
-          cursor: pointer;
-          font-weight: 700;
-          transition: background 0.2s, color 0.2s;
-        }
-        .btn-ghost:hover {
-          background: #ff5d7c;
-          color: #fff;
-        }
-        .btn-gradient {
-          background: linear-gradient(90deg, #ff5d7c, #ea3d3d 80%);
-          color: #fff;
-          border: none;
-          border-radius: 8px;
-          padding: 10px 34px;
-          font-size: 1.13rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .btn-gradient:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-        @media (max-width: 650px) {
-          .edit-profile-container {
-            max-width: 99vw;
-            padding: 8px 2vw;
-          }
-          .edit-profile-hero {
-            padding: 22px 6vw 18px 6vw;
-            margin-bottom: 18px;
-          }
-          .edit-profile-photos-grid {
-            gap: 12px;
-            justify-content: center;
-          }
-          .edit-profile-photo-slot {
-            width: 34vw;
-            height: 34vw;
-            min-width: 80px;
-            min-height: 80px;
-            max-width: 120px;
-            max-height: 120px;
-          }
-          .edit-profile-photo-inner {
-            border-radius: 11px;
-          }
-          .edit-profile-img {
-            border-radius: 11px;
-          }
-          .edit-profile-primary-label {
-            font-size: 0.81rem;
-            padding: 2px 9vw;
-            bottom: -9px;
-          }
-          .edit-profile-user-details {
-            margin-top: 11px;
-          }
-          .edit-profile-main-row {
-            font-size: 1.08rem;
-            margin-bottom: 5px;
-          }
-          .edit-profile-main-instagram {
-            font-size: 0.98rem;
-          }
-          .edit-profile-form-section {
-            padding: 14px 4vw 12px 4vw;
-            margin-bottom: 20px;
-          }
-          .qa-group legend {
-            font-size: 1rem;
-          }
-          .qa-option {
-            padding: 7px 7px;
-            font-size: 0.93rem;
-          }
-        }
-      `}</style>
+      {/* <style>{`
+        
+      `}</style> */}
     </>
   )
 }
