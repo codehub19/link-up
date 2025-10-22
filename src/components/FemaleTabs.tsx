@@ -27,8 +27,8 @@ export default function FemaleTabs() {
 
       {/* Matches */}
       <Link
-        className={`tab-btn${is('/dashboard/connections') ? ' tab-btn-active' : ''}`}
-        to="/dashboard/connections"
+        className={`tab-btn${is('/dashboard/matches') ? ' tab-btn-active' : ''}`}
+        to="/dashboard/matches"
       >
         <span className="tab-btn-icon">
           {/* Double-heart like MaleTabs */}

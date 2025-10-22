@@ -18,14 +18,13 @@ import NotificationsPage from './pages/dashboard/Notifications'
 import SendNotificationAdmin from './pages/admin/SendNotification'
 import NotificationsAdminList from './pages/admin/AdminNotification'
 import LoadingHeart from './components/LoadingHeart'
+import MatchesPage from './pages/dashboard/Matches'
 
 /* Lazy dashboard/admin pages (unchanged) */
 const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
 const MalePlans = lazy(() => import('./pages/dashboard/male/Plans'))
-const MaleMatches = lazy(() => import('./pages/dashboard/male/MaleMatches'))
 const MaleProfile = lazy(() => import('./pages/dashboard/male/Profile'))
 const FemaleRound = lazy(() => import('./pages/dashboard/female/MatchingRound'))
-const FemaleConnections = lazy(() => import('./pages/dashboard/female/Connections'))
 const FemaleProfile = lazy(() => import('./pages/dashboard/female/Profile'))
 const PaymentPage = lazy(() => import('./pages/PaymentPage'))
 const RoundsAdmin = lazy(() => import('./pages/admin/RoundsAdmin'))
@@ -98,14 +97,6 @@ export default function App() {
           }
         />
         <Route
-          path="/dashboard/matches"
-          element={
-            <Protected>
-              {profile?.gender === 'male' ? <MaleMatches /> : <Navigate to="/dashboard" replace />}
-            </Protected>
-          }
-        />
-        <Route
           path="/dashboard/male/rounds"
           element={
             <Protected>
@@ -132,14 +123,6 @@ export default function App() {
           }
         />
         <Route
-          path="/dashboard/connections"
-          element={
-            <Protected>
-              {profile?.gender === 'female' ? <FemaleConnections /> : <Navigate to="/dashboard" replace />}
-            </Protected>
-          }
-        />
-        <Route
           path="/dashboard/female/profile"
           element={
             <Protected>
@@ -152,6 +135,15 @@ export default function App() {
           element={
             <Protected>
               <ChatPage />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/dashboard/matches"
+          element={
+            <Protected>
+              <MatchesPage />
             </Protected>
           }
         />
