@@ -124,20 +124,31 @@ export default function ChatPage() {
   }, [user, matches, threads])
 
   const list = useMemo(() => {
-    if (!user) return []
-    const toMs = (t: any) => (typeof t?.toMillis === 'function' ? t.toMillis() : (t instanceof Date ? t.getTime() : 0))
-    return matches.map((m) => {
-      const peerUid = m.participants.find((p) => p !== user.uid)!
-      const tid = threadIdFor(user.uid, peerUid)
-      const t = threads.find((x) => x.id === tid)
-      return {
+  if (!user) return []
+  const toMs = (t: any) => (typeof t?.toMillis === 'function' ? t.toMillis() : (t instanceof Date ? t.getTime() : 0))
+  const threadMap = new Map<string, {
+    peerUid: string
+    threadId: string
+    lastMessage: string
+    updatedAt: any
+  }>()
+  matches.forEach((m) => {
+    const peerUid = m.participants.find((p: string) => p !== user.uid)!
+    const tid = threadIdFor(user.uid, peerUid)
+    const t = threads.find((x) => x.id === tid)
+    // Only add if not already present
+    if (!threadMap.has(tid)) {
+      threadMap.set(tid, {
         peerUid,
         threadId: tid,
         lastMessage: t?.lastMessage?.text || '',
         updatedAt: (t as any)?.updatedAt || null,
-      }
-    }).sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt))
-  }, [matches, threads, user])
+      })
+    }
+  })
+  return Array.from(threadMap.values()).sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt))
+}, [matches, threads, user])
+
 
   useEffect(() => {
     if (!user) return

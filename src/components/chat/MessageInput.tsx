@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 
 export default function MessageInput({ onSend }: { onSend: (text: string) => void | Promise<void> }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
+  // Prevent blur on send: refocus after clearing text
   const submit = async () => {
     const t = text.trim()
     if (!t || sending) return
@@ -11,11 +13,14 @@ export default function MessageInput({ onSend }: { onSend: (text: string) => voi
     try {
       await onSend(t)
     } catch (e) {
-      // optional: console.error or toast
       console.error('Send failed:', e)
     } finally {
-      setText('')    // always clear input so it doesn’t stick
+      setText('')
       setSending(false)
+      // Refocus input after send (works for both mobile and desktop)
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 0)
     }
   }
 
@@ -23,9 +28,12 @@ export default function MessageInput({ onSend }: { onSend: (text: string) => voi
     <form
       className="composer"
       onSubmit={(e) => { e.preventDefault(); submit() }}
+      autoComplete="off"
     >
       <input
         className="composer-input"
+        ref={inputRef}
+        autoFocus
         placeholder="Type a message…"
         value={text}
         disabled={sending}
@@ -34,6 +42,9 @@ export default function MessageInput({ onSend }: { onSend: (text: string) => voi
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
             submit()
+            setTimeout(() => {
+              inputRef.current?.focus()
+            }, 0)
           }
         }}
       />
