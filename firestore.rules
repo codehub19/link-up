@@ -47,7 +47,25 @@ service cloud.firestore {
     // Matching rounds and assignments
     match /matchingRounds/{roundId} {
       allow read: if request.auth != null;
+
+      // Allow admin to write
       allow write: if isAdmin();
+
+      // Allow users to add themselves to participatingMales or participatingFemales if not already present
+      allow update: if request.auth != null
+        && (
+          (
+            request.resource.data.participatingMales == resource.data.participatingMales.concat([request.auth.uid])
+            && resource.data.participatingMales != null
+            && !(request.auth.uid in resource.data.participatingMales)
+          )
+          ||
+          (
+            request.resource.data.participatingFemales == resource.data.participatingFemales.concat([request.auth.uid])
+            && resource.data.participatingFemales != null
+            && !(request.auth.uid in resource.data.participatingFemales)
+          )
+        );
 
       match /assignments/{girlUid} {
         allow read: if request.auth != null && (request.auth.uid == girlUid || isAdmin());

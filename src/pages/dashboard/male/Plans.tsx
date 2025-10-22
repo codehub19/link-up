@@ -7,6 +7,7 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { toast } from 'sonner'
 import { listActivePlans, getActiveSubscription, type ActiveSubscription } from '../../../services/subscriptions'
+import { addMaleToActiveRound } from '../../../services/rounds'
 
 type Payment = {
   id: string
@@ -115,6 +116,13 @@ export default function MalePlans() {
     })
     return () => un()
   }, [user])
+
+
+  useEffect(() => {
+    if (!user || !sub) return;
+    addMaleToActiveRound(user.uid)
+      .catch(e => {});
+  }, [user, sub]);
 
   const choose = (p: any) => {
     nav(`/pay?planId=${encodeURIComponent(p.id)}&amount=${Number(p.price || p.amount || 0)}`)

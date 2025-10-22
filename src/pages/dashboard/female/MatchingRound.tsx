@@ -57,6 +57,7 @@ export default function MatchingRound() {
   const [confirmedBoyUids, setConfirmedBoyUids] = useState<Set<string>>(new Set())
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
+  // Load assigned boys
   useEffect(() => {
     const run = async () => {
       const active = await getActiveRound()
@@ -99,21 +100,33 @@ export default function MatchingRound() {
     run()
   }, [boyUids])
 
-  // Load already confirmed matches for this girl
+  // Fix: Load already confirmed matches for this girl in this round,
+  // but ensure all matches for this round/girl are checked (even if girlUid is not set, fallback to participants)
   useEffect(() => {
-    const loadConfirmed = async () => {
-      if (!user || !roundId) return
-      const q = query(
-        collection(db, 'matches'),
-        where('roundId', '==', roundId),
-        where('girlUid', '==', user.uid)
-      )
-      const snap = await getDocs(q)
-      const set = new Set<string>(snap.docs.map(d => d.data().boyUid))
-      setConfirmedBoyUids(set)
-    }
-    loadConfirmed()
-  }, [user, roundId])
+  const loadConfirmed = async () => {
+    if (!user || !roundId) return
+    // Query for all matches in this round where this user is a participant
+    const q = query(
+      collection(db, 'matches'),
+      where('roundId', '==', roundId),
+      where('participants', 'array-contains', user.uid)
+    )
+    const snap = await getDocs(q)
+    const set = new Set<string>()
+    snap.docs.forEach(d => {
+      const data = d.data()
+      // Get boyUid if present, else extract from participants
+      if (data.boyUid && typeof data.boyUid === 'string') {
+        set.add(data.boyUid)
+      } else if (Array.isArray(data.participants)) {
+        const boy = data.participants.find((uid: string) => uid !== user.uid)
+        if (boy) set.add(boy)
+      }
+    })
+    setConfirmedBoyUids(set)
+  }
+  loadConfirmed()
+}, [user, roundId])
 
   // Use the new function for girls to confirm a match!
   const confirm = async (boyUid: string) => {
@@ -180,14 +193,18 @@ export default function MatchingRound() {
                 onExpand={() => setExpandedIdx(idx)}
                 onCollapse={() => setExpandedIdx(null)}
                 footer={
-                  <button
-                    className={`btn ${confirmedBoyUids.has(b.uid) ? 'ghost' : 'primary'}`}
-                    onClick={() => confirm(b.uid)}
-                    disabled={confirmedBoyUids.has(b.uid)}
-                  >
-                    {confirmedBoyUids.has(b.uid) ? 'Matched' : 'Select & Reveal'}
-                  </button>
-                }
+  confirmedBoyUids.has(b.uid) ? (
+    <div className="tag" style={{background:"#e8e8e8",color:"#555"}}>Already revealed</div>
+  ) : (
+    <button
+      className="btn primary"
+      onClick={() => confirm(b.uid)}
+      disabled={confirmedBoyUids.has(b.uid)}
+    >
+      Select & Reveal
+    </button>
+  )
+}
               />
             ))}
           </Carousel>
