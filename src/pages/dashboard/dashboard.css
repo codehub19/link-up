@@ -345,7 +345,7 @@
 
 .profile-main-section {
   background: linear-gradient(120deg, #181923 90%, #212032 100%);
-  width: 60%;
+  width: 70%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -355,7 +355,7 @@
   margin-bottom: 32px;
   box-shadow: 0 2px 22px 0 #18192355;
   box-sizing: border-box;
-    margin: 0 auto;
+  margin: 0 auto;
 
 }
 
@@ -388,8 +388,8 @@
   }
 
   .profile-main-section {
-    width: 100vw;
-    max-width: 100vw;
+    width: 90vw;
+    max-width: 90vw;
     background: linear-gradient(120deg, #181923 90%, #212032 100%);
     display: flex;
     align-items: center;
@@ -535,8 +535,8 @@
   }
 
   .profile-main-section {
-    width: 100vw;
-    max-width: 100vw;
+    width: 90vw;
+    max-width: 90vw;
     display: flex;
     align-items: center;
     justify-content: center;
