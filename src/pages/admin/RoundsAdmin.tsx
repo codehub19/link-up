@@ -59,7 +59,7 @@ export default function RoundsAdmin() {
     setSyncing(true)
     try {
       const res = await syncApprovedMalesToActiveRound()
-      setSyncMsg(`Synced. Added ${res.addedCount} males. Total in round: ${res.totalMales}.`)
+      setSyncMsg(`Synced. Total males in round: ${res.totalMales}.`)
       await refresh()
     } catch (e: any) {
       setSyncMsg(e?.message || 'Sync failed')
