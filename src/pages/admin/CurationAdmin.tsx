@@ -11,7 +11,7 @@ import {
   getPhaseTimes,
 } from '../../services/rounds'
 import { listFemaleUsers } from '../../services/admin'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { listLikesByGirl, getBoysWhoLikedGirl } from '../../services/likes'
 import { callAdminPromoteMatch } from '../../firebase'
@@ -40,6 +40,9 @@ export default function CurationAdmin() {
   const [likedUsers, setLikedUsers] = useState<UserLite[]>([])
   const [phaseTimes, setPhaseTimesState] = useState<{boys?:any,girls?:any}>({})
   const roundId = activeRound?.id
+
+  // NEW: Keep track of previously matched UIDs for this selected user
+  const [previouslyMatchedUids, setPreviouslyMatchedUids] = useState<Set<string>>(new Set())
 
   // Load active round, phase, and phase times
   useEffect(() => {
@@ -78,6 +81,7 @@ export default function CurationAdmin() {
         setAssigned([])
         setLikes([])
         setLikedUsers([])
+        setPreviouslyMatchedUids(new Set())
         return
       }
       if (phase === 'boys' && selectedUser.gender === 'male') {
@@ -85,6 +89,19 @@ export default function CurationAdmin() {
         const assignedGirls = await getAssignedGirlsForBoy(roundId, selectedUser.uid)
         setAssigned(assignedGirls)
         setLikedUsers([]) // not relevant
+
+        // NEW: Find previously matched girls for this boy
+        const matchesSnap = await getDocs(query(
+          collection(db, 'matches'),
+          where('participants', 'array-contains', selectedUser.uid)
+        ))
+        const prevMatchedGirls = matchesSnap.docs
+          .map(doc => doc.data())
+          .filter(m => m.roundId !== roundId)
+          .map(m => m.participants.find((uid: string) => uid !== selectedUser.uid))
+          .filter(uid => !!uid)
+        setPreviouslyMatchedUids(new Set(prevMatchedGirls))
+
       } else if (phase === 'girls' && selectedUser.gender === 'female') {
         // Girls round: assign boys (from likes) to girl
         const assignedBoys = await getAssignedBoysForGirl(roundId, selectedUser.uid)
@@ -102,9 +119,23 @@ export default function CurationAdmin() {
           }
         }
         setLikedUsers(likedProfiles)
+
+        // NEW: Find previously matched boys for this girl
+        const matchesSnap = await getDocs(query(
+          collection(db, 'matches'),
+          where('participants', 'array-contains', selectedUser.uid)
+        ))
+        const prevMatchedBoys = matchesSnap.docs
+          .map(doc => doc.data())
+          .filter(m => m.roundId !== roundId)
+          .map(m => m.participants.find((uid: string) => uid !== selectedUser.uid))
+          .filter(uid => !!uid)
+        setPreviouslyMatchedUids(new Set(prevMatchedBoys))
+
       } else {
         setAssigned([])
         setLikedUsers([])
+        setPreviouslyMatchedUids(new Set())
       }
     })()
   }, [roundId, selectedUser, phase])
@@ -140,6 +171,7 @@ export default function CurationAdmin() {
     setSelectedUser(null)
     setAssigned([])
     setLikedUsers([])
+    setPreviouslyMatchedUids(new Set())
   }
 
   const assignedSet = useMemo(() => new Set(assigned), [assigned])
@@ -273,6 +305,12 @@ export default function CurationAdmin() {
                                 <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                                   {(u.interests ?? []).slice(0, 4).map(i => <span key={i} className="tag">{i}</span>)}
                                 </div>
+                                {/* NEW: Previously matched tag */}
+                                {previouslyMatchedUids.has(u.uid) && (
+                                  <span className="tag" style={{background:'#feecb7', color:'#b77c00', marginLeft:8}}>
+                                    Matched in previous round
+                                  </span>
+                                )}
                               </div>
                               <div>
                                 <input

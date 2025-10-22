@@ -105,41 +105,49 @@ export async function getAssignedBoysForGirl(roundId: string, girlUid: string): 
 
 // --- EXISTING ADMIN UTILITIES ---
 
+
+// ... other imports and functions ...
+
 export async function syncApprovedMalesToActiveRound() {
   const active = await getActiveRound()
   if (!active) throw new Error('No active round')
 
-  // Get all approved payments
-  const paySnap = await getDocs(query(
-    collection(db, 'payments'),
-    where('status', '==', 'approved')
+  // Get all active subscriptions
+  const subSnap = await getDocs(query(
+    collection(db, 'subscriptions'),
+    where('status', '==', 'active'),
   ))
-  const uids = Array.from(new Set(paySnap.docs.map(d => (d.data() as any).uid as string)))
+
+  const validUids: string[] = []
+  for (const docSnap of subSnap.docs) {
+    const sub = docSnap.data()
+    const remainingMatches = Number(sub.remainingMatches ?? 0)
+    const roundsUsed = Number(sub.roundsUsed ?? 0)
+    const roundsAllowed = Number(sub.roundsAllowed ?? 1)
+    if (remainingMatches > 0 && roundsUsed < roundsAllowed) {
+      validUids.push(sub.uid)
+    }
+  }
 
   // Filter: only male users with profile complete
   const maleUids: string[] = []
-  for (const uid of uids) {
+  for (const uid of validUids) {
     const us = await getDoc(doc(db, 'users', uid))
     if (!us.exists()) continue
     const u = us.data() as any
     if (u.gender === 'male' && u.isProfileComplete === true) maleUids.push(uid)
   }
 
-  // Merge with existing participatingMales
+  // Always update the round so only CURRENT active/valid males are present
   const roundRef = doc(db, 'matchingRounds', active.id)
-  const roundSnap = await getDoc(roundRef)
-  const existing: string[] = (roundSnap.data() as any)?.participatingMales || []
-  const merged = Array.from(new Set([...existing, ...maleUids]))
-
   await setDoc(roundRef, {
-    participatingMales: merged,
+    participatingMales: maleUids,
     updatedAt: serverTimestamp(),
   }, { merge: true })
 
   return {
     activeRoundId: active.id,
-    addedCount: merged.length - existing.length,
-    totalMales: merged.length,
+    totalMales: maleUids.length,
   }
 }
 
