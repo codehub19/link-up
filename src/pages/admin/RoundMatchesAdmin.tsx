@@ -23,7 +23,7 @@ type MatchDoc = {
 };
 
 export default function RoundMatchesAdmin() {
-  const { roundId } = useParams();
+  const { roundId } = useParams<{ roundId?: string }>();
   const [matchPairs, setMatchPairs] = useState<
     { boy: UserDoc | null; girl: UserDoc | null; match: MatchDoc }[]
   >([]);
@@ -41,11 +41,11 @@ export default function RoundMatchesAdmin() {
         matches.map(async (m) => {
           const boyDoc = await getDoc(doc(db, "users", m.boyUid));
           const girlDoc = await getDoc(doc(db, "users", m.girlUid));
-          return {
-            boy: boyDoc.exists() ? (boyDoc.data() as UserDoc) : null,
-            girl: girlDoc.exists() ? (girlDoc.data() as UserDoc) : null,
-            match: m,
-          };
+         return {
+  boy: boyDoc.exists() ? { ...(boyDoc.data() as UserDoc), uid: m.boyUid } : null,
+  girl: girlDoc.exists() ? { ...(girlDoc.data() as UserDoc), uid: m.girlUid } : null,
+  match: m,
+};
         })
       );
       setMatchPairs(pairs);
@@ -64,8 +64,17 @@ export default function RoundMatchesAdmin() {
           {matchPairs.map((pair, i) => (
             <div className="match-card" key={i}>
               <div style={{ display: "flex", gap: 16 }}>
-                <ProfileMatchCard {...{ ...pair.boy, name: pair.boy?.name ?? "No Boy Profile", collegeId: pair.boy?.collegeId }} />
-                <ProfileMatchCard {...{ ...pair.girl, name: pair.girl?.name ?? "No Girl Profile", collegeId: pair.girl?.collegeId }} />
+                {/* Defensive: Only render ProfileMatchCard if boy/girl is not null */}
+                {pair.boy && (
+                  <ProfileMatchCard
+                    user={pair.boy}
+                  />
+                )}
+                {pair.girl && (
+                  <ProfileMatchCard
+                    user={pair.girl}
+                  />
+                )}
                 <div className="match-meta" style={{ marginLeft: "auto", alignSelf: "center" }}>
                   <span>
                     {pair.match.timestamp
