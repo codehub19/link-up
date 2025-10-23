@@ -7,6 +7,7 @@ import ProfileMiniCard from '../../components/ProfileMiniCard'
 import { Link } from 'react-router-dom'
 import MaleTabs from '../../components/MaleTabs'
 import FemaleTabs from '../../components/FemaleTabs'
+import ProfileMatchCard from '../../components/ProfileMatchCard'
 
 type Match = {
   id: string
@@ -96,7 +97,7 @@ export default function MatchesPage() {
   return Object.entries(uniqueMatches).map(([otherUid, m]) => {
     const u = users[otherUid]
     return u ? (
-      <ProfileMiniCard
+      <ProfileMatchCard
         key={u.uid}
         user={u}
         footer={

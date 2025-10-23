@@ -19,6 +19,7 @@ import SendNotificationAdmin from './pages/admin/SendNotification'
 import NotificationsAdminList from './pages/admin/AdminNotification'
 import LoadingHeart from './components/LoadingHeart'
 import MatchesPage from './pages/dashboard/Matches'
+import ProfileView from './pages/dashboard/ProfileView'
 
 /* Lazy dashboard/admin pages (unchanged) */
 const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
@@ -165,6 +166,8 @@ export default function App() {
             </Protected>
           }
         />
+
+        <Route path="/profile/:uid" element={<ProfileView />} />
 
         {/* Payments */}
         <Route path="/pay" element={<Protected><PaymentPage /></Protected>} />
