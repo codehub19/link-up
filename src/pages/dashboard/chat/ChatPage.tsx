@@ -46,6 +46,7 @@ export default function ChatPage() {
   const [users, setUsers] = useState<Record<string, UserDoc>>({})
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
   const [messages, setMessages] = useState<any[]>([])
+  const [pendingMessages, setPendingMessages] = useState<any[]>([])
   const [showProfile, setShowProfile] = useState(false)
   const [showReport, setShowReport] = useState(false)
 
@@ -120,6 +121,7 @@ export default function ChatPage() {
       const map: Record<string, UserDoc> = {}
       for (const p of pairs) if (p) map[p[0]] = p[1]
       setUsers(map)
+      // Also update threads with names if needed, but we rely on users map
     }
     run()
   }, [user, matches, threads])
@@ -155,7 +157,7 @@ export default function ChatPage() {
       if (withUid && withUid !== user.uid) {
         const tid = threadIdFor(user.uid, withUid)
         setSelectedId(tid)
-        try { await ensureThread(user.uid, withUid) } catch {}
+        try { await ensureThread(user.uid, withUid) } catch { }
         return
       }
       if (!withUid && !isMobile && list.length > 0 && !selectedId) {
@@ -180,20 +182,39 @@ export default function ChatPage() {
     const [a, b] = selectedId.split('_')
     const peerUid = a === user.uid ? b : a
     if (myBlockedSet.has(peerUid)) return
-    await sendMessage(selectedId, user.uid, text)
+
+    // Optimistic update
+    const tempId = 'temp-' + Date.now()
+    const tempMsg = {
+      id: tempId,
+      text,
+      senderUid: user.uid,
+      createdAtMs: Date.now(),
+      pending: true
+    }
+    setPendingMessages((prev) => [...prev, tempMsg])
+
+    try {
+      await sendMessage(selectedId, user.uid, text)
+    } catch (e) {
+      console.error('Failed to send message', e)
+    } finally {
+      // Remove from pending after send (snapshot should have it by now or soon)
+      setPendingMessages((prev) => prev.filter((m) => m.id !== tempId))
+    }
   }
 
   const selectPeer = useCallback(async (peerUid: string) => {
     if (!user) return
     const tid = threadIdFor(user.uid, peerUid)
     setSelectedId(tid)
-    try { await ensureThread(user.uid, peerUid) } catch {}
+    try { await ensureThread(user.uid, peerUid) } catch { }
     nav(`/dashboard/chat?with=${encodeURIComponent(peerUid)}`, { replace: true })
   }, [nav, user])
 
   const backToList = useCallback(() => {
     setSelectedId(undefined)
-    nav('/dashboard/chat', { replace: true })
+    nav('/dashboard/chat')
   }, [nav])
 
   const selectedThread: ThreadDoc | undefined = useMemo(
@@ -214,31 +235,60 @@ export default function ChatPage() {
     return myBlockedSet.has(selectedPeer.uid)
   }, [myBlockedSet, selectedPeer, user])
 
+  // Deduplicate messages for display
+  const displayMessages = useMemo(() => {
+    const dedupedPending = pendingMessages.filter(p => {
+      const isDuplicate = messages.some(m =>
+        m.text === p.text &&
+        m.senderUid === p.senderUid &&
+        Math.abs((m.createdAtMs || 0) - p.createdAtMs) < 10000
+      )
+      return !isDuplicate
+    })
+    return [...messages, ...dedupedPending]
+  }, [messages, pendingMessages])
+
   if (!user) return null
   const isFemale = profile?.gender === 'female'
   const isMobileView = isMobile
 
   // Compose chat header for FullScreenChat
   const chatHeader = selectedId && selectedPeer && (
-    <>
+    <div className="chat-header-inner">
       <button className="back-btn" type="button" onClick={backToList} aria-label="Back to chats">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
       </button>
-      <button className="avatar as-button" onClick={() => setShowProfile(true)}>
-        {selectedPeer?.photoUrl
-          ? <img src={selectedPeer.photoUrl} alt={selectedPeer?.name || 'user'} />
-          : <div className="avatar-fallback">{(selectedPeer?.name || 'U').slice(0,1)}</div>}
-      </button>
-      <div className="peer-meta">
-        <div className="peer-name">{selectedPeer?.name || 'Chat'}</div>
-        <div className="peer-sub">@{selectedPeer?.instagramId || '—'}</div>
+
+      <div className="chat-peer-info" onClick={() => setShowProfile(true)}>
+        <div className="avatar-container">
+          {selectedPeer?.photoUrl
+            ? <img src={selectedPeer.photoUrl} alt={selectedPeer?.name || 'user'} />
+            : <div className="avatar-fallback">{(selectedPeer?.name || 'U').slice(0, 1)}</div>}
+        </div>
+        <div className="peer-text">
+          <div className="peer-name">{selectedPeer?.name || 'Chat'}</div>
+          {selectedPeer?.instagramId && <div className="peer-sub">@{selectedPeer.instagramId}</div>}
+        </div>
       </div>
+
       <div className="chat-actions">
+        <button
+          className="icon-btn"
+          onClick={() => setShowReport(true)}
+          title="Report User"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </button>
+
         {iBlockedThem ? (
           <button
-            className="btn small"
+            className="btn-xs primary"
             onClick={async () => {
               if (!selectedPeer) return
               await unblockUser(user.uid, selectedPeer.uid)
@@ -248,18 +298,23 @@ export default function ChatPage() {
           </button>
         ) : (
           <button
-            className="btn small"
+            className="icon-btn danger-hover"
             onClick={async () => {
               if (!selectedPeer) return
-              await blockUser(user.uid, selectedPeer.uid)
+              if (confirm('Are you sure you want to block this user?')) {
+                await blockUser(user.uid, selectedPeer.uid)
+              }
             }}
+            title="Block User"
           >
-            Block
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+            </svg>
           </button>
         )}
-        <button className="btn small danger" onClick={() => setShowReport(true)}>Report</button>
       </div>
-    </>
+    </div>
   )
 
   // Full screen chat for mobile and a user is selected
@@ -268,8 +323,8 @@ export default function ChatPage() {
       <>
         <FullScreenChat
           currentUid={user.uid}
-          messages={messages}
-          onSend={iAmBlocked || iBlockedThem ? () => {} : async (t) => onSend(t)}
+          messages={displayMessages}
+          onSend={iAmBlocked || iBlockedThem ? () => { } : async (t) => onSend(t)}
           header={chatHeader}
         />
         <ProfileModal open={showProfile} onClose={() => setShowProfile(false)} user={selectedPeer} />
@@ -318,43 +373,66 @@ export default function ChatPage() {
               {selectedId ? (
                 <>
                   <div className="chat-header">
-                    <button className="back-btn" type="button" onClick={backToList} aria-label="Back to chats">
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="15 18 9 12 15 6"></polyline>
-                      </svg>
-                    </button>
-                    <button className="avatar as-button" onClick={() => setShowProfile(true)}>
-                      {selectedPeer?.photoUrl
-                        ? <img src={selectedPeer.photoUrl} alt={selectedPeer?.name || 'user'} />
-                        : <div className="avatar-fallback">{(selectedPeer?.name || 'U').slice(0,1)}</div>}
-                    </button>
-                    <div className="peer-meta">
-                      <div className="peer-name">{selectedPeer?.name || 'Chat'}</div>
-                      <div className="peer-sub">@{selectedPeer?.instagramId || '—'}</div>
-                    </div>
-                    <div className="chat-actions">
-                      {iBlockedThem ? (
+                    <div className="chat-header-inner">
+                      <button className="back-btn" type="button" onClick={backToList} aria-label="Back to chats">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                      </button>
+
+                      <div className="chat-peer-info" onClick={() => setShowProfile(true)}>
+                        <div className="avatar-container">
+                          {selectedPeer?.photoUrl
+                            ? <img src={selectedPeer.photoUrl} alt={selectedPeer?.name || 'user'} />
+                            : <div className="avatar-fallback">{(selectedPeer?.name || 'U').slice(0, 1)}</div>}
+                        </div>
+                        <div className="peer-text">
+                          <div className="peer-name">{selectedPeer?.name || 'Chat'}</div>
+                          {selectedPeer?.instagramId && <div className="peer-sub">@{selectedPeer.instagramId}</div>}
+                        </div>
+                      </div>
+
+                      <div className="chat-actions">
                         <button
-                          className="btn small"
-                          onClick={async () => {
-                            if (!selectedPeer) return
-                            await unblockUser(user.uid, selectedPeer.uid)
-                          }}
+                          className="icon-btn"
+                          onClick={() => setShowReport(true)}
+                          title="Report User"
                         >
-                          Unblock
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                          </svg>
                         </button>
-                      ) : (
-                        <button
-                          className="btn small"
-                          onClick={async () => {
-                            if (!selectedPeer) return
-                            await blockUser(user.uid, selectedPeer.uid)
-                          }}
-                        >
-                          Block
-                        </button>
-                      )}
-                      <button className="btn small danger" onClick={() => setShowReport(true)}>Report</button>
+
+                        {iBlockedThem ? (
+                          <button
+                            className="btn-xs primary"
+                            onClick={async () => {
+                              if (!selectedPeer) return
+                              await unblockUser(user.uid, selectedPeer.uid)
+                            }}
+                          >
+                            Unblock
+                          </button>
+                        ) : (
+                          <button
+                            className="icon-btn danger-hover"
+                            onClick={async () => {
+                              if (!selectedPeer) return
+                              if (confirm('Are you sure you want to block this user?')) {
+                                await blockUser(user.uid, selectedPeer.uid)
+                              }
+                            }}
+                            title="Block User"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -372,8 +450,8 @@ export default function ChatPage() {
 
                   <ChatWindow
                     currentUid={user.uid}
-                    messages={messages}
-                    onSend={iAmBlocked || iBlockedThem ? () => {} : async (t) => onSend(t)}
+                    messages={displayMessages}
+                    onSend={iAmBlocked || iBlockedThem ? () => { } : async (t) => onSend(t)}
                   />
                 </>
               ) : (
