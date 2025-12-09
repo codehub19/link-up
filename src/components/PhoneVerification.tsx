@@ -74,7 +74,23 @@ export default function PhoneVerification({ onVerified }: Props) {
 
         setLoading(true)
         try {
-            const appVerifier = window.recaptchaVerifier
+            let appVerifier = window.recaptchaVerifier
+
+            if (!appVerifier) {
+                try {
+                    appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                        'size': 'invisible',
+                        'callback': (response: any) => { }
+                    })
+                    window.recaptchaVerifier = appVerifier
+                } catch (e) {
+                    console.error('Failed to re-init recaptcha', e)
+                    toast.error('Verification failed. Please refresh the page.')
+                    setLoading(false)
+                    return
+                }
+            }
+
             // We use linkWithPhoneNumber if user is already signed in (which they are)
             // However, linkWithPhoneNumber requires re-authentication sometimes.
             // A simpler flow for verification is just to verify the phone credential.
@@ -149,26 +165,21 @@ export default function PhoneVerification({ onVerified }: Props) {
     }
 
     return (
-        <div className="card" style={{ padding: 20, marginTop: 16, border: '1px solid #eee' }}>
-            <h3 style={{ marginTop: 0, fontSize: 18 }}>Verify Phone Number</h3>
-            <p style={{ fontSize: 14, color: '#666', marginBottom: 16 }}>
-                To prevent spam, we require all users to verify their mobile number.
-            </p>
-
+        <div style={{ marginTop: 12 }}>
             {step === 'phone' ? (
                 <div style={{ display: 'flex', gap: 10 }}>
                     <input
                         className="field-input"
-                        placeholder="Enter mobile number (e.g. 9876543210)"
+                        placeholder="Enter mobile number"
                         value={phone}
                         onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
                         disabled={loading}
                     />
                     <button
-                        className="btn-primary"
+                        className="btn btn-primary"
                         onClick={sendOtp}
                         disabled={loading || phone.length < 10}
-                        style={{ minWidth: 100 }}
+                        style={{ minWidth: 100, whiteSpace: 'nowrap' }}
                     >
                         {loading ? <LoadingSpinner size={16} color="#fff" /> : 'Send OTP'}
                     </button>
@@ -184,7 +195,7 @@ export default function PhoneVerification({ onVerified }: Props) {
                         disabled={loading}
                     />
                     <button
-                        className="btn-primary"
+                        className="btn btn-primary"
                         onClick={verifyOtp}
                         disabled={loading || otp.length < 6}
                         style={{ minWidth: 100 }}
