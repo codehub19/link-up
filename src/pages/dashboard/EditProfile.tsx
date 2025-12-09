@@ -10,41 +10,42 @@ import CollegeSelect from '../../components/CollegeSelect'
 import { useNavigate } from 'react-router-dom'
 import { compressImage } from '../../utils/compressImage'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import PhoneVerification from '../../components/PhoneVerification'
 import './dashboard.css'
 
 type PhotoSlot = { id: number; url?: string; file?: File | null }
 const MAX_PHOTOS = 4
 
 const COM = [
-  { value:'extremely', label:'A. Extremely important—must be an excellent communicator.' },
-  { value:'very', label:'B. Very important—I need open, honest discussion.' },
-  { value:'moderate', label:'C. Moderately important—I can work with most styles.' },
-  { value:'low', label:'D. Not a huge priority; actions speak louder.' },
+  { value: 'extremely', label: 'A. Extremely important—must be an excellent communicator.' },
+  { value: 'very', label: 'B. Very important—I need open, honest discussion.' },
+  { value: 'moderate', label: 'C. Moderately important—I can work with most styles.' },
+  { value: 'low', label: 'D. Not a huge priority; actions speak louder.' },
 ]
 const CONFLICT = [
-  { value:'address_immediately', label:'A. Discuss it immediately and resolve quickly.' },
-  { value:'cool_down', label:'B. Need time to cool down first.' },
-  { value:'wait_other', label:'C. Wait for the other person to initiate.' },
-  { value:'avoid', label:'D. Avoid conflict / keep peace.' },
+  { value: 'address_immediately', label: 'A. Discuss it immediately and resolve quickly.' },
+  { value: 'cool_down', label: 'B. Need time to cool down first.' },
+  { value: 'wait_other', label: 'C. Wait for the other person to initiate.' },
+  { value: 'avoid', label: 'D. Avoid conflict / keep peace.' },
 ]
 const SUNDAY = [
-  { value:'relax_brunch', label:'A. Sleeping in, late brunch, relaxing.' },
-  { value:'active_fitness', label:'B. Gym / run / active outing.' },
-  { value:'personal_project', label:'C. Personal project or learning.' },
-  { value:'social_family', label:'D. Time with family or friends.' },
+  { value: 'relax_brunch', label: 'A. Sleeping in, late brunch, relaxing.' },
+  { value: 'active_fitness', label: 'B. Gym / run / active outing.' },
+  { value: 'personal_project', label: 'C. Personal project or learning.' },
+  { value: 'social_family', label: 'D. Time with family or friends.' },
 ]
 const TRAVEL = [
-  { value:'relaxing_resort', label:'A. Relaxing beach / resort getaway.' },
-  { value:'explore_city', label:'B. Backpacking / exploring a new city.' },
-  { value:'active_adventure', label:'C. Active trip (hiking / skiing / camping).' },
-  { value:'visit_family', label:'D. Visiting family or friends.' },
+  { value: 'relaxing_resort', label: 'A. Relaxing beach / resort getaway.' },
+  { value: 'explore_city', label: 'B. Backpacking / exploring a new city.' },
+  { value: 'active_adventure', label: 'C. Active trip (hiking / skiing / camping).' },
+  { value: 'visit_family', label: 'D. Visiting family or friends.' },
 ]
 const LOVE = [
-  { value:'words', label:'A. Words of Affirmation' },
-  { value:'quality_time', label:'B. Quality Time' },
-  { value:'acts', label:'C. Acts of Service' },
-  { value:'touch', label:'D. Physical Touch' },
-  { value:'gifts', label:'E. Receiving Gifts' },
+  { value: 'words', label: 'A. Words of Affirmation' },
+  { value: 'quality_time', label: 'B. Quality Time' },
+  { value: 'acts', label: 'C. Acts of Service' },
+  { value: 'touch', label: 'D. Physical Touch' },
+  { value: 'gifts', label: 'E. Receiving Gifts' },
 ]
 
 export default function EditProfile() {
@@ -64,6 +65,7 @@ export default function EditProfile() {
   const [communicationImportance, setCommunicationImportance] = useState(profile?.communicationImportance ?? '')
   const [conflictApproach, setConflictApproach] = useState(profile?.conflictApproach ?? '')
   const [verified, setVerified] = useState(profile?.verified ?? false)
+  const [isPhoneVerified, setIsPhoneVerified] = useState(profile?.isPhoneVerified ?? false)
 
   // 4 photo slots logic
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -91,6 +93,7 @@ export default function EditProfile() {
       setCommunicationImportance(profile.communicationImportance ?? '')
       setConflictApproach(profile.conflictApproach ?? '')
       setVerified(profile.verified ?? false)
+      setIsPhoneVerified(profile.isPhoneVerified ?? false)
       const urls = profile?.photoUrls ?? (profile?.photoUrl ? [profile.photoUrl] : [])
       setPhotoSlots(
         Array.from({ length: MAX_PHOTOS }, (_, i) => ({
@@ -103,35 +106,35 @@ export default function EditProfile() {
   }, [profile])
 
   // Pick photo for a slot (instant preview, compress, upload)
- const pick = (i:number) => {
-  const input = inputRef.current
-  if (!input) return
-  input.onchange = async (e:any) => {
-    const f = e.target.files?.[0]
-    if (f) {
-      const previewUrl = URL.createObjectURL(f)
-      setIsCompressing(prev => {
-        const next = [...prev]
-        next[i] = true
-        return next
-      })
-      try {
-        if (!user) return
-        const compressed = await compressImage(f)
-        setPhotoSlots(prev => prev.map(s => s.id === i ? { ...s, url: previewUrl, file: compressed } : s))
-        // Optionally, uploadProfilePhoto(user.uid, compressed, i) here only for instant preview upload.
-      } finally {
+  const pick = (i: number) => {
+    const input = inputRef.current
+    if (!input) return
+    input.onchange = async (e: any) => {
+      const f = e.target.files?.[0]
+      if (f) {
+        const previewUrl = URL.createObjectURL(f)
         setIsCompressing(prev => {
           const next = [...prev]
-          next[i] = false
+          next[i] = true
           return next
         })
+        try {
+          if (!user) return
+          const compressed = await compressImage(f)
+          setPhotoSlots(prev => prev.map(s => s.id === i ? { ...s, url: previewUrl, file: compressed } : s))
+          // Optionally, uploadProfilePhoto(user.uid, compressed, i) here only for instant preview upload.
+        } finally {
+          setIsCompressing(prev => {
+            const next = [...prev]
+            next[i] = false
+            return next
+          })
+        }
       }
+      e.target.value = ''
     }
-    e.target.value = ''
+    input.click()
   }
-  input.click()
-}
   const filledCount = photoSlots.filter((s) => s.file || s.url).length
 
   const removePhoto = (idx: number) => {
@@ -183,12 +186,12 @@ export default function EditProfile() {
     }
   }
 
-  const radioGroup = (title: string, cur: string, set: (v:string)=>void, opts: any[], groupKey: string) => (
+  const radioGroup = (title: string, cur: string, set: (v: string) => void, opts: any[], groupKey: string) => (
     <fieldset className="qa-group" key={groupKey}>
       <legend>{title}</legend>
-      {opts.map(o=>(
-        <label key={o.value} className={`qa-option ${cur===o.value?'on':''}`}>
-          <input type="radio" value={o.value} checked={cur===o.value} onChange={()=>set(o.value)} />
+      {opts.map(o => (
+        <label key={o.value} className={`qa-option ${cur === o.value ? 'on' : ''}`}>
+          <input type="radio" value={o.value} checked={cur === o.value} onChange={() => set(o.value)} />
           <span>{o.label}</span>
         </label>
       ))}
@@ -237,8 +240,8 @@ export default function EditProfile() {
                         aria-label="Add photo"
                         disabled={isCompressing.some(Boolean)}
                       >
-                        <span style={{fontSize: "2rem"}}>+</span>
-                        <span style={{fontSize: "0.95rem", fontWeight: 600, marginTop: 7, color: "#ff5d7c"}}>Add</span>
+                        <span style={{ fontSize: "2rem" }}>+</span>
+                        <span style={{ fontSize: "0.95rem", fontWeight: 600, marginTop: 7, color: "#ff5d7c" }}>Add</span>
                       </button>
                     )}
                   </div>
@@ -266,18 +269,38 @@ export default function EditProfile() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
-                    <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none"/>
+                    <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none" />
                   </svg>
                 </span>
               )}
             </div>
             <div className="edit-profile-main-instagram">
-              {insta ? <span>@{insta.replace(/^@/, '')}</span> : <span style={{color: '#9aa0b4'}}>Instagram not linked</span>}
+              {insta ? <span>@{insta.replace(/^@/, '')}</span> : <span style={{ color: '#9aa0b4' }}>Instagram not linked</span>}
+            </div>
+
+            {/* Phone Verification Status */}
+            <div style={{ marginTop: 12 }}>
+              {isPhoneVerified ? (
+                <div className="tag" style={{ background: '#e6fffa', color: '#009688', border: '1px solid #b2dfdb' }}>
+                  ✓ Phone Verified
+                </div>
+              ) : (
+                <div className="tag" style={{ background: '#fff3e0', color: '#e65100', border: '1px solid #ffe0b2' }}>
+                  ⚠ Phone Not Verified
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        <form className="edit-profile-form-section" onSubmit={e => {e.preventDefault(); save();}}>
+        {/* Phone Verification Section for Unverified Users */}
+        {!isPhoneVerified && (
+          <div style={{ marginBottom: 24 }}>
+            <PhoneVerification onVerified={() => setIsPhoneVerified(true)} />
+          </div>
+        )}
+
+        <form className="edit-profile-form-section" onSubmit={e => { e.preventDefault(); save(); }}>
           <label className="field">
             <span className="field-label">Full Name</span>
             <input
@@ -355,6 +378,7 @@ export default function EditProfile() {
                 setCommunicationImportance(profile.communicationImportance ?? '')
                 setConflictApproach(profile.conflictApproach ?? '')
                 setVerified(profile.verified ?? false)
+                setIsPhoneVerified(profile.isPhoneVerified ?? false)
                 const urls = profile?.photoUrls ?? (profile?.photoUrl ? [profile.photoUrl] : [])
                 setPhotoSlots(
                   Array.from({ length: MAX_PHOTOS }, (_, i) => ({

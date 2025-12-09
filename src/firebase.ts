@@ -6,6 +6,11 @@ import {
   getAdditionalUserInfo,
   signOut as fbSignOut,
   User as FirebaseUser,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  linkWithPhoneNumber,
+  PhoneAuthProvider,
+  updateProfile,
 } from 'firebase/auth'
 import {
   getFirestore,
@@ -23,9 +28,6 @@ import {
 } from 'firebase/storage'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { getMessaging } from "firebase/messaging";
-
-// ...your existing Firebase config
-
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -57,6 +59,15 @@ export async function signOut() {
 
 export const messaging = getMessaging(app);
 
+// Export auth functions for use in other components
+export {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  linkWithPhoneNumber,
+  PhoneAuthProvider,
+  updateProfile
+}
+
 export type CollegeIdFiles = {
   frontUrl?: string;
   backUrl?: string;
@@ -70,19 +81,6 @@ export type UserProfile = {
   name?: string
   gender?: 'male' | 'female'
   userType?: 'college' | 'general'
-  datingPreference?: 'college_only' | 'open_to_all'
-  instagramId?: string
-  college?: string
-  dob?: string
-  phoneNumber?: string
-  interests?: string[]
-  bio?: string
-  photoUrl?: string
-  collegeId?: CollegeIdFiles
-  communicationImportance?: 'extremely' | 'very' | 'moderate' | 'low'
-  conflictApproach?: 'address_immediately' | 'cool_down' | 'wait_other' | 'avoid'
-  sundayStyle?: 'relax_brunch' | 'active_fitness' | 'personal_project' | 'social_family'
-  travelPreference?: 'relaxing_resort' | 'explore_city' | 'active_adventure' | 'visit_family'
   loveLanguage?: 'words' | 'quality_time' | 'acts' | 'touch' | 'gifts'
   acceptedTermsVersion?: number
   acceptedTermsAt?: any
@@ -102,6 +100,8 @@ export type UserProfile = {
   createdAt?: any
   updatedAt?: any
   lastLoginAt?: any
+  phoneNumber?: string
+  isPhoneVerified?: boolean
   [k: string]: any
 }
 
@@ -233,15 +233,6 @@ export async function updateProfileAndStatus(
   return prof
 }
 
-// export async function uploadProfilePhoto(uid: string, file: File) {
-//   const r = ref(storage, `users/${uid}/profile.jpg`)
-//   const task = uploadBytesResumable(r, file, { contentType: file.type || 'image/jpeg' })
-//   await new Promise<void>((resolve, reject) => {
-//     task.on('state_changed', undefined, reject, () => resolve())
-//   })
-//   return await getDownloadURL(r)
-// }
-
 export async function uploadProfilePhoto(uid: string, file: File, index?: number) {
   const fileName = typeof index === 'number' ? `profile_${index}.jpg` : 'profile.jpg'
   const r = ref(storage, `users/${uid}/profile_images/${fileName}`)
@@ -314,6 +305,9 @@ export async function verifyCollegeId(uid: string) {
 }
 
 /* Callables (unchanged skeleton) */
+const FUNCTIONS_REGION = 'asia-south2'
+export const functions = getFunctions(app, FUNCTIONS_REGION)
+
 export async function callJoinMatchingRound(payload: { roundId: string; planId?: string }) {
   const fn = httpsCallable(functions, 'joinMatchingRound'); return fn(payload)
 }
@@ -332,10 +326,4 @@ export async function callConfirmMatchByGirl(payload: { roundId: string; boyUid:
 }
 
 export { doc, getDoc, setDoc, updateDoc, serverTimestamp }
-
-
-const FUNCTIONS_REGION = 'asia-south2'
-
-export const functions = getFunctions(app, FUNCTIONS_REGION)
-
 export { FUNCTIONS_REGION }

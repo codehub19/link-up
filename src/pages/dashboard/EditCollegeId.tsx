@@ -13,7 +13,7 @@ export default function EditCollegeId() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { collegeId } = profile || {};
+  const { collegeId } = profile || ({} as any);
 
   // Determine upload eligibility
   const canUpload =
@@ -22,27 +22,27 @@ export default function EditCollegeId() {
     (collegeId.verified === false && collegeId.rejected === true);
 
   const handleFrontChange = async (file: File | null) => {
-  if (file) {
-    const compressed = await compressImage(file);
-    setFront(compressed);
-    setFrontPreview(URL.createObjectURL(compressed));
-  } else {
-    setFront(null);
-    setFrontPreview(null);
-  }
-};
+    if (file) {
+      const compressed = await compressImage(file);
+      setFront(compressed);
+      setFrontPreview(URL.createObjectURL(compressed));
+    } else {
+      setFront(null);
+      setFrontPreview(null);
+    }
+  };
 
 
   const handleBackChange = async (file: File | null) => {
-  if (file) {
-    const compressed = await compressImage(file);
-    setBack(compressed);
-    setBackPreview(URL.createObjectURL(compressed));
-  } else {
-    setBack(null);
-    setBackPreview(null);
-  }
-};
+    if (file) {
+      const compressed = await compressImage(file);
+      setBack(compressed);
+      setBackPreview(URL.createObjectURL(compressed));
+    } else {
+      setBack(null);
+      setBackPreview(null);
+    }
+  };
 
   const handleUpload = async () => {
     setError(null);
@@ -165,25 +165,25 @@ export default function EditCollegeId() {
         >
           {collegeId?.verified
             ? (
-                <span>
-                  <span role="img" aria-label="verified">✅</span> Your College ID has been verified.<br />
-                  <span style={{ fontSize: 13, color: "#b8e9c2" }}>
-                    You cannot update or view images after verification.
+              <span>
+                <span role="img" aria-label="verified">✅</span> Your College ID has been verified.<br />
+                <span style={{ fontSize: 13, color: "#b8e9c2" }}>
+                  You cannot update or view images after verification.
+                </span>
+              </span>
+            )
+            : (
+              collegeId?.frontUrl && collegeId?.backUrl && collegeId?.verified === false
+                ? <span>
+                  <span role="img" aria-label="pending">⏳</span> Your College ID is pending verification.<br />
+                  <span style={{ fontSize: 13, color: "#ffe082" }}>
+                    You cannot update or view images until verification is complete.
                   </span>
                 </span>
-              )
-            : (
-                collegeId?.frontUrl && collegeId?.backUrl && collegeId?.verified === false
-                  ? <span>
-                      <span role="img" aria-label="pending">⏳</span> Your College ID is pending verification.<br />
-                      <span style={{ fontSize: 13, color: "#ffe082" }}>
-                        You cannot update or view images until verification is complete.
-                      </span>
-                    </span>
-                  : <span>
-                      <span role="img" aria-label="not-uploaded">🪪</span> No college ID uploaded yet.
-                    </span>
-              )
+                : <span>
+                  <span role="img" aria-label="not-uploaded">🪪</span> No college ID uploaded yet.
+                </span>
+            )
           }
         </div>
       )}
