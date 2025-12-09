@@ -7,12 +7,14 @@ export default function FullScreenChat({
   currentUid,
   messages,
   onSend,
-  header
+  header,
+  disabled
 }: {
   currentUid: string
   messages: any[]
   onSend: (text: string) => Promise<void> | void
   header: React.ReactNode
+  disabled?: boolean
 }) {
   return (
     <div className="fullscreen-chat-root">
@@ -24,6 +26,7 @@ export default function FullScreenChat({
           currentUid={currentUid}
           messages={messages}
           onSend={onSend}
+          disabled={disabled}
         />
       </div>
     </div>

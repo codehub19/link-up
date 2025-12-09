@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react'
 
-export default function MessageInput({ onSend }: { onSend: (text: string) => void | Promise<void> }) {
+export default function MessageInput({ onSend, disabled }: { onSend: (text: string) => void | Promise<void>, disabled?: boolean }) {
   const [text, setText] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Prevent blur on send: refocus after clearing text
   const submit = () => {
+    if (disabled) return
     const t = text.trim()
     if (!t) return
 
@@ -29,8 +30,9 @@ export default function MessageInput({ onSend }: { onSend: (text: string) => voi
         className="field-input composer-input"
         ref={inputRef}
         autoFocus
-        placeholder="Type a message…"
+        placeholder={disabled ? "You cannot send messages" : "Type a message…"}
         value={text}
+        disabled={disabled}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
@@ -40,8 +42,9 @@ export default function MessageInput({ onSend }: { onSend: (text: string) => voi
         }}
       />
       <button
-        className={`btn-primary composer-send ${!text.trim() ? 'disabled' : ''}`}
+        className={`btn-primary composer-send ${(!text.trim() || disabled) ? 'disabled' : ''}`}
         type="submit"
+        disabled={disabled}
         onMouseDown={(e) => e.preventDefault()}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -69,6 +72,11 @@ export default function MessageInput({ onSend }: { onSend: (text: string) => voi
         .composer-input:focus {
           border-color: #ff416c !important;
           box-shadow: 0 0 0 2px rgba(255, 65, 108, 0.2) !important;
+        }
+        .composer-input:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          background: #222 !important;
         }
         .composer-send {
           width: 44px;

@@ -237,16 +237,19 @@ export default function ChatPage() {
 
   // Deduplicate messages for display
   const displayMessages = useMemo(() => {
+    // Filter out messages from users I have blocked
+    const visibleMessages = messages.filter(m => !myBlockedSet.has(m.senderUid))
+
     const dedupedPending = pendingMessages.filter(p => {
-      const isDuplicate = messages.some(m =>
+      const isDuplicate = visibleMessages.some(m =>
         m.text === p.text &&
         m.senderUid === p.senderUid &&
         Math.abs((m.createdAtMs || 0) - p.createdAtMs) < 10000
       )
       return !isDuplicate
     })
-    return [...messages, ...dedupedPending]
-  }, [messages, pendingMessages])
+    return [...visibleMessages, ...dedupedPending]
+  }, [messages, pendingMessages, myBlockedSet])
 
   if (!user) return null
   const isFemale = profile?.gender === 'female'
@@ -261,7 +264,7 @@ export default function ChatPage() {
         </svg>
       </button>
 
-      <div className="chat-peer-info" onClick={() => setShowProfile(true)}>
+      <div className="chat-peer-info" onClick={() => !iAmBlocked && setShowProfile(true)} style={{ cursor: iAmBlocked ? 'default' : 'pointer' }}>
         <div className="avatar-container">
           {selectedPeer?.photoUrl
             ? <img src={selectedPeer.photoUrl} alt={selectedPeer?.name || 'user'} />
@@ -326,6 +329,7 @@ export default function ChatPage() {
           messages={displayMessages}
           onSend={iAmBlocked || iBlockedThem ? () => { } : async (t) => onSend(t)}
           header={chatHeader}
+          disabled={iAmBlocked || iBlockedThem}
         />
         <ProfileModal open={showProfile} onClose={() => setShowProfile(false)} user={selectedPeer} />
         <ReportModal
@@ -380,7 +384,7 @@ export default function ChatPage() {
                         </svg>
                       </button>
 
-                      <div className="chat-peer-info" onClick={() => setShowProfile(true)}>
+                      <div className="chat-peer-info" onClick={() => !iAmBlocked && setShowProfile(true)} style={{ cursor: iAmBlocked ? 'default' : 'pointer' }}>
                         <div className="avatar-container">
                           {selectedPeer?.photoUrl
                             ? <img src={selectedPeer.photoUrl} alt={selectedPeer?.name || 'user'} />
@@ -452,6 +456,7 @@ export default function ChatPage() {
                     currentUid={user.uid}
                     messages={displayMessages}
                     onSend={iAmBlocked || iBlockedThem ? () => { } : async (t) => onSend(t)}
+                    disabled={iAmBlocked || iBlockedThem}
                   />
                 </>
               ) : (

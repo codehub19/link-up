@@ -8,10 +8,12 @@ export default function ChatWindow({
   currentUid,
   messages,
   onSend,
+  disabled,
 }: {
   currentUid: string
   messages: M[]
   onSend: (text: string) => Promise<void> | void
+  disabled?: boolean
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [userScrolled, setUserScrolled] = useState(false)
@@ -99,7 +101,7 @@ export default function ChatWindow({
         )}
       </div>
       <div className="composer-wrap">
-        <MessageInput onSend={onSend} />
+        <MessageInput onSend={onSend} disabled={disabled} />
       </div>
       <style>{`
         .chat-window {
