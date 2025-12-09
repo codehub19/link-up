@@ -30,6 +30,8 @@ type UserDoc = {
   email?: string
   gender?: string
   verified?: boolean
+  userType?: 'college' | 'general'
+  datingPreference?: 'college_only' | 'open_to_all'
 }
 
 type SubscriptionDoc = {
@@ -55,7 +57,7 @@ function getRoundLiveStatus(phases: any): { live: boolean, phase: string | null 
 }
 
 export default function MatchingRounds() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [roundId, setRoundId] = useState<string | null>(null)
   const [roundObj, setRoundObj] = useState<any | null>(null)
   const [assignedUids, setAssignedUids] = useState<string[]>([])
@@ -129,12 +131,29 @@ export default function MatchingRounds() {
       const users: UserDoc[] = []
       for (const uid of assignedUids) {
         const s = await getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
-        if (!s.empty) users.push(s.docs[0].data() as UserDoc)
+        if (!s.empty) {
+          const userData = s.docs[0].data() as UserDoc
+          users.push(userData)
+        }
       }
-      setGirls(users)
+
+      // FILTERING LOGIC:
+      // If current user is a student and wants "College Only", filter out general users
+      let filteredProfiles = users
+      if (profile?.userType !== 'general' && profile?.datingPreference === 'college_only') {
+        filteredProfiles = users.filter(p => p.userType !== 'general')
+      }
+      // Also filter out "College Only" students if current user is General (reverse check)
+      if (profile?.userType === 'general') {
+        filteredProfiles = filteredProfiles.filter(p =>
+          !(p.userType !== 'general' && p.datingPreference === 'college_only')
+        )
+      }
+
+      setGirls(filteredProfiles)
     }
     run()
-  }, [assignedUids])
+  }, [assignedUids, profile])
 
   // Load liked girls for this user/round
   useEffect(() => {
@@ -183,19 +202,19 @@ export default function MatchingRounds() {
   };
 
   if (roundId === null) {
-      return (
-        <>
-          <Navbar />
-          <div className="container">
-            <MaleTabs />
-            <h2>The next round is coming soon!</h2>
-            <p className="muted">We’ll notify you when it’s live.</p>
-            <Link className="btn" to="/dashboard/connections">My Connections</Link>
-          </div>
-        </>
-      )
-    }
-  
+    return (
+      <>
+        <Navbar />
+        <div className="container">
+          <MaleTabs />
+          <h2>The next round is coming soon!</h2>
+          <p className="muted">We’ll notify you when it’s live.</p>
+          <Link className="btn" to="/dashboard/connections">My Connections</Link>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <Navbar />
@@ -245,13 +264,21 @@ export default function MatchingRounds() {
                       onExpand={() => setExpandedIdx(idx)}
                       onCollapse={() => setExpandedIdx(null)}
                       footer={
-                        <button
-                          className={`btn ${liked.has(g.uid) ? 'ghost' : 'primary'}`}
-                          onClick={() => like(g.uid)}
-                          disabled={liked.has(g.uid)}
-                        >
-                          {liked.has(g.uid) ? 'Liked' : 'Like'}
-                        </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 8 }}>
+                          {/* Badges */}
+                          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                            {g.userType === 'general' && <span className="tag" style={{ fontSize: 10, padding: '2px 6px', background: '#eee' }}>General User</span>}
+                            {g.datingPreference === 'college_only' && <span className="tag" style={{ fontSize: 10, padding: '2px 6px', background: '#eef', color: '#00f' }}>College Only</span>}
+                          </div>
+
+                          <button
+                            className={`btn ${liked.has(g.uid) ? 'ghost' : 'primary'}`}
+                            onClick={() => like(g.uid)}
+                            disabled={liked.has(g.uid)}
+                          >
+                            {liked.has(g.uid) ? 'Liked' : 'Like'}
+                          </button>
+                        </div>
                       }
                     />
                   ))}

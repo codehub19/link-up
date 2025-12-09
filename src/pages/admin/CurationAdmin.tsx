@@ -26,6 +26,8 @@ type UserLite = {
   bio?: string
   interests?: string[]
   gender?: 'male' | 'female'
+  userType?: 'college' | 'general'
+  datingPreference?: 'college_only' | 'open_to_all'
 }
 
 export default function CurationAdmin() {
@@ -38,7 +40,7 @@ export default function CurationAdmin() {
   const [assigned, setAssigned] = useState<string[]>([])
   const [likes, setLikes] = useState<any[]>([])
   const [likedUsers, setLikedUsers] = useState<UserLite[]>([])
-  const [phaseTimes, setPhaseTimesState] = useState<{boys?:any,girls?:any}>({})
+  const [phaseTimes, setPhaseTimesState] = useState<{ boys?: any, girls?: any }>({})
   const roundId = activeRound?.id
 
   // NEW: Keep track of previously matched UIDs for this selected user
@@ -191,6 +193,35 @@ export default function CurationAdmin() {
     }
   }, [boys, girls, filter, phase])
 
+  // Filter candidates based on Dating Preference
+  const filteredCandidates = useMemo(() => {
+    let candidates = phase === 'boys' ? girls : likedUsers
+
+    if (!selectedUser) return []
+
+    // If selected user is a student who wants "College Only"
+    // Filter out General users from the candidates
+    if (selectedUser.userType !== 'general' && selectedUser.datingPreference === 'college_only') {
+      candidates = candidates.filter(c => c.userType !== 'general')
+    }
+
+    // If selected user is General, they are open to all (default)
+    // But we might want to check if the candidate (college student) is open to general?
+    // The requirement says: "if they select anyone option then show their profile to general users too else keep them seperate"
+    // This implies:
+    // - If Student is 'college_only', they should NOT see General users (Handled above)
+    // - If Student is 'college_only', General users should NOT see them (Handled here)
+
+    // Reverse check: Filter out candidates who are 'college_only' students if the selected user is 'general'
+    if (selectedUser.userType === 'general') {
+      candidates = candidates.filter(c =>
+        !(c.userType !== 'general' && c.datingPreference === 'college_only')
+      )
+    }
+
+    return candidates
+  }, [phase, girls, likedUsers, selectedUser])
+
   return (
     <AdminGuard>
       <div className="container">
@@ -220,9 +251,9 @@ export default function CurationAdmin() {
                 </button>
               </span>
               {/* Show phase times */}
-              <div style={{marginTop:8}}>
-                <span><b>Boys Round:</b> {phaseTimes.boys?.startAt ? new Date(phaseTimes.boys.startAt.seconds*1000).toLocaleString() : '--'} to {phaseTimes.boys?.endAt ? new Date(phaseTimes.boys.endAt.seconds*1000).toLocaleString() : '--'}</span>
-                <span style={{marginLeft:12}}><b>Girls Round:</b> {phaseTimes.girls?.startAt ? new Date(phaseTimes.girls.startAt.seconds*1000).toLocaleString() : '--'} to {phaseTimes.girls?.endAt ? new Date(phaseTimes.girls.endAt.seconds*1000).toLocaleString() : '--'}</span>
+              <div style={{ marginTop: 8 }}>
+                <span><b>Boys Round:</b> {phaseTimes.boys?.startAt ? new Date(phaseTimes.boys.startAt.seconds * 1000).toLocaleString() : '--'} to {phaseTimes.boys?.endAt ? new Date(phaseTimes.boys.endAt.seconds * 1000).toLocaleString() : '--'}</span>
+                <span style={{ marginLeft: 12 }}><b>Girls Round:</b> {phaseTimes.girls?.startAt ? new Date(phaseTimes.girls.startAt.seconds * 1000).toLocaleString() : '--'} to {phaseTimes.girls?.endAt ? new Date(phaseTimes.girls.endAt.seconds * 1000).toLocaleString() : '--'}</span>
               </div>
             </p>
           )}
@@ -254,6 +285,11 @@ export default function CurationAdmin() {
                       <div>
                         <div>{u.name || u.uid}</div>
                         <small style={{ color: 'var(--muted)' }}>@{u.instagramId}</small>
+                        {/* Badges */}
+                        <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+                          {u.userType === 'general' && <span className="tag" style={{ fontSize: 9, padding: '1px 4px', background: '#eee' }}>Gen</span>}
+                          {u.datingPreference === 'college_only' && <span className="tag" style={{ fontSize: 9, padding: '1px 4px', background: '#eef' }}>Col-Only</span>}
+                        </div>
                       </div>
                     </div>
                   </button>
@@ -276,6 +312,15 @@ export default function CurationAdmin() {
                         <div style={{ color: 'var(--muted)' }}>
                           @{selectedUser.instagramId} {selectedUser.college ? `• ${selectedUser.college}` : ''}
                         </div>
+                        <div style={{ marginTop: 4 }}>
+                          {selectedUser.userType === 'general'
+                            ? <span className="tag" style={{ background: '#eee' }}>General User</span>
+                            : <span className="tag" style={{ background: '#eef' }}>Student</span>
+                          }
+                          <span className="tag" style={{ marginLeft: 6, background: selectedUser.datingPreference === 'college_only' ? '#ffe' : '#efe' }}>
+                            Prefers: {selectedUser.datingPreference === 'college_only' ? 'College Only' : 'Everyone'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <button className="btn btn-primary" onClick={persistAssignments}>Save assignments</button>
@@ -289,10 +334,7 @@ export default function CurationAdmin() {
                           : 'Assign boys to this girl (from her likes, toggle to assign)'}
                       </b>
                       <div className="grid cols-2" style={{ gap: 8, marginTop: 8 }}>
-                        {(phase === 'boys'
-                          ? girls
-                          : likedUsers
-                        ).map(u => (
+                        {filteredCandidates.map(u => (
                           <div key={u.uid} className={`card ${assignedSet.has(u.uid) ? 'selected' : ''}`} style={{ padding: 10 }}>
                             <div className="row" style={{ gap: 10 }}>
                               <div className="avatar" style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', background: '#f3f3f3' }}>
@@ -301,13 +343,17 @@ export default function CurationAdmin() {
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontWeight: 600 }}>{u.name || u.uid}</div>
                                 <small style={{ color: 'var(--muted)' }}>@{u.instagramId}{u.college ? ` • ${u.college}` : ''}</small>
+                                <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                                  {u.userType === 'general' && <span className="tag" style={{ fontSize: 10, padding: '1px 4px', background: '#eee' }}>Gen</span>}
+                                  {u.datingPreference === 'college_only' && <span className="tag" style={{ fontSize: 10, padding: '1px 4px', background: '#eef' }}>Col-Only</span>}
+                                </div>
                                 {u.bio ? <div style={{ fontSize: 12, marginTop: 6, color: 'var(--muted)' }}>{u.bio}</div> : null}
                                 <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                                   {(u.interests ?? []).slice(0, 4).map(i => <span key={i} className="tag">{i}</span>)}
                                 </div>
                                 {/* NEW: Previously matched tag */}
                                 {previouslyMatchedUids.has(u.uid) && (
-                                  <span className="tag" style={{background:'#feecb7', color:'#b77c00', marginLeft:8}}>
+                                  <span className="tag" style={{ background: '#feecb7', color: '#b77c00', marginLeft: 8 }}>
                                     Matched in previous round
                                   </span>
                                 )}
@@ -324,8 +370,12 @@ export default function CurationAdmin() {
                             </div>
                           </div>
                         ))}
-                        {(phase === 'boys' ? girls : likedUsers).length === 0
-                          ? <div style={{ color: 'var(--muted)' }}>{phase === 'boys' ? 'No girls available.' : 'No boys liked this girl yet.'}</div>
+                        {filteredCandidates.length === 0
+                          ? <div style={{ color: 'var(--muted)' }}>
+                            {phase === 'boys'
+                              ? 'No girls available (check filters).'
+                              : 'No boys liked this girl yet (or filtered out).'}
+                          </div>
                           : null}
                       </div>
                     </div>

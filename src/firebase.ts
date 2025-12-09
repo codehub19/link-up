@@ -69,6 +69,8 @@ export type UserProfile = {
   email?: string | null
   name?: string
   gender?: 'male' | 'female'
+  userType?: 'college' | 'general'
+  datingPreference?: 'college_only' | 'open_to_all'
   instagramId?: string
   college?: string
   dob?: string
@@ -119,12 +121,13 @@ export function normalizeProfile(raw: any | null): UserProfile | null {
 export function computeIsProfileComplete(p?: UserProfile | null): boolean {
   if (!p) return false
   const s = p.setupStatus || {}
-  return !!(
+
+  // Common checks
+  const basic = !!(
     p.acceptedTermsAt &&
     p.acceptedTermsVersion &&
     p.gender &&
     p.name &&
-    p.college &&
     p.dob &&
     s.profile &&
     p.interests?.length &&
@@ -137,6 +140,16 @@ export function computeIsProfileComplete(p?: UserProfile | null): boolean {
     p.photoUrl &&
     s.photos
   )
+
+  if (!basic) return false
+
+  // College specific checks
+  if (!p.userType || p.userType === 'college') {
+    return !!(p.college)
+  }
+
+  // General user checks (no college required)
+  return true
 }
 
 export function nextSetupRoute(p?: UserProfile | null): string | null {

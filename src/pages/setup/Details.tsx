@@ -11,25 +11,49 @@ type Props = { embedded?: boolean; onComplete?: () => void }
 export default function Details({ embedded, onComplete }: Props) {
   const { user, profile, refreshProfile } = useAuth()
   const nav = useNavigate()
+
   const [name, setName] = useState(profile?.name || '')
   const [insta, setInsta] = useState(profile?.instagramId || '')
   const [college, setCollege] = useState(profile?.college || '')
   const [dob, setDob] = useState(profile?.dob || '')
+
+  // New Fields
+  const [userType, setUserType] = useState<'college' | 'general'>(
+    profile?.userType || 'college'
+  )
+  const [datingPreference, setDatingPreference] = useState<'college_only' | 'open_to_all'>(
+    profile?.datingPreference || 'college_only'
+  )
+
   const [saving, setSaving] = useState(false)
-  // Instagram is now required:
-  const valid = name.trim() && college && dob && insta.trim()
+
+  // Validation
+  const isCollegeUser = userType === 'college'
+  const validName = !!name.trim()
+  const validInsta = !!insta.trim()
+  const validDob = !!dob
+  const validCollege = isCollegeUser ? !!college : true
+
+  const valid = validName && validInsta && validDob && validCollege
 
   const save = async () => {
     if (!user || !valid) return
     setSaving(true)
     try {
+      // If general user, force dating preference to open_to_all
+      const finalPreference = userType === 'general' ? 'open_to_all' : datingPreference
+
       await updateProfileAndStatus(user.uid, {
         name: name.trim(),
         instagramId: insta.replace(/^@/, '').trim(),
-        college,
+        college: isCollegeUser ? college : null, // Clear college if general
         dob,
+        userType,
+        datingPreference: finalPreference,
       }, { profile: true })
+
       await refreshProfile()
+
       if (embedded && onComplete) onComplete()
       else {
         const next = nextSetupRoute(profile)
@@ -52,22 +76,46 @@ export default function Details({ embedded, onComplete }: Props) {
       <div className={embedded ? '' : 'setup-page'}>
         <section className="setup-card setup-card-glass">
           <h1 className="setup-title">Profile Details</h1>
-          <p className="setup-sub">Finish the basics. DOB stays private.</p>
+          <p className="setup-sub">Tell us a bit about yourself.</p>
+
           <div className="details-form">
+
+            {/* User Type Selection */}
+            <div className="field">
+              <span className="field-label">I am a...</span>
+              <div className="row" style={{ gap: 12 }}>
+                <button
+                  className={`btn ${userType === 'college' ? 'primary' : 'ghost'}`}
+                  style={{ flex: 1 }}
+                  onClick={() => setUserType('college')}
+                >
+                  Student
+                </button>
+                <button
+                  className={`btn ${userType === 'general' ? 'primary' : 'ghost'}`}
+                  style={{ flex: 1 }}
+                  onClick={() => setUserType('general')}
+                >
+                  Working / Other
+                </button>
+              </div>
+            </div>
+
             <label className="field">
               <span className="field-label">Full name</span>
-              <input className="field-input" value={name} onChange={e=>setName(e.target.value)} />
+              <input className="field-input" value={name} onChange={e => setName(e.target.value)} />
             </label>
+
             <label className="field">
               <span className="field-label">
-                Instagram <span style={{color:'red'}}>*</span>
+                Instagram <span style={{ color: 'red' }}>*</span>
               </span>
               <div className="ig-field">
                 <span>@</span>
                 <input
                   className="field-input"
-                  value={insta.replace(/^@/,'')}
-                  onChange={e=>setInsta(e.target.value)}
+                  value={insta.replace(/^@/, '')}
+                  onChange={e => setInsta(e.target.value)}
                   placeholder="yourhandle"
                   required
                 />
@@ -78,10 +126,43 @@ export default function Details({ embedded, onComplete }: Props) {
                 </span>
               )}
             </label>
-            <label className="field">
-              <span className="field-label">College</span>
-              <CollegeSelect value={college} onChange={setCollege} placeholder="Search your college (Delhi NCR)" />
-            </label>
+
+            {/* College Field - Only for Students */}
+            {isCollegeUser && (
+              <label className="field">
+                <span className="field-label">College</span>
+                <CollegeSelect value={college} onChange={setCollege} placeholder="Search your college (Delhi NCR)" />
+              </label>
+            )}
+
+            {/* Dating Preference - Only for Students */}
+            {isCollegeUser && (
+              <div className="field">
+                <span className="field-label">Who would you like to date?</span>
+                <div className="row" style={{ gap: 12 }}>
+                  <button
+                    className={`btn ${datingPreference === 'college_only' ? 'primary' : 'ghost'}`}
+                    style={{ flex: 1, fontSize: 13 }}
+                    onClick={() => setDatingPreference('college_only')}
+                  >
+                    College Students Only
+                  </button>
+                  <button
+                    className={`btn ${datingPreference === 'open_to_all' ? 'primary' : 'ghost'}`}
+                    style={{ flex: 1, fontSize: 13 }}
+                    onClick={() => setDatingPreference('open_to_all')}
+                  >
+                    Open to Everyone
+                  </button>
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
+                  {datingPreference === 'college_only'
+                    ? "You will only be matched with other verified college students."
+                    : "You may be matched with students or working professionals."}
+                </p>
+              </div>
+            )}
+
             <label className="field">
               <span className="field-label">Date of Birth</span>
               <input
@@ -100,6 +181,7 @@ export default function Details({ embedded, onComplete }: Props) {
               )}
             </label>
           </div>
+
           <div className="setup-card-footer">
             <button className="btn-primary-lg" disabled={!valid || saving} onClick={save}>
               {saving ? 'Saving…' : 'Continue'}
