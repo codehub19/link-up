@@ -17,7 +17,7 @@ import FullScreenChat from './FullScreenChat'
 import '../../../styles/chat.css'
 
 type UserDoc = { uid: string; name?: string; photoUrl?: string; instagramId?: string; bio?: string; interests?: string[]; college?: string }
-type ThreadDoc = { id: string; participants: string[]; lastMessage?: { text: string; senderUid: string; at?: any } | null; updatedAt?: any }
+type ThreadDoc = { id: string; participants: string[]; lastMessage?: { text: string; senderUid: string; at?: any } | null; updatedAt?: any; blocks?: Record<string, boolean> }
 type MatchDoc = { id: string; participants: string[]; boyUid: string; girlUid: string; status?: string }
 
 function useQuery() { return new URLSearchParams(useLocation().search) }
@@ -229,7 +229,7 @@ export default function ChatPage() {
     return users[peerUid]
   }, [selectedId, users, user])
 
-  const iAmBlocked = peerBlocksMe
+  const iAmBlocked = peerBlocksMe || (selectedThread?.blocks?.[selectedPeer?.uid || ''] === true)
   const iBlockedThem = useMemo(() => {
     if (!user || !selectedPeer) return false
     return myBlockedSet.has(selectedPeer.uid)

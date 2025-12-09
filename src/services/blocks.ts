@@ -1,5 +1,6 @@
-import { arrayRemove, arrayUnion, doc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { arrayRemove, arrayUnion, deleteField, doc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
+import { threadIdFor } from './chat'
 
 export type UserBlockDoc = {
   uid: string
@@ -34,9 +35,31 @@ export async function blockUser(blockerUid: string, blockedUid: string) {
     },
     { merge: true }
   )
+
+  // Also update the thread if it exists, so the blocked user knows immediately
+  try {
+    const tid = threadIdFor(blockerUid, blockedUid)
+    const tRef = doc(db, 'threads', tid)
+    await setDoc(tRef, {
+      blocks: { [blockerUid]: true }
+    }, { merge: true })
+  } catch (e) {
+    console.error('Failed to update thread block status', e)
+  }
 }
 
 export async function unblockUser(blockerUid: string, blockedUid: string) {
   const ref = doc(db, 'userBlocks', blockerUid)
   await updateDoc(ref, { uids: arrayRemove(blockedUid), updatedAt: serverTimestamp() } as any)
+
+  // Clear from thread
+  try {
+    const tid = threadIdFor(blockerUid, blockedUid)
+    const tRef = doc(db, 'threads', tid)
+    await updateDoc(tRef, {
+      [`blocks.${blockerUid}`]: deleteField()
+    })
+  } catch (e) {
+    console.error('Failed to clear thread block status', e)
+  }
 }
