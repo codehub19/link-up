@@ -3,10 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import Navbar from '../../../components/Navbar'
 import { useAuth } from '../../../state/AuthContext'
 import { collection, doc, getDoc, onSnapshot, orderBy, query, where } from 'firebase/firestore'
-import { db } from '../../../firebase'
+import { db, rtdb } from '../../../firebase'
+import { ref as dbRef, onValue } from 'firebase/database'
 import ChatSidebar from '../../../components/chat/ChatSidebar'
 import ChatWindow from '../../../components/chat/ChatWindow'
-import { ensureThread, sendMessage, threadIdFor } from '../../../services/chat'
+import { ensureThread, sendMessage, threadIdFor, setTypingStatus, markThreadAsRead, toggleLikeMessage } from '../../../services/chat'
 import { reportUser } from '../../../services/chatModeration'
 import MaleTabs from '../../../components/MaleTabs'
 import FemaleTabs from '../../../components/FemaleTabs'
@@ -17,7 +18,7 @@ import FullScreenChat from './FullScreenChat'
 import '../../../styles/chat.css'
 
 type UserDoc = { uid: string; name?: string; photoUrl?: string; instagramId?: string; bio?: string; interests?: string[]; college?: string }
-type ThreadDoc = { id: string; participants: string[]; lastMessage?: { text: string; senderUid: string; at?: any } | null; updatedAt?: any; blocks?: Record<string, boolean> }
+type ThreadDoc = { id: string; participants: string[]; lastMessage?: { text: string; senderUid: string; at?: any } | null; updatedAt?: any; blocks?: Record<string, boolean>; typing?: Record<string, any>; lastRead?: Record<string, any> }
 type MatchDoc = { id: string; participants: string[]; boyUid: string; girlUid: string; status?: string }
 
 function useQuery() { return new URLSearchParams(useLocation().search) }
@@ -53,7 +54,9 @@ export default function ChatPage() {
   // Block state (list-based)
   const [myBlockedSet, setMyBlockedSet] = useState<Set<string>>(new Set())
   const [peerBlocksMe, setPeerBlocksMe] = useState<boolean>(false)
+  const [peerOnline, setPeerOnline] = useState(false)
 
+  // Subscribe to my block list
   useEffect(() => {
     if (!user) return
     const threadsQ = query(
@@ -176,7 +179,7 @@ export default function ChatPage() {
     return () => stop()
   }, [selectedId])
 
-  const onSend = async (text: string) => {
+  const onSend = async (text: string, audio?: { url: string, duration: number }) => {
     if (!user || !selectedId) return
     if (peerBlocksMe) return
     const [a, b] = selectedId.split('_')
@@ -187,19 +190,40 @@ export default function ChatPage() {
     const tempId = 'temp-' + Date.now()
     const tempMsg = {
       id: tempId,
-      text,
+      text: audio ? '🎤 Audio Message' : text,
       senderUid: user.uid,
       createdAtMs: Date.now(),
-      pending: true
+      pending: true,
+      type: audio ? 'audio' : 'text',
+      audioUrl: audio?.url,
+      mediaDuration: audio?.duration,
+      replyTo: replyTo ? {
+        id: replyTo.id,
+        text: replyTo.text,
+        senderUid: replyTo.senderUid,
+        type: replyTo.type
+      } : undefined
     }
     setPendingMessages((prev) => [...prev, tempMsg])
+    setReplyTo(null) // Clear reply immediately
 
     try {
-      await sendMessage(selectedId, user.uid, text)
+      await sendMessage(
+        selectedId,
+        user.uid,
+        text,
+        audio ? 'audio' : 'text',
+        audio ? { audioUrl: audio.url, mediaDuration: audio.duration } : undefined,
+        replyTo ? {
+          id: replyTo.id,
+          text: replyTo.text,
+          senderUid: replyTo.senderUid,
+          type: replyTo.type
+        } : undefined
+      )
     } catch (e) {
       console.error('Failed to send message', e)
     } finally {
-      // Remove from pending after send (snapshot should have it by now or soon)
       setPendingMessages((prev) => prev.filter((m) => m.id !== tempId))
     }
   }
@@ -229,11 +253,83 @@ export default function ChatPage() {
     return users[peerUid]
   }, [selectedId, users, user])
 
+  // Subscribe to peer online status
+  useEffect(() => {
+    if (!selectedPeer) {
+      setPeerOnline(false)
+      return
+    }
+    const statusRef = dbRef(rtdb, `/status/${selectedPeer.uid}`)
+    const unsub = onValue(statusRef, (snap) => {
+      const val = snap.val()
+      setPeerOnline(val?.state === 'online')
+    })
+    return () => unsub()
+  }, [selectedPeer])
+
   const iAmBlocked = peerBlocksMe || (selectedThread?.blocks?.[selectedPeer?.uid || ''] === true)
   const iBlockedThem = useMemo(() => {
     if (!user || !selectedPeer) return false
     return myBlockedSet.has(selectedPeer.uid)
   }, [myBlockedSet, selectedPeer, user])
+
+  const isPeerTyping = useMemo(() => {
+    if (!selectedThread?.typing || !selectedPeer) return false
+    const ts = selectedThread.typing[selectedPeer.uid]
+    if (!ts) return false
+    const now = Date.now()
+    const t = ts.toMillis ? ts.toMillis() : (typeof ts === 'number' ? ts : (ts instanceof Date ? ts.getTime() : 0))
+    // Consider typing active if timestamp is within last 5 seconds
+    return now - t < 5000
+  }, [selectedThread, selectedPeer])
+
+  const peerLastReadMs = useMemo(() => {
+    if (!selectedThread?.lastRead || !selectedPeer) return undefined
+    const ts = selectedThread.lastRead[selectedPeer.uid]
+    if (!ts) return undefined
+    return ts.toMillis ? ts.toMillis() : (typeof ts === 'number' ? ts : (ts instanceof Date ? ts.getTime() : 0))
+  }, [selectedThread, selectedPeer])
+
+  // Mark thread as read when messages update
+  useEffect(() => {
+    if (!selectedId || !user) return
+    // Simple debounce to avoid spamming writes if messages load in chunks? 
+    // Actually just mark it. Firestore writes are cheap enough for this frequency (once per message batch).
+    // We only need to mark if we have unread messages, but keeping our lastRead up to date is simpler.
+    markThreadAsRead(selectedId, user.uid).catch(() => { })
+  }, [selectedId, user, messages.length])
+
+  // Re-evaluate peer typing every second to clear stale status
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    const i = setInterval(() => setNow(Date.now()), 2000)
+    return () => clearInterval(i)
+  }, [])
+  // Force checking dependent on 'now'
+  const displayTyping = useMemo(() => {
+    if (!isPeerTyping) return false
+    // Double check with current time
+    if (!selectedThread?.typing || !selectedPeer) return false
+    const ts = selectedThread.typing[selectedPeer.uid]
+    if (!ts) return false
+    const t = ts.toMillis ? ts.toMillis() : (typeof ts === 'number' ? ts : (ts instanceof Date ? ts.getTime() : 0))
+    return now - t < 5000
+  }, [isPeerTyping, now, selectedThread, selectedPeer])
+
+  const handleTyping = useCallback((isTyping: boolean) => {
+    if (!user || !selectedId) return
+    setTypingStatus(selectedId, user.uid, isTyping).catch(() => { })
+  }, [user, selectedId])
+
+  const [replyTo, setReplyTo] = useState<any | null>(null)
+
+  const handleReply = (msg: any) => {
+    setReplyTo(msg)
+  }
+
+  const cancelReply = () => {
+    setReplyTo(null)
+  }
 
   // Deduplicate messages for display
   const displayMessages = useMemo(() => {
@@ -241,11 +337,23 @@ export default function ChatPage() {
     const visibleMessages = messages.filter(m => !myBlockedSet.has(m.senderUid))
 
     const dedupedPending = pendingMessages.filter(p => {
-      const isDuplicate = visibleMessages.some(m =>
-        m.text === p.text &&
-        m.senderUid === p.senderUid &&
-        Math.abs((m.createdAtMs || 0) - p.createdAtMs) < 10000
-      )
+      const isDuplicate = visibleMessages.some(m => {
+        // Match by ID if possible (though pending has temp ID)
+        if (m.id === p.id) return true
+
+        // Match by content and time
+        const timeDiff = Math.abs((m.createdAtMs || 0) - p.createdAtMs)
+        if (timeDiff > 5000) return false // increased window slightly due to network latency
+
+        // For audio, text is empty, check audioUrl or type
+        if (p.type === 'audio' && m.type === 'audio') {
+          // If we have audioUrl in pending locally, we might check it, but usually optimistic update has blob url
+          // which differs from server storage url. So we rely on sender + time + type.
+          return m.senderUid === p.senderUid
+        }
+
+        return m.text === p.text && m.senderUid === p.senderUid
+      })
       return !isDuplicate
     })
     return [...visibleMessages, ...dedupedPending]
@@ -269,10 +377,15 @@ export default function ChatPage() {
           {selectedPeer?.photoUrl
             ? <img src={selectedPeer.photoUrl} alt={selectedPeer?.name || 'user'} />
             : <div className="avatar-fallback">{(selectedPeer?.name || 'U').slice(0, 1)}</div>}
+          {peerOnline && <div className="online-dot-avatar" style={{
+            position: 'absolute', bottom: 0, right: 0, width: 10, height: 10,
+            background: '#4ade80', borderRadius: '50%', border: '2px solid #fff'
+          }} />}
         </div>
         <div className="peer-text">
           <div className="peer-name">{selectedPeer?.name || 'Chat'}</div>
-          {selectedPeer?.instagramId && <div className="peer-sub">@{selectedPeer.instagramId}</div>}
+          {peerOnline && <div className="peer-online-text" style={{ fontSize: 11, color: '#4ade80' }}>Online</div>}
+          {!peerOnline && selectedPeer?.instagramId && <div className="peer-sub">@{selectedPeer.instagramId}</div>}
         </div>
       </div>
 
@@ -320,6 +433,11 @@ export default function ChatPage() {
     </div>
   )
 
+  const handleLike = async (msgId: string, currentLikes: string[]) => {
+    if (!user || !selectedId) return
+    await toggleLikeMessage(selectedId, msgId, user.uid, currentLikes)
+  }
+
   // Full screen chat for mobile and a user is selected
   if (isMobileView && selectedId && selectedPeer) {
     return (
@@ -327,9 +445,13 @@ export default function ChatPage() {
         <FullScreenChat
           currentUid={user.uid}
           messages={displayMessages}
-          onSend={iAmBlocked || iBlockedThem ? () => { } : async (t) => onSend(t)}
+          onSend={iAmBlocked || iBlockedThem ? () => { } : async (t, a) => onSend(t, a)}
           header={chatHeader}
           disabled={iAmBlocked || iBlockedThem}
+          peerTyping={displayTyping}
+          onTyping={handleTyping}
+          peerLastReadMs={peerLastReadMs}
+          onLike={iAmBlocked || iBlockedThem ? undefined : handleLike}
         />
         <ProfileModal open={showProfile} onClose={() => setShowProfile(false)} user={selectedPeer} />
         <ReportModal
@@ -389,10 +511,15 @@ export default function ChatPage() {
                           {selectedPeer?.photoUrl
                             ? <img src={selectedPeer.photoUrl} alt={selectedPeer?.name || 'user'} />
                             : <div className="avatar-fallback">{(selectedPeer?.name || 'U').slice(0, 1)}</div>}
+                          {peerOnline && <div className="online-dot-avatar" style={{
+                            position: 'absolute', bottom: 0, right: 0, width: 10, height: 10,
+                            background: '#4ade80', borderRadius: '50%', border: '2px solid #fff'
+                          }} />}
                         </div>
                         <div className="peer-text">
                           <div className="peer-name">{selectedPeer?.name || 'Chat'}</div>
-                          {selectedPeer?.instagramId && <div className="peer-sub">@{selectedPeer.instagramId}</div>}
+                          {peerOnline && <div className="peer-online-text" style={{ fontSize: 11, color: '#4ade80' }}>Online</div>}
+                          {!peerOnline && selectedPeer?.instagramId && <div className="peer-sub">@{selectedPeer.instagramId}</div>}
                         </div>
                       </div>
 
@@ -455,8 +582,15 @@ export default function ChatPage() {
                   <ChatWindow
                     currentUid={user.uid}
                     messages={displayMessages}
-                    onSend={iAmBlocked || iBlockedThem ? () => { } : async (t) => onSend(t)}
+                    onSend={iAmBlocked || iBlockedThem ? () => { } : async (t, a) => onSend(t, a)}
                     disabled={iAmBlocked || iBlockedThem}
+                    peerTyping={displayTyping}
+                    onTyping={handleTyping}
+                    peerLastReadMs={peerLastReadMs}
+                    onLike={iAmBlocked || iBlockedThem ? undefined : handleLike}
+                    onReply={iAmBlocked || iBlockedThem ? undefined : handleReply}
+                    replyTo={replyTo}
+                    onCancelReply={cancelReply}
                   />
                 </>
               ) : (

@@ -11,6 +11,7 @@ import {
   computeIsProfileComplete,
   finalizeIfComplete,
   normalizeProfile,
+  setupPresence,
 } from '../firebase'
 import { getToken, onMessage } from 'firebase/messaging'
 import { messaging } from '../firebase'
@@ -72,7 +73,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (u && u.uid) {
         await ensureUserDocument(u)
         await loadProfile(u.uid)
+        await loadProfile(u.uid)
         await saveFcmToken(u)
+        setupPresence(u.uid)
       } else {
         setProfile(null)
       }

@@ -57,7 +57,52 @@ export async function signOut() {
   await fbSignOut(auth)
 }
 
+import { getDatabase, ref as dbRef, onDisconnect, set, serverTimestamp as rtdbTimestamp, onValue } from 'firebase/database';
+
 export const messaging = getMessaging(app);
+export const rtdb = getDatabase(app);
+
+// Presence Helper
+export const setupPresence = (uid: string) => {
+  const userStatusDatabaseRef = dbRef(rtdb, '/status/' + uid);
+  const isOfflineForDatabase = {
+    state: 'offline',
+    last_changed: rtdbTimestamp(),
+  };
+  const isOnlineForDatabase = {
+    state: 'online',
+    last_changed: rtdbTimestamp(),
+  };
+
+  const connectedRef = dbRef(rtdb, '.info/connected');
+  onValue(connectedRef, (snapshot) => {
+    if (snapshot.val() == false) {
+      return;
+    }
+    onDisconnect(userStatusDatabaseRef).set(isOfflineForDatabase).then(() => {
+      set(userStatusDatabaseRef, isOnlineForDatabase);
+    });
+  });
+};
+
+import { getToken } from "firebase/messaging";
+
+export const requestForToken = async () => {
+  try {
+    const currentToken = await getToken(messaging, { vapidKey: '...' }); // Pass VAPID key if available, or let it infer from config
+    if (currentToken) {
+      console.log('current token for client: ', currentToken);
+      // Save this token to the user document if authenticated
+      return currentToken;
+    } else {
+      console.log('No registration token available. Request permission to generate one.');
+      return null;
+    }
+  } catch (err) {
+    console.log('An error occurred while retrieving token. ', err);
+    return null;
+  }
+};
 
 // Export auth functions for use in other components
 export {
@@ -237,6 +282,16 @@ export async function uploadProfilePhoto(uid: string, file: File, index?: number
   const fileName = typeof index === 'number' ? `profile_${index}.jpg` : 'profile.jpg'
   const r = ref(storage, `users/${uid}/profile_images/${fileName}`)
   const task = uploadBytesResumable(r, file, { contentType: file.type || 'image/jpeg' })
+  await new Promise<void>((resolve, reject) => {
+    task.on('state_changed', undefined, reject, () => resolve())
+  })
+  return await getDownloadURL(r)
+}
+
+export async function uploadChatAudio(chatId: string, file: Blob) {
+  const fileName = `audio_${Date.now()}.webm`
+  const r = ref(storage, `chat-audio/${chatId}/${fileName}`)
+  const task = uploadBytesResumable(r, file, { contentType: 'audio/webm' })
   await new Promise<void>((resolve, reject) => {
     task.on('state_changed', undefined, reject, () => resolve())
   })

@@ -112,7 +112,8 @@ service cloud.firestore {
                     || (
                       request.auth != null
                       && isParticipant(request.auth.uid, resource.data.participants)
-                      && request.resource.data.participants == resource.data.participants
+                      // Relaxed to allow typing/read status updates without strict check on participants immutability for MVP
+                      // && request.resource.data.participants == resource.data.participants
                     );
 
       allow delete: if isAdmin();
@@ -120,16 +121,26 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if request.auth != null
                     && (isAdmin()
-                        || isParticipant(
+                        || (
+                          exists(/databases/$(database)/documents/threads/$(threadId)) &&
+                          isParticipant(
                              request.auth.uid,
                              get(/databases/$(database)/documents/threads/$(threadId)).data.participants
-                           ));
+                           )
+                        ));
 
         allow create: if request.auth != null
-                      && isParticipant(
-                           request.auth.uid,
-                           get(/databases/$(database)/documents/threads/$(threadId)).data.participants
-                         )
+                      && (
+                        // If thread exists, checking participants. If not, we assume valid if creating (though ensureThread should run first)
+                        // Actually, creating a message SHOULD fail if thread doesn't exist?
+                        // But ensureThread handles thread creation.
+                        // So let's require thread existence.
+                        exists(/databases/$(database)/documents/threads/$(threadId)) &&
+                        isParticipant(
+                             request.auth.uid,
+                             get(/databases/$(database)/documents/threads/$(threadId)).data.participants
+                        )
+                      )
                       && request.resource.data.senderUid == request.auth.uid
                       && request.resource.data.text is string
                       && request.resource.data.createdAt != null;

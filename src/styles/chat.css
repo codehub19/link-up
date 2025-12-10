@@ -523,7 +523,7 @@
   background: rgba(0, 0, 0, 0.55);
   display: grid;
   place-items: center;
-  z-index: 60;
+  z-index: 10001;
 }
 
 .modal-card {
@@ -642,7 +642,9 @@
   .chat-shell {
     grid-template-columns: 1fr;
   }
-
+  
+  /* ... existing styles ... */
+  
   .chat-shell.mobile .chat-sidebar {
     display: block;
   }
@@ -658,43 +660,38 @@
   .chat-shell.mobile.mobile-chat-open .chat-main {
     display: flex;
   }
+}
 
-  .back-btn {
-    display: inline-flex;
-  }
+/* New Swipe Indicator Styles */
+.bubble-wrapper {
+  position: relative;
+  width: 100%;
+  /* allow drag to not be clipped */
+  overflow: visible; 
+  touch-action: pan-y;
+}
 
-  .chat-header {
-    gap: 8px;
-    padding: 8px 10px;
-  }
+.swipe-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  color: #ff416c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* Let clicks pass through */
+}
 
-  .chat-header .avatar {
-    width: 32px;
-    height: 32px;
-  }
+/* Ensure container doesn't block horizontal gestures */
+.container.chat-page {
+  /* overflow: hidden is usually fine, but ensure inner elements can scroll */
+}
 
-  .peer-meta .peer-name {
-    font-size: 15px;
-  }
-
-  .peer-meta .peer-sub {
-    font-size: 11px;
-  }
-
-  .btn.small {
-    height: 28px;
-    padding: 0 8px;
-    font-size: 11px;
-  }
-
-  .bubble {
-    font-size: 13.5px;
-  }
-
-  /* smaller message text on mobile */
-  .bubble .time {
-    font-size: 10px;
-  }
+.messages {
+  /* Ensure horizontal swipes work */
+  touch-action: pan-y;
 }
 
 

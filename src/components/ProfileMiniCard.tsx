@@ -55,8 +55,8 @@ export default function ProfileMiniCard({
     images.length > 0
       ? images[imgIdx]
       : user?.photoUrl
-      ? user.photoUrl
-      : "/placeholder.jpg"
+        ? user.photoUrl
+        : "/placeholder.jpg"
   const age = user?.dob ? calculateAge(user.dob) : user?.age || ""
 
   // Auto-slide and progress bar logic
@@ -105,9 +105,9 @@ export default function ProfileMiniCard({
   const renderInterestsBelowName = () => (
     <div className="pm-interests-label-row">
       <div className="pm-interests-label">
-        <svg width="13" height="13" viewBox="0 0 24 24" style={{marginRight: 5}} fill="none">
-          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" fill="#fff" opacity="0.13"/>
-          <path d="M7 12h10M12 7v10" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <svg width="13" height="13" viewBox="0 0 24 24" style={{ marginRight: 5 }} fill="none">
+          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" fill="#fff" opacity="0.13" />
+          <path d="M7 12h10M12 7v10" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <span>Interests</span>
       </div>
@@ -145,7 +145,7 @@ export default function ProfileMiniCard({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                  <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none"/>
+                  <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none" />
                 </svg>
               </span>
             )}
@@ -202,7 +202,7 @@ export default function ProfileMiniCard({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-                <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none"/>
+                <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none" />
               </svg>
             </span>
           )}
@@ -297,17 +297,23 @@ export default function ProfileMiniCard({
           width: 100%;
           max-width: 370px;
           margin: 0 auto;
+          /* FIX: Ensure opaque background and border to hide underlying cards */
+          background-color: #1a1a22; 
+          border: 1px solid #232a38;
+          z-index: 1; /* Ensure stacking context */
         }
         .pm-image-area {
           position: relative;
           width: 100%;
           height: 400px;
+          background: #232a38; /* Fallback for transparency */
         }
         .pm-card-img {
           width: 100%;
           height: 100%;
           object-fit: cover;
           display: block;
+          background: #232a38; /* Placeholder background */
           border-radius: 18px;
         }
         .pm-progress-bar {

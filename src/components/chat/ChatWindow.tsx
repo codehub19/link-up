@@ -2,18 +2,47 @@ import React, { useEffect, useRef, useState } from 'react'
 import MessageBubble from './MessageBubble'
 import MessageInput from './MessageInput'
 
-type M = { id: string; text: string; senderUid: string; createdAt?: any; createdAtMs?: number }
+type M = {
+  id: string;
+  text: string;
+  senderUid: string;
+  createdAt?: any;
+  createdAtMs?: number;
+  audioUrl?: string;
+  type?: 'text' | 'audio';
+  likes?: string[];
+  replyTo?: {
+    id: string
+    text: string
+    senderUid: string
+    type?: 'text' | 'audio'
+  }
+}
 
 export default function ChatWindow({
   currentUid,
   messages,
   onSend,
   disabled,
+  peerTyping,
+  onTyping,
+  peerLastReadMs,
+  onLike,
+  onReply,
+  replyTo,
+  onCancelReply
 }: {
   currentUid: string
   messages: M[]
-  onSend: (text: string) => Promise<void> | void
+  onSend: (text: string, audio?: { url: string, duration: number }) => Promise<void> | void
   disabled?: boolean
+  peerTyping?: boolean
+  onTyping?: (isTyping: boolean) => void
+  peerLastReadMs?: number
+  onLike?: (msgId: string, currentLikes: string[]) => void
+  onReply?: (msg: M) => void
+  replyTo?: M | null
+  onCancelReply?: () => void
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [userScrolled, setUserScrolled] = useState(false)
@@ -85,9 +114,24 @@ export default function ChatWindow({
               text={m.text}
               mine={m.senderUid === currentUid}
               time={time}
+              audioUrl={m.audioUrl}
+              isRead={peerLastReadMs && m.createdAtMs ? m.createdAtMs <= peerLastReadMs : false}
+              isLiked={m.likes?.includes(currentUid)}
+              onLike={onLike ? () => onLike(m.id, m.likes || []) : undefined}
+              replyTo={m.replyTo}
+              onReply={() => onReply?.(m)}
             />
           )
         })}
+        {peerTyping && (
+          <div className="msg-row theirs">
+            <div className="bubble typing-bubble">
+              <div className="dot"></div>
+              <div className="dot"></div>
+              <div className="dot"></div>
+            </div>
+          </div>
+        )}
         {showScrollBtn && (
           <button
             className="scroll-latest-btn"
@@ -101,58 +145,82 @@ export default function ChatWindow({
         )}
       </div>
       <div className="composer-wrap">
-        <MessageInput onSend={onSend} disabled={disabled} />
+        <MessageInput
+          onSend={onSend}
+          disabled={disabled}
+          currentUid={currentUid}
+          onTyping={onTyping}
+          replyTo={replyTo}
+          onCancelReply={onCancelReply}
+        />
       </div>
       <style>{`
-        .chat-window {
-          display: flex;
-          flex-direction: column;
-          flex: 1;
-          min-height: 0;
-          background: #121218;
-          position: relative;
-        }
-        .messages {
-          flex: 1;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-        }
-        .composer-wrap {
-          padding: 0;
-          background: #181821;
-          border-top: 1px solid rgba(255,255,255,0.08);
-        }
-        .scroll-latest-btn {
-          position: absolute;
-          right: 20px;
-          bottom: 90px;
-          z-index: 10;
-          background: #2a2a35;
-          color: #fff;
-          padding: 8px 16px;
-          border-radius: 20px;
-          border: 1px solid rgba(255,255,255,0.1);
-          font-size: 0.9rem;
-          font-weight: 600;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .scroll-latest-btn:hover {
-          background: #32323f;
-          transform: translateY(-2px);
-        }
-        @media (max-width: 650px) {
-          .scroll-latest-btn {
-            right: 16px;
-            bottom: 80px;
+          .chat-window {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            background: #121218;
+            position: relative;
+          }
+          .messages {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
           }
           .composer-wrap {
             padding: 0;
+            background: #181821;
+            border-top: 1px solid rgba(255,255,255,0.08);
           }
-        }
-      `}</style>
+          .scroll-latest-btn {
+            position: absolute;
+            right: 20px;
+            bottom: 90px;
+            z-index: 10;
+            background: #2a2a35;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          .scroll-latest-btn:hover {
+            background: #32323f;
+            transform: translateY(-2px);
+          }
+          @media (max-width: 650px) {
+            .scroll-latest-btn {
+              right: 16px;
+              bottom: 80px;
+            }
+          }
+          .typing-bubble {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 12px 16px;
+            min-height: 40px;
+          }
+          .dot {
+            width: 6px;
+            height: 6px;
+            background: #a6a7bb;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+          }
+          .dot:nth-child(1) { animation-delay: -0.32s; }
+          .dot:nth-child(2) { animation-delay: -0.16s; }
+          @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+          }
+        `}</style>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { db } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import Navbar from "../../components/Navbar";
 import "./dashboard.css";
+import PhotoGallery from "../../components/profile/PhotoGallery";
 
 type UserDoc = {
   uid: string
@@ -36,7 +37,7 @@ export default function ProfileView() {
     });
   }, [uid]);
 
-  const images = (user?.photoUrls?.length ? user.photoUrls : [user?.photoUrl]).filter(Boolean);
+  const images = (user?.photoUrls?.length ? user.photoUrls : [user?.photoUrl]).filter(Boolean) as string[];
 
   return (
     <>
@@ -45,26 +46,15 @@ export default function ProfileView() {
         <button className="edit-profile-back-btn" onClick={() => navigate(-1)}>← Back</button>
         <div className="profile-view-hero">
           <div className="profile-view-photos-area">
-            <div className="profile-view-photos-grid">
-              {images.map((url, idx) => (
-                <div
-                  key={idx}
-                  className={`profile-view-photo-slot primary`}
-                  onClick={() => setPopupUrl(url!)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <img src={url!} alt={`Photo ${idx + 1}`} className="profile-view-img" />
-                </div>
-              ))}
-            </div>
+            <PhotoGallery photos={images} />
           </div>
           <div className="profile-view-user-details">
             <div className="profile-view-main-row">
               <span className="profile-view-main-name">{user?.name || 'Name hidden'}</span>
             </div>
             <div className="profile-view-main-instagram">
-              {user?.instagramId ? 
-                <span>@{user.instagramId.replace(/^@/, '')}</span> : 
+              {user?.instagramId ?
+                <span>@{user.instagramId.replace(/^@/, '')}</span> :
                 null}
             </div>
           </div>
@@ -81,10 +71,10 @@ export default function ProfileView() {
             <div className="field-label">INTERESTS</div>
             <div className="interests-wrap">
               {(user?.interests ?? []).length > 0 ?
-                <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {user?.interests?.map((i) => <span key={i} className="pm-interest-pill">{i}</span>)}
                 </div>
-              : <span className="profile-info-value profile-info-value-empty">No interests set.</span>}
+                : <span className="profile-info-value profile-info-value-empty">No interests set.</span>}
             </div>
           </div>
           <div className="field">

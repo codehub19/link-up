@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../state/AuthContext";
+import { requestForToken, updateProfileAndStatus as updateProfile } from "../firebase"; // reusing updateProfileAndStatus as updateProfile for convenience or import correct one
 
 export function NotificationPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     if ("Notification" in window && Notification.permission !== "granted") {
@@ -34,7 +37,16 @@ export function NotificationPrompt() {
       <button style={{
         background: "#ff5d7c", color: "#fff", border: "none",
         borderRadius: 4, marginLeft: 12, padding: "4px 12px", cursor: "pointer"
-      }} onClick={requestPermission}>Enable</button>
+      }} onClick={() => {
+        requestPermission().then(async () => {
+          if (user) {
+            const token = await requestForToken();
+            if (token) {
+              await updateProfile(user.uid, { fcmToken: token });
+            }
+          }
+        })
+      }}>Enable</button>
     </div>
   );
 }

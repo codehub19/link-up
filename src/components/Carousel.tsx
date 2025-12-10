@@ -104,7 +104,7 @@ export default function Carousel({
     drag.current.pointerId = e.pointerId
     try {
       (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId)
-    } catch {}
+    } catch { }
   }
 
   const onPointerMove: React.PointerEventHandler<HTMLDivElement> = (e) => {
@@ -205,6 +205,73 @@ export default function Carousel({
       </div>
 
       <button className="deck-btn right" onClick={next} aria-label="Next">›</button>
+      <style>{`
+        .deck-wrap {
+          position: relative;
+          overflow: hidden;
+          padding: 24px 0;
+          user-select: none;
+          touch-action: pan-y;
+        }
+        .deck-stage {
+          position: relative;
+          width: 100%;
+          perspective: 1000px;
+          transform-style: preserve-3d;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          /* Important: prevent vertical stacking of items */
+        }
+        .deck-item {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          /* transform is handled inline */
+          transform-origin: center center;
+          will-change: transform, opacity;
+          box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+          border-radius: 18px; /* match card radius */
+        }
+        .deck-item-inner {
+          width: 100%;
+          height: 100%;
+          position: relative;
+          overflow: hidden;
+          border-radius: 18px;
+          background: #1a1a22;
+        }
+        .deck-btn {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 2000;
+          background: rgba(255,255,255,0.1);
+          border: none;
+          color: white;
+          font-size: 2rem;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.2s;
+        }
+        .deck-btn:hover { background: rgba(255,255,255,0.2); }
+        .deck-btn.left { left: 10px; }
+        .deck-btn.right { right: 10px; }
+        
+        @media (max-width: 640px) {
+          .deck-btn {
+            display: none; /* Hide buttons on mobile if requested */
+          }
+          .deck-item.is-behind {
+             /* pointer-events already none inline */
+          }
+        }
+      `}</style>
     </div>
   )
 }
