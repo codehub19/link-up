@@ -1,136 +1,171 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
+import { motion } from 'framer-motion'
 
-export default function AudioPlayer({ src, mine }: { src: string, mine: boolean }) {
-    const audioRef = useRef<HTMLAudioElement>(null)
-    const [isPlaying, setIsPlaying] = useState(false)
-    const [progress, setProgress] = useState(0)
-    const [duration, setDuration] = useState(0)
-    const [currentTime, setCurrentTime] = useState(0)
+export default function AudioPlayer({ src, mine, duration: propDuration }: { src: string, mine: boolean, duration?: number }) {
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [duration, setDuration] = useState(propDuration || 0)
+  const [currentTime, setCurrentTime] = useState(0)
 
-    useEffect(() => {
-        const audio = audioRef.current
-        if (!audio) return
+  // Generate stable random heights for the waveform bars
+  const bars = useMemo(() => Array.from({ length: 24 }).map(() => Math.max(0.3, Math.random())), [])
 
-        const onTimeUpdate = () => {
-            if (audio.duration && Number.isFinite(audio.duration)) {
-                setProgress((audio.currentTime / audio.duration) * 100)
-                setCurrentTime(audio.currentTime)
-            } else {
-                setProgress(0)
-                setCurrentTime(audio.currentTime || 0)
-            }
-        }
+  useEffect(() => {
+    if (propDuration) {
+      setDuration(propDuration)
+    }
+  }, [propDuration])
 
-        const onLoadedMetadata = () => {
-            if (Number.isFinite(audio.duration)) {
-                setDuration(audio.duration)
-            } else {
-                // If duration is Infinity (streaming/loading), we might not be able to set it yet.
-                // But for static files it usually loads.
-                setDuration(0)
-            }
-        }
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
 
-        const onEnded = () => {
-            setIsPlaying(false)
-            setProgress(0)
-            setCurrentTime(0)
-        }
+    const onTimeUpdate = () => {
+      // Use propDuration if available, otherwise audio.duration
+      const d = propDuration || audio.duration
+      if (d && Number.isFinite(d)) {
+        // Update internal duration state if we didn't have it
+        if (!propDuration && d !== duration) setDuration(d)
 
-        audio.addEventListener('timeupdate', onTimeUpdate)
-        audio.addEventListener('loadedmetadata', onLoadedMetadata)
-        audio.addEventListener('ended', onEnded)
-
-        return () => {
-            audio.removeEventListener('timeupdate', onTimeUpdate)
-            audio.removeEventListener('loadedmetadata', onLoadedMetadata)
-            audio.removeEventListener('ended', onEnded)
-        }
-    }, [])
-
-    // Fallback if duration is Infinity on some browsers until played
-    useEffect(() => {
-        const audio = audioRef.current;
-        if (audio && Number.isFinite(audio.duration)) {
-            setDuration(audio.duration);
-        }
-    })
-
-    const togglePlay = () => {
-        const audio = audioRef.current
-        if (!audio) return
-
-        if (isPlaying) {
-            audio.pause()
-        } else {
-            audio.play()
-        }
-        setIsPlaying(!isPlaying)
+        setProgress((audio.currentTime / d) * 100)
+        setCurrentTime(audio.currentTime)
+      } else {
+        setProgress(0)
+        setCurrentTime(audio.currentTime || 0)
+      }
     }
 
-    const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const audio = audioRef.current
-        if (!audio || !Number.isFinite(duration) || duration === 0) return
-        const val = Number(e.target.value)
-        const time = (val / 100) * duration
-        audio.currentTime = time
-        setProgress(val)
+    const onLoadedMetadata = () => {
+      const d = propDuration || audio.duration
+      if (Number.isFinite(d)) {
+        setDuration(d)
+      }
     }
 
-    const formatTime = (t: number) => {
-        if (!Number.isFinite(t) || t < 0) return '0:00'
-        const min = Math.floor(t / 60)
-        const sec = Math.floor(t % 60)
-        return `${min}:${sec.toString().padStart(2, '0')}`
+    const onEnded = () => {
+      setIsPlaying(false)
+      setProgress(0)
+      setCurrentTime(0)
     }
 
-    return (
-        <div className={`audio-player ${mine ? 'mine' : 'theirs'}`}>
-            <audio ref={audioRef} src={src} preload="metadata" />
+    audio.addEventListener('timeupdate', onTimeUpdate)
+    audio.addEventListener('loadedmetadata', onLoadedMetadata)
+    audio.addEventListener('ended', onEnded)
 
-            <button className="play-btn" onClick={togglePlay} type="button">
-                {isPlaying ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                        <rect x="6" y="4" width="4" height="16"></rect>
-                        <rect x="14" y="4" width="4" height="16"></rect>
-                    </svg>
-                ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
-                )}
-            </button>
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate)
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata)
+      audio.removeEventListener('ended', onEnded)
+    }
+  }, [duration, propDuration])
 
-            <div className="track-container">
-                <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={progress}
-                    onChange={handleSeek}
-                    className="seek-slider"
-                    style={{
-                        backgroundSize: `${progress}% 100%`
-                    }}
-                />
-                <div className="time-info">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>{formatTime(duration)}</span>
-                </div>
-            </div>
+  // Fix infinite duration issue
+  useEffect(() => {
+    const audio = audioRef.current
+    if (audio && !propDuration && Number.isFinite(audio.duration)) {
+      setDuration(audio.duration)
+    }
+  })
 
-            <style>{`
-        .audio-player {
+  // ... (togglePlay and handleSeek remain mostly the same but use 'duration' state) ...
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const audio = audioRef.current
+    if (!audio) return
+
+    if (isPlaying) {
+      audio.pause()
+    } else {
+      audio.play()
+    }
+    setIsPlaying(!isPlaying)
+  }
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    const audio = audioRef.current
+    // Use 'duration' state which is either prop or loaded
+    if (!audio || !Number.isFinite(duration) || duration === 0) return
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const percentage = Math.max(0, Math.min(1, x / rect.width))
+
+    const time = percentage * duration
+    audio.currentTime = time
+    setProgress(percentage * 100)
+  }
+
+  const formatTime = (t: number) => {
+    if (!Number.isFinite(t) || t < 0) return '0:00'
+    const min = Math.floor(t / 60)
+    const sec = Math.floor(t % 60)
+    return `${min}:${sec.toString().padStart(2, '0')}`
+  }
+
+  return (
+    <div className={`audio-player-modern ${mine ? 'mine' : 'theirs'}`} onClick={(e) => e.stopPropagation()}>
+      <audio ref={audioRef} src={src} preload="metadata" />
+
+      <button className="play-btn" onClick={togglePlay} type="button">
+        {isPlaying ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16" rx="1" />
+            <rect x="14" y="4" width="4" height="16" rx="1" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: 2 }}>
+            <path d="M5 3L19 12L5 21V3Z" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </button>
+
+      <div className="waveform-container" onClick={handleSeek}>
+        <div className="waveform">
+          {bars.map((height, i) => {
+            const barPercent = (i / bars.length) * 100
+            const isFilled = barPercent <= progress
+
+            return (
+              <motion.div
+                key={i}
+                className={`bar ${isFilled ? 'filled' : ''}`}
+                animate={{
+                  height: isPlaying ? [12 * height, 24 * height, 12 * height] : 16 * height,
+                  opacity: isFilled ? 1 : 0.5
+                }}
+                transition={{
+                  duration: 0.8,
+                  repeat: isPlaying ? Infinity : 0,
+                  repeatType: "reverse",
+                  delay: i * 0.05,
+                  ease: "easeInOut"
+                }}
+              />
+            )
+          })}
+        </div>
+        <div className="time-info">
+          <span>{formatTime(currentTime)}</span>
+          <span style={{ margin: '0 2px', opacity: 0.6 }}>/</span>
+          <span>{formatTime(duration)}</span>
+        </div>
+      </div>
+
+      <style>{`
+        .audio-player-modern {
           display: flex;
           align-items: center;
-          gap: 10px;
-          min-width: 180px; /* Reduced min-width */
-          width: 100%;
-          padding: 6px 0;
+          gap: 12px;
+          padding: 4px 0;
+          min-width: 160px;
+          user-select: none;
         }
+
         .play-btn {
-          width: 30px;
-          height: 30px;
+          width: 38px;
+          height: 38px;
           border-radius: 50%;
           border: none;
           display: flex;
@@ -138,59 +173,84 @@ export default function AudioPlayer({ src, mine }: { src: string, mine: boolean 
           justify-content: center;
           cursor: pointer;
           flex-shrink: 0;
-          background: ${mine ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)'};
+          transition: all 0.2s ease;
+          background: rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(4px);
           color: white;
-          transition: background 0.2s;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
-        .play-btn:hover {
-          background: ${mine ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)'};
+        
+        .play-btn:active {
+          transform: scale(0.95);
         }
-        .track-container {
+
+        .waveform-container {
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 4px;
-          min-width: 0; /* Important for flex child to shrink */
-        }
-        .seek-slider {
-          -webkit-appearance: none;
-          width: 100%;
-          height: 4px;
-          border-radius: 2px;
-          background: ${mine ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'};
-          outline: none;
+          justify-content: center;
           cursor: pointer;
+          height: 100%;
           position: relative;
+          padding: 4px 0;
         }
-        /* Progress Fill Trace */
-        .seek-slider::-webkit-slider-runnable-track {
-            background: transparent;
-        }
-        .seek-slider::-moz-range-track {
-            background: transparent;
-        }
-        
-        .seek-slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          background: white;
-          cursor: pointer;
-          margin-top: -3px; /* Center thumb on track */
-          box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
-        .time-info {
+
+        .waveform {
           display: flex;
-          justify-content: space-between;
-          font-size: 0.65rem;
-          color: rgba(255,255,255,0.8);
-          font-family: monospace;
-          line-height: 1;
-          pointer-events: none;
+          align-items: center;
+          gap: 3px;
+          height: 28px;
+        }
+
+        .bar {
+          width: 3px;
+          border-radius: 99px;
+          background: rgba(255, 255, 255, 0.4);
+          transition: background 0.2s;
+        }
+
+        .time-info {
+           position: absolute;
+           bottom: -14px;
+           left: 0;
+           font-size: 10px;
+           opacity: 0.8;
+           font-weight: 500;
+           pointer-events: none;
+        }
+
+        /* Theming */
+        .audio-player-modern.mine .play-btn {
+          background: rgba(255, 255, 255, 0.25);
+        }
+        .audio-player-modern.mine .play-btn:hover {
+          background: rgba(255, 255, 255, 0.35);
+        }
+        .audio-player-modern.mine .bar.filled {
+          background: #fff;
+        }
+        .audio-player-modern.mine .bar {
+          background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Theirs - Dark theme */
+        .audio-player-modern.theirs .play-btn {
+          background: rgba(255, 65, 108, 0.15);
+          color: #ff416c;
+        }
+        .audio-player-modern.theirs .play-btn:hover {
+          background: rgba(255, 65, 108, 0.25);
+        }
+        .audio-player-modern.theirs .bar.filled {
+          background: #ff416c; /* Brand pink */
+        }
+        .audio-player-modern.theirs .bar {
+          background: rgba(255, 255, 255, 0.15); 
+        }
+        .audio-player-modern.theirs .time-info {
+          color: #a6a7bb;
         }
       `}</style>
-        </div>
-    )
+    </div>
+  )
 }

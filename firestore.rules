@@ -145,7 +145,18 @@ service cloud.firestore {
                       && request.resource.data.text is string
                       && request.resource.data.createdAt != null;
 
-        allow update, delete: if isAdmin();
+        allow update: if isAdmin()
+                      || (
+                        request.auth != null
+                        && resource.data.senderUid == request.auth.uid
+                        && request.time < resource.data.createdAt + duration.value(30, 'm')
+                      );
+        allow delete: if isAdmin()
+                      || (
+                        request.auth != null
+                        && resource.data.senderUid == request.auth.uid
+                        && request.time < resource.data.createdAt + duration.value(30, 'm')
+                      );
       }
     }
 

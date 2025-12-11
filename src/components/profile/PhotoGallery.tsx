@@ -1,4 +1,4 @@
-import { Autoplay, Pagination, EffectFade, Zoom } from 'swiper/modules';
+import { Pagination, EffectFade, Zoom } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/pagination';
@@ -15,27 +15,36 @@ export default function PhotoGallery({ photos }: { photos: string[] }) {
     return (
         <div className="photo-gallery-root relative w-full aspect-[3/4] overflow-hidden rounded-xl">
             <Swiper
-                modules={[Autoplay, Pagination, EffectFade, Zoom]}
+                modules={[Pagination, EffectFade, Zoom]}
                 effect="fade"
+                fadeEffect={{ crossFade: true }}
                 spaceBetween={0}
                 slidesPerView={1}
                 pagination={{ clickable: true, dynamicBullets: true }}
-                autoplay={{ delay: 4000, disableOnInteraction: false }}
                 zoom={true}
                 loop={photos.length > 1}
-                className="w-full h-full"
+                className="w-full h-full text-white"
             >
                 {photos.map((url, idx) => (
-                    <SwiperSlide key={idx} className="w-full h-full">
-                        <div className="swiper-zoom-container w-full h-full">
+                    <SwiperSlide key={idx} className="w-full h-full bg-[#1a1a22] overflow-hidden relative">
+                        {/* Blurred Background Layer (Fill empty space) */}
+                        <div
+                            className="absolute inset-0 bg-cover bg-center blur-2xl opacity-60 scale-125 saturate-150 pointer-events-none"
+                            style={{ backgroundImage: `url(${url})` }}
+                        />
+
+                        {/* Shadow Gradient Overlay for contrast */}
+                        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+
+                        {/* Main Image (Centered & Contained) */}
+                        <div className="swiper-zoom-container w-full h-full relative z-10">
                             <img
                                 src={url}
                                 alt={`Profile ${idx}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain drop-shadow-xl"
                                 loading={idx === 0 ? 'eager' : 'lazy'}
                             />
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
                     </SwiperSlide>
                 ))}
             </Swiper>

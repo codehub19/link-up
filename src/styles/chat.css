@@ -346,7 +346,7 @@
 .composer {
   display: flex;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 6px 16px;
   align-items: center;
 }
 
@@ -642,9 +642,9 @@
   .chat-shell {
     grid-template-columns: 1fr;
   }
-  
+
   /* ... existing styles ... */
-  
+
   .chat-shell.mobile .chat-sidebar {
     display: block;
   }
@@ -653,12 +653,19 @@
     display: none;
   }
 
-  .chat-shell.mobile.mobile-chat-open .chat-sidebar {
-    display: none;
-  }
-
   .chat-shell.mobile.mobile-chat-open .chat-main {
     display: flex;
+  }
+
+  .back-btn {
+    display: inline-flex;
+    margin-right: 8px;
+    /* Ensure spacing */
+  }
+
+  /* Header adjustments for mobile */
+  .chat-header {
+    padding: 8px 10px;
   }
 }
 
@@ -667,7 +674,7 @@
   position: relative;
   width: 100%;
   /* allow drag to not be clipped */
-  overflow: visible; 
+  overflow: visible;
   touch-action: pan-y;
 }
 
@@ -681,7 +688,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none; /* Let clicks pass through */
+  pointer-events: none;
+  /* Let clicks pass through */
 }
 
 /* Ensure container doesn't block horizontal gestures */

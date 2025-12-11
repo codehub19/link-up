@@ -80,8 +80,8 @@ export default function Carousel({
     return d
   }
 
-  // swipe is enabled only on desktop/tablet, disabled on mobile
-  const swipeEnabled = !isMobile
+  // Enable swipe on ALL devices per user request
+  const swipeEnabled = true
 
   // drag / swipe
   const drag = useRef({
@@ -170,7 +170,9 @@ export default function Carousel({
             const d = forwardDist(i) // 0 (active), 1 (next), 2, ...
             const isActive = d === 0
 
-            // Mobile: only show active card (others visually hidden)
+            // Mobile: show active, and maybe next/prev slightly for clues?
+            // Currently requested: swipe disabled, arrows visible.
+            // If "carousel is not visible", check if opacity is 0.
             const hideOnMobile = isMobile && !isActive
 
             // Stacking transforms for desktop
@@ -188,7 +190,8 @@ export default function Carousel({
                 key={(ch as any)?.key ?? i}
                 className={`deck-item ${isActive ? 'is-active' : 'is-behind'}`}
                 style={{
-                  width: itemWidth,
+                  width: isMobile ? '90vw' : itemWidth, // Responsive width on mobile
+                  maxWidth: isMobile ? '360px' : undefined,
                   opacity: hideOnMobile ? 0 : opacity,
                   transform: `translate(-50%, -50%) translateX(${translateX}px) translateY(${translateY}px) rotate(${rot}deg) scale(${scale})`,
                   zIndex,
@@ -208,7 +211,7 @@ export default function Carousel({
       <style>{`
         .deck-wrap {
           position: relative;
-          overflow: hidden;
+          overflow: visible; /* Fix clipping of shadows/edges */
           padding: 24px 0;
           user-select: none;
           touch-action: pan-y;

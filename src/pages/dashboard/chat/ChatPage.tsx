@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Navbar from '../../../components/Navbar'
 import { useAuth } from '../../../state/AuthContext'
-import { collection, doc, getDoc, onSnapshot, orderBy, query, where } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, where, updateDoc } from 'firebase/firestore'
 import { db, rtdb } from '../../../firebase'
 import { ref as dbRef, onValue } from 'firebase/database'
 import ChatSidebar from '../../../components/chat/ChatSidebar'
@@ -18,7 +18,13 @@ import FullScreenChat from './FullScreenChat'
 import '../../../styles/chat.css'
 
 type UserDoc = { uid: string; name?: string; photoUrl?: string; instagramId?: string; bio?: string; interests?: string[]; college?: string }
-type ThreadDoc = { id: string; participants: string[]; lastMessage?: { text: string; senderUid: string; at?: any } | null; updatedAt?: any; blocks?: Record<string, boolean>; typing?: Record<string, any>; lastRead?: Record<string, any> }
+type ThreadDoc = {
+  id: string; participants: string[]
+  lastMessage?: { text: string; senderUid: string; at?: any } | null
+  updatedAt?: any
+  createdAt?: any // Add createdAt
+  blocks?: Record<string, boolean>; typing?: Record<string, any>; lastRead?: Record<string, any>
+}
 type MatchDoc = { id: string; participants: string[]; boyUid: string; girlUid: string; status?: string }
 
 function useQuery() { return new URLSearchParams(useLocation().search) }
@@ -65,7 +71,7 @@ export default function ChatPage() {
       orderBy('updatedAt', 'desc')
     )
     const stop = onSnapshot(threadsQ, (snap) => {
-      const ts = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+      const ts = snap.docs.map((d) => ({ id: d.id, ...(d.data({ serverTimestamps: 'estimate' }) as any) }))
       setThreads(ts as ThreadDoc[])
     })
     return () => stop()
@@ -129,29 +135,95 @@ export default function ChatPage() {
     run()
   }, [user, matches, threads])
 
+  // Self-healing: if a thread has no lastMessage (but should), try to fetch it and update the doc
+  useEffect(() => {
+    if (!user || threads.length === 0) return
+    threads.forEach(async (t) => {
+      if (!t.lastMessage) {
+        // Check if there are messages
+        try {
+          const q = query(collection(db, 'threads', t.id, 'messages'), orderBy('createdAt', 'desc'), limit(1))
+          const snap = await getDocs(q)
+          if (!snap.empty) {
+            const last = snap.docs[0].data()
+            // console.log('Fixing thread', t.id, last)
+            const tRef = doc(db, 'threads', t.id)
+            await updateDoc(tRef, {
+              lastMessage: {
+                text: last.type === 'audio' ? '🎤 Audio Message' : last.text,
+                senderUid: last.senderUid,
+                at: last.createdAt
+              },
+              updatedAt: last.createdAt // Also fix updatedAt if needed
+            })
+          }
+        } catch (e) {
+          console.error('Error fixing thread', t.id, e)
+        }
+      }
+    })
+  }, [user, threads])
+
   const list = useMemo(() => {
     if (!user) return []
-    const toMs = (t: any) => (typeof t?.toMillis === 'function' ? t.toMillis() : (t instanceof Date ? t.getTime() : 0))
+    // Helper to extract ms
+    const toMs = (t: any) => {
+      if (!t) return 0
+      if (typeof t.toMillis === 'function') return t.toMillis()
+      if (t instanceof Date) return t.getTime()
+      if (typeof t === 'number') return t
+      if (t.seconds) return t.seconds * 1000 // Firestore timestamp object like
+      return 0
+    }
+
     const threadMap = new Map<string, {
       peerUid: string
       threadId: string
       lastMessage: string
       updatedAt: any
     }>()
+
     matches.forEach((m) => {
       const peerUid = m.participants.find((p: string) => p !== user.uid)!
       const tid = threadIdFor(user.uid, peerUid)
       const t = threads.find((x) => x.id === tid)
+
       if (!threadMap.has(tid)) {
+        // if (t) console.log('DEBUG Thread:', tid, t.lastMessage) // Removed debug
         threadMap.set(tid, {
           peerUid,
           threadId: tid,
           lastMessage: t?.lastMessage?.text || '',
-          updatedAt: (t as any)?.updatedAt || null,
+          updatedAt: t?.updatedAt || t?.createdAt || (m as any).createdAt || 0, // Fallback to match creation
         })
       }
     })
-    return Array.from(threadMap.values()).sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt))
+
+    // Helper to format time
+    const formatListTime = (ms: number) => {
+      if (!ms) return ''
+      const d = new Date(ms)
+      const now = new Date()
+      // If today: HH:MM AM/PM
+      if (d.toDateString() === now.toDateString()) {
+        return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+      }
+      // If yesterday
+      const yesterday = new Date(now)
+      yesterday.setDate(now.getDate() - 1)
+      if (d.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday'
+      }
+      // Else date
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    }
+
+    return Array.from(threadMap.values())
+      .sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt))
+      .map(item => ({
+        ...item,
+        time: formatListTime(toMs(item.updatedAt))
+      }))
   }, [matches, threads, user])
 
   useEffect(() => {
@@ -159,8 +231,10 @@ export default function ChatPage() {
     const init = async () => {
       if (withUid && withUid !== user.uid) {
         const tid = threadIdFor(user.uid, withUid)
+        try {
+          await ensureThread(user.uid, withUid)
+        } catch (e) { console.error('Error ensuring thread', e) }
         setSelectedId(tid)
-        try { await ensureThread(user.uid, withUid) } catch { }
         return
       }
       if (!withUid && !isMobile && list.length > 0 && !selectedId) {
@@ -231,8 +305,9 @@ export default function ChatPage() {
   const selectPeer = useCallback(async (peerUid: string) => {
     if (!user) return
     const tid = threadIdFor(user.uid, peerUid)
-    setSelectedId(tid)
+    // Ensure thread exists before selecting to avoid listener permission errors
     try { await ensureThread(user.uid, peerUid) } catch { }
+    setSelectedId(tid)
     nav(`/dashboard/chat?with=${encodeURIComponent(peerUid)}`, { replace: true })
   }, [nav, user])
 
@@ -321,6 +396,19 @@ export default function ChatPage() {
     setTypingStatus(selectedId, user.uid, isTyping).catch(() => { })
   }, [user, selectedId])
 
+  const handleDelete = useCallback(async (msgId: string) => {
+    if (!user || !selectedId) return
+    if (confirm('Delete this message?')) {
+      // Optimistic remove? Or just wait for snapshot. Snapshot is fast enough.
+      try {
+        await import('../../../services/chat').then(mod => mod.deleteMessage(selectedId, msgId))
+      } catch (e) {
+        console.error('Failed to delete', e)
+        alert('Failed to delete message')
+      }
+    }
+  }, [selectedId, user])
+
   const [replyTo, setReplyTo] = useState<any | null>(null)
 
   const handleReply = (msg: any) => {
@@ -329,6 +417,27 @@ export default function ChatPage() {
 
   const cancelReply = () => {
     setReplyTo(null)
+  }
+
+  const [editingMessage, setEditingMessage] = useState<{ id: string, text: string } | null>(null)
+
+  const handleEdit = (msg: any) => {
+    setEditingMessage({ id: msg.id, text: msg.text })
+  }
+
+  const cancelEdit = () => {
+    setEditingMessage(null)
+  }
+
+  const onEditConfirm = async (id: string, newText: string) => {
+    if (!selectedId) return
+    try {
+      setEditingMessage(null)
+      await import('../../../services/chat').then(mod => mod.editMessage(selectedId, id, newText))
+    } catch (e) {
+      console.error('Failed to edit message', e)
+      alert('Failed to edit message')
+    }
   }
 
   // Deduplicate messages for display
@@ -449,9 +558,18 @@ export default function ChatPage() {
           header={chatHeader}
           disabled={iAmBlocked || iBlockedThem}
           peerTyping={displayTyping}
+          peerAvatar={selectedPeer?.photoUrl}
           onTyping={handleTyping}
           peerLastReadMs={peerLastReadMs}
           onLike={iAmBlocked || iBlockedThem ? undefined : handleLike}
+          onReply={iAmBlocked || iBlockedThem ? undefined : handleReply}
+          onDelete={iAmBlocked || iBlockedThem ? undefined : handleDelete}
+          onEdit={iAmBlocked || iBlockedThem ? undefined : handleEdit}
+          replyTo={replyTo}
+          onCancelReply={cancelReply}
+          editingMessage={editingMessage}
+          onEditConfirm={onEditConfirm}
+          onCancelEdit={cancelEdit}
         />
         <ProfileModal open={showProfile} onClose={() => setShowProfile(false)} user={selectedPeer} />
         <ReportModal
@@ -480,20 +598,17 @@ export default function ChatPage() {
         <div className="chat-area">
           <div className={`chat-shell ${isMobileView ? `mobile ${selectedId ? 'mobile-chat-open' : ''}` : ''}`}>
             <ChatSidebar
-              items={list.map((i) => {
-                const u = users[i.peerUid]
-                const blocked = myBlockedSet.has(i.peerUid)
-                return {
-                  id: i.threadId,
-                  peerUid: i.peerUid,
-                  name: u?.name || 'Unknown',
-                  photoUrl: u?.photoUrl,
-                  instagramId: u?.instagramId,
-                  lastText: blocked ? 'You blocked this user' : (i.lastMessage || 'Say hi 👋'),
-                  active: selectedId === i.threadId,
-                }
-              })}
-              onSelect={(peerUid) => selectPeer(peerUid)}
+              items={list.map(l => ({
+                id: l.threadId,
+                peerUid: l.peerUid,
+                name: users[l.peerUid]?.name || 'User',
+                photoUrl: users[l.peerUid]?.photoUrl,
+                instagramId: users[l.peerUid]?.instagramId,
+                lastText: l.lastMessage,
+                active: l.threadId === selectedId,
+                time: l.time
+              }))}
+              onSelect={selectPeer}
             />
             <div className="chat-main">
               {selectedId ? (
@@ -585,12 +700,18 @@ export default function ChatPage() {
                     onSend={iAmBlocked || iBlockedThem ? () => { } : async (t, a) => onSend(t, a)}
                     disabled={iAmBlocked || iBlockedThem}
                     peerTyping={displayTyping}
+                    peerAvatar={selectedPeer?.photoUrl}
                     onTyping={handleTyping}
                     peerLastReadMs={peerLastReadMs}
                     onLike={iAmBlocked || iBlockedThem ? undefined : handleLike}
                     onReply={iAmBlocked || iBlockedThem ? undefined : handleReply}
+                    onDelete={iAmBlocked || iBlockedThem ? undefined : handleDelete}
+                    onEdit={iAmBlocked || iBlockedThem ? undefined : handleEdit}
                     replyTo={replyTo}
                     onCancelReply={cancelReply}
+                    editingMessage={editingMessage}
+                    onEditConfirm={onEditConfirm}
+                    onCancelEdit={cancelEdit}
                   />
                 </>
               ) : (

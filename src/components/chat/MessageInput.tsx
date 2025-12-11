@@ -7,7 +7,10 @@ export default function MessageInput({
   currentUid,
   onTyping,
   replyTo,
-  onCancelReply
+  onCancelReply,
+  editingMessage,
+  onEditConfirm,
+  onCancelEdit
 }: {
   onSend: (text: string, audio?: { url: string, duration: number }) => void | Promise<void>,
   disabled?: boolean,
@@ -15,6 +18,9 @@ export default function MessageInput({
   onTyping?: (isTyping: boolean) => void,
   replyTo?: { id: string; text: string; senderUid: string; type?: 'text' | 'audio' } | null
   onCancelReply?: () => void
+  editingMessage?: { id: string, text: string } | null
+  onEditConfirm?: (id: string, newText: string) => void
+  onCancelEdit?: () => void
 }) {
   const [text, setText] = useState('')
   const [isRecording, setIsRecording] = useState(false)
@@ -40,6 +46,13 @@ export default function MessageInput({
     }
   }, [replyTo])
 
+  useEffect(() => {
+    if (editingMessage) {
+      setText(editingMessage.text)
+      inputRef.current?.focus()
+    }
+  }, [editingMessage])
+
   const handleTyping = (val: string) => {
     setText(val)
     if (onTyping) {
@@ -59,6 +72,12 @@ export default function MessageInput({
     if (onTyping && typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current)
       onTyping(false)
+    }
+
+    if (editingMessage && onEditConfirm) {
+      onEditConfirm(editingMessage.id, t)
+      setText('')
+      return
     }
 
     onSend(t)
@@ -141,13 +160,13 @@ export default function MessageInput({
 
   return (
     <div className="composer-root">
-      {replyTo && (
-        <div className="reply-banner">
-          <div className="reply-info">
-            <span className="reply-label">Replying to {replyTo.senderUid === currentUid ? 'Yourself' : 'message'}</span>
-            <span className="reply-text text-truncate">{replyTo.type === 'audio' ? '🎤 Audio Message' : replyTo.text}</span>
+      {editingMessage && (
+        <div className="editing-banner">
+          <div className="editing-info">
+            <span className="editing-label">Editing Message</span>
+            <span className="editing-text text-truncate">{editingMessage.text}</span>
           </div>
-          <button className="reply-close" onClick={onCancelReply}>
+          <button className="editing-close" onClick={onCancelEdit}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -234,10 +253,16 @@ export default function MessageInput({
               disabled={disabled}
               onMouseDown={(e) => e.preventDefault()}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
+              {editingMessage ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              )}
             </button>
           )}
         </form>
@@ -250,7 +275,13 @@ export default function MessageInput({
           display: flex;
           flex-direction: column;
         }
-        .reply-banner {
+        .composer {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          width: 100%;
+        }
+        .editing-banner {
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -258,44 +289,33 @@ export default function MessageInput({
           padding: 8px 12px;
           border-radius: 12px;
           margin-bottom: 8px;
-          border-left: 3px solid #ff416c;
-          animation: slideUp 0.2s ease-out;
+          border-left: 3px solid #4da6ff;
         }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .reply-info {
+        .editing-info {
           display: flex;
           flex-direction: column;
           font-size: 0.85rem;
           overflow: hidden;
         }
-        .reply-label {
-          color: #ff416c;
+        .editing-label {
+          color: #4da6ff;
           font-weight: 500;
           font-size: 0.75rem;
         }
-        .reply-text {
+        .editing-text {
           color: rgba(255,255,255,0.7);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        .reply-close {
-          background: transparent;
-          border: none;
-          color: rgba(255,255,255,0.5);
-          cursor: pointer;
-          padding: 4px;
+        .editing-close {
+           background: transparent;
+           border: none;
+           color: rgba(255,255,255,0.5);
+           cursor: pointer;
+           padding: 4px;
         }
-        .reply-close:hover { color: white; }
-        .composer {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          width: 100%;
-        }
+        .editing-close:hover { color: white; }
         .composer-input {
           flex: 1;
           background: #2a2a35 !important;

@@ -96,6 +96,14 @@ export async function markThreadAsRead(threadId: string, uid: string) {
   })
 }
 
+// Basic helper to delete message
+import { deleteDoc } from 'firebase/firestore'
+
+export async function deleteMessage(threadId: string, messageId: string) {
+  const ref = doc(db, 'threads', threadId, 'messages', messageId)
+  await deleteDoc(ref)
+}
+
 export async function toggleLikeMessage(threadId: string, messageId: string, uid: string, currentLikes: string[] = []) {
   const ref = doc(db, 'threads', threadId, 'messages', messageId)
   const isLiked = currentLikes.includes(uid)
@@ -108,4 +116,13 @@ export async function toggleLikeMessage(threadId: string, messageId: string, uid
       likes: [...currentLikes, uid]
     })
   }
+}
+
+export async function editMessage(threadId: string, messageId: string, newText: string) {
+  const ref = doc(db, 'threads', threadId, 'messages', messageId)
+  await updateDoc(ref, {
+    text: newText,
+    isEdited: true,
+    editedAt: serverTimestamp()
+  })
 }

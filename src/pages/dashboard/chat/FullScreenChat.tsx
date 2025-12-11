@@ -17,12 +17,18 @@ export default function FullScreenChat<M extends {
   header,
   disabled,
   peerTyping,
+  peerAvatar,
   onTyping,
   peerLastReadMs,
   onLike,
   onReply,
+  onDelete, // Add onDelete
+  onEdit,
   replyTo,
-  onCancelReply
+  onCancelReply,
+  editingMessage,
+  onEditConfirm,
+  onCancelEdit
 }: {
   currentUid: string
   messages: M[]
@@ -30,12 +36,18 @@ export default function FullScreenChat<M extends {
   header: React.ReactNode
   disabled?: boolean
   peerTyping?: boolean
+  peerAvatar?: string
   onTyping?: (isTyping: boolean) => void
   peerLastReadMs?: number
   onLike?: (msgId: string, currentLikes: string[]) => void
   onReply?: (msg: M) => void
+  onDelete?: (msgId: string) => void // Add type
+  onEdit?: (msg: M) => void
   replyTo?: M | null
   onCancelReply?: () => void
+  editingMessage?: { id: string, text: string } | null
+  onEditConfirm?: (id: string, newText: string) => void
+  onCancelEdit?: () => void
 }) {
   return (
     <div className="fullscreen-chat-root">
@@ -49,12 +61,18 @@ export default function FullScreenChat<M extends {
           onSend={onSend}
           disabled={disabled}
           peerTyping={peerTyping}
+          peerAvatar={peerAvatar}
           onTyping={onTyping}
           peerLastReadMs={peerLastReadMs}
           onLike={onLike}
           onReply={onReply as any}
+          onDelete={onDelete}
+          onEdit={onEdit as any}
           replyTo={replyTo}
           onCancelReply={onCancelReply}
+          editingMessage={editingMessage}
+          onEditConfirm={onEditConfirm}
+          onCancelEdit={onCancelEdit}
         />
       </div>
     </div>

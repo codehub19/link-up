@@ -2,22 +2,30 @@ import React, { useEffect, useState } from 'react'
 import { motion, PanInfo, useAnimation, useMotionValue, useTransform } from 'framer-motion'
 import AudioPlayer from './AudioPlayer'
 
+
 export default function MessageBubble({
-  text, mine, time, audioUrl, isRead, isLiked, onLike, replyTo, onReply
+  text, mine, time, audioUrl, audioDuration, isRead, isLiked, onLike, replyTo, onReply, onDelete, onEdit, createdAtMs
 }: {
   text: string
   mine: boolean
   time?: string
   audioUrl?: string
+  audioDuration?: number
   isRead?: boolean
   isLiked?: boolean
   onLike?: () => void
   replyTo?: { id: string; text: string; senderUid: string; type?: 'text' | 'audio' }
   onReply?: () => void
+  onDelete?: () => void
+  onEdit?: () => void
+  createdAtMs?: number
 }) {
   const [showAnim, setShowAnim] = useState(false)
   const [optimisticLike, setOptimisticLike] = useState(!!isLiked)
+  const [showMenu, setShowMenu] = useState(false)
+
   const controls = useAnimation()
+  const longPressTimer = React.useRef<number>()
 
   // Motion values for swipe
   const x = useMotionValue(0)
@@ -28,6 +36,14 @@ export default function MessageBubble({
   useEffect(() => {
     setOptimisticLike(!!isLiked)
   }, [isLiked])
+
+  // Close menu on click outside
+  useEffect(() => {
+    if (!showMenu) return
+    const close = () => setShowMenu(false)
+    window.addEventListener('click', close)
+    return () => window.removeEventListener('click', close)
+  }, [showMenu])
 
   const handleDoubleClick = () => {
     if (onLike) {
@@ -40,11 +56,23 @@ export default function MessageBubble({
     }
   }
 
+  const handlePointerDown = () => {
+    longPressTimer.current = window.setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(50)
+      setShowMenu(true)
+    }, 500)
+  }
+
+  const handlePointerUpOrLeave = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+    }
+  }
+
   // Manual Swipe Handlers
   const onPan = (event: any, info: PanInfo) => {
+    handlePointerUpOrLeave() // Cancel long press on drag
     if (!onReply) return
-    // Resistive drag: move less than the finger
-    // Max drag: 60px
     if (info.offset.x > 0) {
       const damped = info.offset.x * 0.4
       x.set(Math.min(damped, 60))
@@ -53,16 +81,23 @@ export default function MessageBubble({
 
   const onPanEnd = (event: any, info: PanInfo) => {
     if (!onReply) return
-    // Lower threshold for easier trigger
     if (x.get() > 30) {
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(20)
       }
       onReply()
     }
-    // Spring back
     controls.start({ x: 0, transition: { type: 'spring', stiffness: 500, damping: 30 } })
   }
+
+  const copyText = () => {
+    if (text) {
+      navigator.clipboard.writeText(text)
+    }
+    setShowMenu(false)
+  }
+
+  const canDelete = mine && onDelete && createdAtMs && (Date.now() - createdAtMs < 30 * 60 * 1000)
 
   return (
     <div className={`msg-row ${mine ? 'mine' : 'theirs'}`}>
@@ -85,11 +120,45 @@ export default function MessageBubble({
           layout
           className="bubble"
           onDoubleClick={handleDoubleClick}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUpOrLeave}
+          onPointerLeave={handlePointerUpOrLeave}
           onPan={onPan}
           onPanEnd={onPanEnd}
           animate={controls}
           style={{ x, touchAction: 'pan-y' }}
         >
+          {/* Menu Overlay */}
+          {showMenu && (
+            <div className="msg-menu-overlay" onClick={(e) => e.stopPropagation()}>
+              <div className="menu-backdrop" onClick={() => setShowMenu(false)}></div>
+              <div className={`msg-menu ${mine ? 'mine' : 'theirs'}`}>
+                <button onClick={() => { onReply && onReply(); setShowMenu(false); }}>
+                  <span>Reply</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
+                </button>
+                {text && (
+                  <button onClick={copyText}>
+                    <span>Copy</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                )}
+                {canDelete && onEdit && !audioUrl && (
+                  <button onClick={() => { onEdit(); setShowMenu(false); }}>
+                    <span>Edit</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  </button>
+                )}
+                {canDelete && (
+                  <button className="danger" onClick={() => { onDelete(); setShowMenu(false); }}>
+                    <span>Delete</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {replyTo && (
             <div className={`reply-quote ${mine ? 'mine-quote' : 'theirs-quote'}`}>
               <div className="quote-bar"></div>
@@ -101,7 +170,7 @@ export default function MessageBubble({
           )}
 
           {audioUrl ? (
-            <AudioPlayer src={audioUrl} mine={mine} />
+            <AudioPlayer src={audioUrl} mine={mine} duration={audioDuration} />
           ) : (
             <div className="text">{text}</div>
           )}
@@ -294,6 +363,67 @@ export default function MessageBubble({
           font-size: 0.95rem;
           line-height: 1.4;
         }
+        .msg-menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Let clicks pass through if just overlay logic, but here we want to block */
+            z-index: 100;
+        }
+        .menu-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 99;
+            /* Transparent backdrop to catch clicks */
+        }
+        .msg-menu {
+            position: absolute;
+            bottom: 110%; /* Above message */
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            background: #2a2a35;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            min-width: 140px;
+            z-index: 101;
+            pointer-events: auto;
+            animation: popIn 0.15s ease-out;
+        }
+        .msg-menu.mine { right: 0; left: auto; transform: none; }
+        .msg-menu.theirs { left: 0; transform: none; }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.9) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .msg-menu button {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .msg-menu button:last-child { border-bottom: none; }
+        .msg-menu button:hover { background: rgba(255,255,255,0.1); }
+        .msg-menu button.danger { color: #ff4b2b; }
+        .msg-menu button.danger:hover { background: rgba(255, 75, 43, 0.1); }
       `}</style>
     </div>
   )

@@ -295,25 +295,27 @@ export default function ProfileMiniCard({
           position: relative;
           box-shadow: 0 8px 32px rgba(30,26,54,0.14);
           width: 100%;
-          max-width: 370px;
-          margin: 0 auto;
-          /* FIX: Ensure opaque background and border to hide underlying cards */
+          /* Remove fixed max-width constraint to fit container */
+          /* max-width: 370px; */ 
+          margin: 0;
           background-color: #1a1a22; 
           border: 1px solid #232a38;
-          z-index: 1; /* Ensure stacking context */
+          z-index: 1; 
         }
         .pm-image-area {
           position: relative;
           width: 100%;
-          height: 400px;
-          background: #232a38; /* Fallback for transparency */
+          /* 3:4 Aspect Ratio */
+          aspect-ratio: 3 / 4;
+          height: auto; 
+          background: #232a38; 
         }
         .pm-card-img {
           width: 100%;
           height: 100%;
           object-fit: cover;
           display: block;
-          background: #232a38; /* Placeholder background */
+          background: #232a38;
           border-radius: 18px;
         }
         .pm-progress-bar {
@@ -443,13 +445,104 @@ export default function ProfileMiniCard({
           letter-spacing: 0.01em;
           transition: background 0.2s, color 0.2s;
         }
-        .pm-interest-pill.modern {
-          background: linear-gradient(90deg,#232a38, #22223b);
-          color: #eaeaea;
+        .pm-expanded-header.modern {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 24px 28px 12px 28px;
         }
-        .pm-interest-pill.pink {
-          background: linear-gradient(90deg,#ff5858,#f09819);
+        .pm-card-name.modern {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 1.35rem; /* Larger, more impact */
+          font-weight: 700;
           color: #fff;
+          letter-spacing: -0.02em;
+        }
+        .pm-card-age.modern {
+          font-family: 'Inter', sans-serif;
+          font-weight: 400;
+          font-size: 1.2rem;
+          color: rgba(255, 255, 255, 0.7);
+        }
+        .pm-hidden-name {
+          color: #fff;
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          letter-spacing: -0.01em;
+        }
+        .pm-verified.modern {
+          margin-left: 8px;
+          vertical-align: middle;
+        }
+        .pm-collapse-btn.modern {
+          background: rgba(255, 255, 255, 0.05); /* Subtle glass bg */
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+        .pm-collapse-btn.modern:hover {
+          background: rgba(255, 93, 124, 0.15);
+          border-color: #ff5d7c;
+        }
+        .pm-section.modern {
+          margin: 0 28px 20px 28px;
+          background: none;
+        }
+        .pm-section-label.modern {
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          font-weight: 700;
+          color: #ff5d7c; /* Brand pink */
+          font-family: 'Inter', sans-serif;
+          margin-bottom: 6px;
+          opacity: 0.9;
+        }
+        .pm-section-value.modern {
+          font-size: 1rem;
+          color: #e2e8f0; /* Crisp white-grey */
+          line-height: 1.55;
+          font-weight: 400;
+          font-family: 'Inter', sans-serif;
+        }
+        .pm-ig {
+          color: #1a1a22;
+          background: #ff5d7c;
+          border-radius: 4px;
+          padding: 2px 8px;
+          font-weight: 700;
+          font-size: 0.9rem;
+        }
+        .pm-ig-hidden {
+          color: rgba(255, 255, 255, 0.5);
+          font-style: italic;
+          font-size: 0.9rem;
+        }
+        .pm-interests-row.modern {
+          gap: 8px;
+          margin-top: 4px;
+        }
+        .pm-interest-pill.modern {
+          background: rgba(255, 93, 124, 0.08);
+          color: #ff5d7c;
+          border: 1px solid rgba(255, 93, 124, 0.25);
+          font-weight: 600;
+          padding: 6px 16px;
+          font-size: 0.85rem;
+          border-radius: 100px; /* Full pill */
+          letter-spacing: 0.02em;
+          font-family: 'Inter', sans-serif;
+        }
+        .pm-interest-pill.modern.pink {
+          background: #ff5d7c;
+          color: #fff;
+          border: none;
         }
         .pm-expanded-popup {
           position: fixed;
@@ -483,7 +576,9 @@ export default function ProfileMiniCard({
         }
         .pm-expanded-img {
           width: 100%;
-          height: 400px;
+          aspect-ratio: 3 / 4;
+          height: auto;
+          max-height: 65vh; /* Prevent image from taking up entire vertical space */
           object-fit: cover;
           border-radius: 14px 14px 0 0;
           margin-bottom: 0;
@@ -495,6 +590,7 @@ export default function ProfileMiniCard({
           width: 100%;
           z-index: 10;
         }
+        /* ... existing nav styles ... */
         .pm-expanded-images-carousel .pm-img-nav {
           position: absolute;
           top: 0;
@@ -507,127 +603,27 @@ export default function ProfileMiniCard({
         }
         .pm-expanded-images-carousel .pm-img-nav.left { left: 0; }
         .pm-expanded-images-carousel .pm-img-nav.right { right: 0; }
-        .pm-expanded-header.modern {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          font-size: 1.15rem;
-          font-weight: 800;
-          color: #ff5d7c;
-          padding: 20px 28px 0 28px;
-          letter-spacing: 0.03em;
-        }
-        .pm-card-name.modern, .pm-section-label.modern {
-          font-family: 'Montserrat', 'Inter', 'Segoe UI', sans-serif;
-          font-size: 1.15rem;
-          font-weight: 800;
-          color: #ff5d7c;
-          letter-spacing: 0.02em;
-        }
-        .pm-card-age.modern {
-          font-family: 'Inter', 'Montserrat', 'Segoe UI', sans-serif;
-          font-weight: 700;
-          font-size: 1.03rem;
-          color: #eaeaea;
-          letter-spacing: 0.01em;
-        }
-        .pm-hidden-name {
-          color: #eaeaea;
-          font-family: 'Inter', 'Montserrat', sans-serif;
-          font-weight: 700;
-          opacity: 0.85;
-        }
-        .pm-verified.modern {
-          margin-left: 6px;
-          vertical-align: middle;
-        }
-        .pm-collapse-btn.modern {
-          background: #232a38;
-          border: none;
-          border-radius: 50%;
-          width: 38px;
-          height: 38px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 2px 8px rgba(30,26,54,0.08);
-          transition: background 0.2s;
-        }
-        .pm-collapse-btn.modern:hover, .pm-collapse-btn.modern:focus {
-          background: #ff5d7c;
-        }
-        .pm-collapse-btn.modern svg {
-          display: block;
-        }
-        .pm-section.modern {
-          margin: 0 28px 18px 28px;
-          background: none;
-        }
-        .pm-section-label.modern {
-          font-size: 1.06rem;
-          font-weight: 800;
-          color: #ff5d7c;
-          font-family: 'Montserrat', 'Inter', 'Segoe UI', sans-serif;
-          letter-spacing: 0.02em;
-          margin-bottom: 4px;
-          opacity: 0.95;
-        }
-        .pm-section-value.modern {
-          font-size: 1.05rem;
-          color: #eaeaea;
-          line-height: 1.6;
-          font-weight: 500;
-          font-family: 'Inter', 'Montserrat', 'Segoe UI', sans-serif;
-          background: none;
-        }
-        .pm-ig {
-          color: #fff;
-          background: #ff5d7c;
-          border-radius: 6px;
-          padding: 2px 10px;
-          font-weight: 700;
-          font-size: 1rem;
-          font-family: 'Inter', 'Montserrat', 'Segoe UI', sans-serif;
-        }
-        .pm-ig-hidden {
-          color: #eaeaea;
-          font-weight: 500;
-          font-size: 0.96rem;
-          opacity: 0.7;
-        }
-        .pm-interests-row.modern {
-          gap: 8px;
-        }
-        .pm-interest-pill.modern {
-          background: linear-gradient(90deg,#232a38, #22223b);
-          color: #ff5d7c;
-          border: 1px solid #232a38;
-          font-weight: 700;
-          padding: 4px 14px;
-          font-size: 0.89rem;
-          border-radius: 16px;
-          letter-spacing: 0.04em;
-          font-family: 'Montserrat', 'Inter', 'Segoe UI', sans-serif;
-          transition: background 0.2s, color 0.2s;
-        }
-        .pm-interest-pill.modern.pink {
-          background: linear-gradient(90deg,#ff5858,#f09819);
-          color: #fff;
-        }
+        
+        /* ... header ... */
+        
         @media (max-width: 700px) {
-          .pm-card, .pm-expanded-inner {
-            max-width: 99vw;
+          .pm-card {
+            max-width: 95vw;
           }
-          .pm-image-area, .pm-expanded-img {
-            height: 400px;
+          /* Expanded card should look like a card, centered, with corners */
+          .pm-expanded-inner {
+            max-width: 95vw;
+            width: 95vw;
+            max-height: 90vh;
+            border-radius: 18px; /* Maintain rounded look */
+            margin: auto;
+          }
+          .pm-expanded-popup {
+            align-items: center; /* Center vertically */
+            padding: 20px;
           }
         }
-        @media (max-width: 400px) {
-          .pm-image-area, .pm-expanded-img {
-            height: 400px;
-          }
-        }
+        /* Remove specific height overrides, rely on aspect-ratio */
       `}</style>
     </>
   )
