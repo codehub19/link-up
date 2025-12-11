@@ -412,6 +412,7 @@ export default function ChatPage() {
   const [replyTo, setReplyTo] = useState<any | null>(null)
 
   const handleReply = (msg: any) => {
+    setEditingMessage(null)
     setReplyTo(msg)
   }
 
@@ -422,6 +423,7 @@ export default function ChatPage() {
   const [editingMessage, setEditingMessage] = useState<{ id: string, text: string } | null>(null)
 
   const handleEdit = (msg: any) => {
+    setReplyTo(null)
     setEditingMessage({ id: msg.id, text: msg.text })
   }
 

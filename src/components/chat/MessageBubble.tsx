@@ -4,7 +4,7 @@ import AudioPlayer from './AudioPlayer'
 
 
 export default function MessageBubble({
-  text, mine, time, audioUrl, audioDuration, isRead, isLiked, onLike, replyTo, onReply, onDelete, onEdit, createdAtMs
+  text, mine, time, audioUrl, audioDuration, isRead, isLiked, onLike, replyTo, onReply, onDelete, onEdit, createdAtMs, isEdited
 }: {
   text: string
   mine: boolean
@@ -19,6 +19,7 @@ export default function MessageBubble({
   onDelete?: () => void
   onEdit?: () => void
   createdAtMs?: number
+  isEdited?: boolean
 }) {
   const [showAnim, setShowAnim] = useState(false)
   const [optimisticLike, setOptimisticLike] = useState(!!isLiked)
@@ -176,6 +177,7 @@ export default function MessageBubble({
           )}
           {time && (
             <div className="time-row">
+              {isEdited && <span className="edited-mark">edited</span>}
               <span className="time">{time}</span>
               {mine && (
                 <span className={`read-status ${isRead ? 'read' : ''}`}>
@@ -317,6 +319,12 @@ export default function MessageBubble({
           margin-top: 0 !important;
           text-align: inherit !important;
           opacity: 1 !important;
+        }
+        .edited-mark {
+          font-size: 0.65rem;
+          opacity: 0.7;
+          font-style: italic;
+          margin-right: 4px;
         }
         .msg-row.theirs .time-row {
           justify-content: flex-start;

@@ -12,6 +12,8 @@ type M = {
   audioDuration?: number; // Add duration support
   type?: 'text' | 'audio';
   likes?: string[];
+  isEdited?: boolean;
+  editedAt?: any;
   replyTo?: {
     id: string
     text: string
@@ -137,6 +139,7 @@ export default function ChatWindow({
               onDelete={onDelete ? () => onDelete(m.id) : undefined}
               onEdit={onEdit ? (m.text && !m.audioUrl ? () => onEdit(m) : undefined) : undefined}
               createdAtMs={m.createdAtMs} // Pass creation time for 30min check
+              isEdited={m.isEdited}
             />
           )
         })}
@@ -166,22 +169,6 @@ export default function ChatWindow({
           </button>
         )}
       </div>
-      {replyTo && (
-        <div className="reply-banner-container">
-          <div className="reply-banner">
-            <div className="reply-info">
-              <span className="reply-label">Replying to {replyTo.senderUid === currentUid ? 'Yourself' : 'message'}</span>
-              <span className="reply-text text-truncate">{replyTo.type === 'audio' ? '🎤 Audio Message' : replyTo.text}</span>
-            </div>
-            <button className="reply-close" onClick={onCancelReply}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
       <div className="composer-wrap">
         <MessageInput
           onSend={onSend}
@@ -215,51 +202,7 @@ export default function ChatWindow({
             background: #181821;
             border-top: 1px solid rgba(255,255,255,0.08);
           }
-          .reply-banner-container {
-            background: #181821;
-            padding: 8px 16px 0 16px;
-            border-top: 1px solid rgba(255,255,255,0.08);
-          }
-          .reply-banner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #23232f;
-            padding: 8px 12px;
-            border-radius: 12px;
-            border-left: 3px solid #ff416c;
-            animation: slideUp 0.2s ease-out;
-          }
-          @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          .reply-info {
-            display: flex;
-            flex-direction: column;
-            font-size: 0.85rem;
-            overflow: hidden;
-          }
-          .reply-label {
-            color: #ff416c;
-            font-weight: 500;
-            font-size: 0.75rem;
-          }
-          .reply-text {
-            color: rgba(255,255,255,0.7);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-          .reply-close {
-            background: transparent;
-            border: none;
-            color: rgba(255,255,255,0.5);
-            cursor: pointer;
-            padding: 4px;
-          }
-          .reply-close:hover { color: white; }
-
+          
           .scroll-latest-btn {
             position: absolute;
             right: 60px;

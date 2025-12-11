@@ -12,6 +12,8 @@ export type ChatMessage = {
   audioUrl?: string
   mediaDuration?: number
   likes?: string[]
+  isEdited?: boolean
+  editedAt?: any
   replyTo?: {
     id: string
     text: string
