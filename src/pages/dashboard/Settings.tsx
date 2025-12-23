@@ -237,7 +237,7 @@ export default function SettingsPage() {
       title: 'Help & Support',
       items: [
         { label: 'Help Center', action: () => window.open('/support', '_blank') },
-        { label: 'Contact Us', action: () => window.open('mailto:support@linkup.com') },
+        { label: 'Contact Us', action: () => window.open('mailto:support@dateu.com') },
       ]
     }
   ]
@@ -340,7 +340,7 @@ export default function SettingsPage() {
               Log out
             </button>
             <div className="settings-version">
-              Version 1.0.0 • LinkUp
+              Version 1.0.0 • DateU
             </div>
             <button className="settings-delete-btn" onClick={() => setShowDeleteModal(true)}>
               Delete Account
