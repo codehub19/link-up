@@ -16,6 +16,7 @@ import ReportModal from '../../../components/chat/ReportModal'
 import { blockUser, unblockUser, subscribeAmIBlockedBy, subscribeBlockedUids } from '../../../services/blocks'
 import FullScreenChat from './FullScreenChat'
 import '../../../styles/chat.css'
+import HomeBackground from '../../../components/home/HomeBackground'
 import { useDialog } from '../../../components/ui/Dialog'
 
 type UserDoc = { uid: string; name?: string; photoUrl?: string; instagramId?: string; bio?: string; interests?: string[]; college?: string }
@@ -603,9 +604,18 @@ export default function ChatPage() {
   // Normal desktop layout
   return (
     <>
+      <HomeBackground />
       <Navbar />
-      <div className="container chat-page">
+      <div className="dashboard-container chat-page">
         {isFemale ? <FemaleTabs /> : <MaleTabs />}
+
+        <div className="chat-hero">
+          <h1 className="chat-title text-gradient">Messages</h1>
+          <div className="peers-online-status" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
+            Connect and chat with your matches
+          </div>
+        </div>
+
         <div className="chat-area">
           <div className={`chat-shell ${isMobileView ? `mobile ${selectedId ? 'mobile-chat-open' : ''}` : ''}`}>
             <ChatSidebar

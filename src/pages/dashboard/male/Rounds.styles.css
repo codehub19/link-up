@@ -1,0 +1,147 @@
+/* ==========================================================================
+   Rounds Page Styles
+   ========================================================================== */
+
+/* --- Rounds Hero --- */
+.rounds-hero {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.rounds-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+    color: var(--clr-text-primary);
+}
+
+.rounds-subtitle {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* --- Live Badge --- */
+.live-round-badge {
+    background: linear-gradient(90deg, #e11d48 0%, #f43f5e 100%);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 100px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.9rem;
+    box-shadow: 0 0 20px rgba(244, 63, 94, 0.5);
+    animation: pulse-red 2s infinite;
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(244, 63, 94, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+    }
+}
+
+/* --- Active Banner --- */
+.rounds-info-banner {
+    background: var(--clr-bg-alt);
+    border: 1px solid var(--clr-border-glass);
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: var(--clr-text-secondary);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* --- Carousel Area --- */
+.rounds-carousel-wrapper {
+    margin: 2rem 0;
+    perspective: 1000px;
+    min-height: 500px;
+    /* Reserve space for cards */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- Empty States (Glass Cards) --- */
+.rounds-empty-card {
+    background: var(--clr-bg-alt);
+    border: 1px solid var(--clr-border-glass);
+    border-radius: 24px;
+    padding: 3rem 2rem;
+    text-align: center;
+    max-width: 500px;
+    margin: 3rem auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    backdrop-filter: blur(12px);
+}
+
+.rounds-empty-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--clr-text-primary);
+}
+
+.rounds-empty-text {
+    color: var(--clr-text-muted);
+    line-height: 1.6;
+}
+
+.rounds-action-btn {
+    background: var(--grad-primary);
+    color: white;
+    padding: 0.8rem 2rem;
+    border-radius: 100px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.rounds-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(244, 63, 94, 0.3);
+}
+
+/* --- User Type Tags Used in ProfileMiniCard footer --- */
+.tag-general {
+    font-size: 10px;
+    padding: 2px 8px;
+    background: #3f3f46;
+    color: #cbd5e1;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.tag-college-only {
+    font-size: 10px;
+    padding: 2px 8px;
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .rounds-title {
+        font-size: 2rem;
+    }
+}

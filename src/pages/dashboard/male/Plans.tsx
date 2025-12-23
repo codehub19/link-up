@@ -8,6 +8,8 @@ import { db } from '../../../firebase'
 import { toast } from 'sonner'
 import { listActivePlans, getActiveSubscription, type ActiveSubscription } from '../../../services/subscriptions'
 import { addMaleToActiveRound } from '../../../services/rounds'
+import './Plans.styles.css'
+import HomeBackground from '../../../components/home/HomeBackground'
 
 type Payment = {
   id: string
@@ -16,6 +18,15 @@ type Payment = {
   amount: number
   status: 'pending' | 'approved' | 'rejected' | 'failed'
   updatedAt?: any
+}
+
+// Helper icons
+function CheckIcon() {
+  return (
+    <svg className="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
 }
 
 function slug(s: string) {
@@ -37,8 +48,6 @@ export default function MalePlans() {
   const [paymentStatusByPlan, setPaymentStatusByPlan] = useState<Record<string, Payment['status']>>({})
 
   // Subscriptions view:
-  // - activeByPlan: true when some subscription for that plan is active AND remainingMatches > 0 AND roundsUsed < roundsAllowed
-  // - expiredByPlan: true when any subscription for that plan is expired OR remainingMatches <= 0 OR roundsUsed >= roundsAllowed
   const [activeByPlan, setActiveByPlan] = useState<Record<string, boolean>>({})
   const [expiredByPlan, setExpiredByPlan] = useState<Record<string, boolean>>({})
 
@@ -61,7 +70,7 @@ export default function MalePlans() {
     run()
   }, [user])
 
-  // Track payment status for the user per plan (pending/approved/rejected/failed)
+  // Track payment status for the user per plan
   useEffect(() => {
     if (!user) return
     const qy = query(collection(db, 'payments'), where('uid', '==', user.uid))
@@ -85,7 +94,7 @@ export default function MalePlans() {
     return () => un()
   }, [user])
 
-  // Track subscriptions per plan with remainingMatches and roundsAllowed consideration
+  // Track subscriptions per plan
   useEffect(() => {
     if (!user) return
     const qy = query(collection(db, 'subscriptions'), where('uid', '==', user.uid))
@@ -100,12 +109,11 @@ export default function MalePlans() {
         const remaining = Number(d.remainingMatches ?? 0)
         const status = String(d.status ?? 'active')
         const roundsUsed = Number(d.roundsUsed ?? 0)
-        const roundsAllowed = Number(d.roundsAllowed ?? 1) // use default if missing
+        const roundsAllowed = Number(d.roundsAllowed ?? 1)
 
         const isActiveNow = status === 'active' && remaining > 0 && roundsUsed < roundsAllowed
         if (isActiveNow) activeMap[key] = true
 
-        // Mark expired if explicitly expired OR active but 0 remaining OR roundsUsed >= roundsAllowed
         if (status === 'expired' || (status === 'active' && (remaining <= 0 || roundsUsed >= roundsAllowed))) {
           expiredMap[key] = true
         }
@@ -121,60 +129,72 @@ export default function MalePlans() {
   useEffect(() => {
     if (!user || !sub) return;
     addMaleToActiveRound(user.uid)
-      .catch(e => {});
+      .catch(e => { });
   }, [user, sub]);
 
   const choose = (p: any) => {
     nav(`/pay?planId=${encodeURIComponent(p.id)}&amount=${Number(p.price || p.amount || 0)}`)
   }
 
-  const statusChip = (planId: string) => {
+  const getStatusBadge = (planId: string) => {
     const key = slug(planId)
     const isActive = activeByPlan[key] === true
     const isExpired = expiredByPlan[key] === true
     const pay = paymentStatusByPlan[key]
 
-    if (isActive) return <span className="tag" style={{ background: '#DCFCE7', color: '#166534' }}>Active</span>
-    if (pay === 'pending') return <span className="tag" style={{ background: '#FEF3C7', color: '#92400E' }}>Pending</span>
-    if (pay === 'rejected') return <span className="tag" style={{ background: '#FEE2E2', color: '#991B1B' }}>Rejected</span>
-    if (pay === 'failed') return <span className="tag" style={{ background: '#FEE2E2', color: '#991B1B' }}>Failed</span>
-    if (isExpired) return <span className="tag" style={{ background: '#F3F4F6', color: '#374151' }}>Expired</span>
+    if (isActive) return <span className="status-badge active">Active</span>
+    if (pay === 'pending') return <span className="status-badge pending">Pending</span>
+    if (pay === 'rejected') return <span className="status-badge failed">Rejected</span>
+    if (pay === 'failed') return <span className="status-badge failed">Failed</span>
+    if (isExpired) return <span className="status-badge expired">Expired</span>
     return null
   }
 
-  // Add rounds info to banner if plan exists
-  const roundsInfo = sub?.plan?.roundsAllowed
-    ? ` • Rounds allowed: ${sub.plan.roundsAllowed} • Rounds used: ${sub.roundsUsed ?? 0}`
-    : ''
-
   return (
     <>
+      <HomeBackground />
       <Navbar />
-      <div className="container">
+      <div className="dashboard-container">
         <MaleTabs />
 
-        {sub ? (
-          <div className="banner" style={{ marginBottom: 16 }}>
-            Current plan: <b>{sub.plan?.name ?? sub.planId}</b> • Remaining matches: <b>{sub.remainingMatches}</b>
-            {roundsInfo}
-            {sub.plan?.supportAvailable ? <span style={{ marginLeft: 12 }}>Support included</span> : null}
-            <button className="btn primary" style={{ marginLeft: 12 }} onClick={() => nav('/dashboard/matches')}>
-              Go to Matches
-            </button>
-          </div>
-        ) : (
-          <div className="banner ghost" style={{ marginBottom: 16 }}>
-            No active plan. Choose a plan below to join the next round.
+        <div className="plans-hero">
+          <h1 className="plans-title text-gradient">Choose Your Plan</h1>
+          <p className="plans-subtitle">Unlock exclusive rounds and verified matches.</p>
+        </div>
+
+        {sub && (
+          <div className="active-plan-banner">
+            <div className="banner-content">
+              <div className="banner-title">Current Membership</div>
+              <div className="banner-details">
+                <b>{sub.plan?.name ?? sub.planId}</b>
+                <span style={{ margin: '0 8px', opacity: 0.3 }}>|</span>
+                {sub.remainingMatches} Matches Remaining
+                {sub.plan?.roundsAllowed && (
+                  <>
+                    <span style={{ margin: '0 8px', opacity: 0.3 }}>|</span>
+                    {sub.plan.roundsAllowed - (sub.roundsUsed ?? 0)} Rounds Remaining
+                  </>
+                )}
+              </div>
+              {sub.plan?.supportAvailable && (
+                <div style={{ marginTop: 4, fontSize: '0.85rem', color: '#34d399' }}>✓ Premium Support Included</div>
+              )}
+            </div>
+            <div className="banner-actions">
+              <button className="plan-btn plan-btn-primary" style={{ padding: '0.75rem 1.5rem', width: 'auto' }} onClick={() => nav('/dashboard/matches')}>
+                Go to Matches
+              </button>
+            </div>
           </div>
         )}
 
-        <h2>Available Plans</h2>
         {loading ? (
-          <div>Loading…</div>
+          <div className="loading-state">Loading plans...</div>
         ) : plans.length === 0 ? (
-          <div className="empty">No active plans right now. Please check back later.</div>
+          <div className="empty-state">No active plans available right now.</div>
         ) : (
-          <div className="grid cols-3">
+          <div className="plans-grid">
             {plans.map((p) => {
               const key = slug(p.id)
               const isActive = activeByPlan[key] === true
@@ -184,40 +204,59 @@ export default function MalePlans() {
               const matchCount = (p.matchQuota ?? p.quota ?? 1)
               const roundsAllowed = (p.roundsAllowed ?? 1)
 
-              // CTA rules:
-              // - Active sub → Go to Matches
-              // - Pending payment → Awaiting approval (disabled)
-              // - Otherwise → Buy again (if expired) or Choose plan
               const btnLabel = isActive
-                ? 'Go to Matches'
+                ? 'Current Plan'
                 : isPending
-                ? 'Awaiting approval'
-                : isExpired
-                ? 'Buy again'
-                : 'Choose plan'
+                  ? 'Approval Pending'
+                  : isExpired
+                    ? 'Renew Plan'
+                    : 'Select Plan'
 
               const btnAction = isActive ? () => nav('/dashboard/matches') : () => choose(p)
 
+              const isFeatured = p.isFeatured || false; // Assume property or default
+
               return (
-                <div key={p.id} className="card plan">
-                  <div className="card-body">
-                    <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h3>{p.name}</h3>
-                      {statusChip(p.id)}
-                    </div>
-                    <div className="price">₹{p.price ?? p.amount}</div>
-                    <p className="muted">Includes {matchCount} match{matchCount > 1 ? 'es' : ''} • Up to {roundsAllowed} round{roundsAllowed > 1 ? 's' : ''}</p>
-                    {Array.isArray(p.offers) && p.offers.length ? (
-                      <ul style={{ marginLeft: 16 }}>
-                        {p.offers.map((o: string) => (
-                          <li key={o}>{o}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    {p.supportAvailable ? <div className="tag" style={{ marginTop: 8 }}>Support included</div> : null}
+                <div key={p.id} className={`plan-card ${isActive ? 'featured' : ''}`}>
+                  <div className="plan-header">
+                    <div className="plan-name">{p.name}</div>
+                    {getStatusBadge(p.id)}
                   </div>
-                  <div className="card-footer">
-                    <button className={`btn ${isActive ? '' : 'btn-primary'}`} onClick={btnAction} disabled={isPending}>
+
+                  <div className="plan-price-block">
+                    <span className="plan-price">₹{p.price ?? p.amount}</span>
+                    {/* <span className="plan-period">/ month</span> (optional if recurring) */}
+                  </div>
+
+                  <ul className="plan-features">
+                    <li className="plan-feature-item">
+                      <CheckIcon />
+                      <span>{matchCount} Verified Match{matchCount > 1 ? 'es' : ''}</span>
+                    </li>
+                    <li className="plan-feature-item">
+                      <CheckIcon />
+                      <span>Access to {roundsAllowed} Matching Round{roundsAllowed > 1 ? 's' : ''}</span>
+                    </li>
+                    {Array.isArray(p.offers) && p.offers.map((o: string) => (
+                      <li key={o} className="plan-feature-item">
+                        <CheckIcon />
+                        <span>{o}</span>
+                      </li>
+                    ))}
+                    {p.supportAvailable && (
+                      <li className="plan-feature-item">
+                        <CheckIcon />
+                        <span>Priority Support</span>
+                      </li>
+                    )}
+                  </ul>
+
+                  <div className="plan-actions">
+                    <button
+                      className={`plan-btn ${isActive ? 'plan-btn-outline' : 'plan-btn-primary'}`}
+                      onClick={btnAction}
+                      disabled={isPending}
+                    >
                       {btnLabel}
                     </button>
                   </div>

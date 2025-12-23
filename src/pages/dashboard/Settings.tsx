@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import Navbar from '../../components/Navbar'
+import HomeBackground from '../../components/home/HomeBackground'
 import { useAuth } from '../../state/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { updateProfileAndStatus, requestAccountDeletion, db, getDoc, doc, updateDoc, arrayRemove } from '../../firebase'
 import './dashboard.css'
+import './Settings.styles.css'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { useDialog } from '../../components/ui/Dialog'
 import RangeSlider from '../../components/ui/RangeSlider'
@@ -251,22 +253,23 @@ export default function SettingsPage() {
 
   return (
     <>
+      <HomeBackground />
       <Navbar />
-      <div className="container settings-container">
+      <div className="dashboard-container settings-container">
 
         {/* Header */}
         <div className="settings-header">
           <button className="settings-back-btn" onClick={() => nav(-1)}>
-            ← Back
+            <span>←</span> Back
           </button>
-          <h1>Settings</h1>
+          <h1 className="text-gradient">Settings</h1>
         </div>
 
         <div className="settings-content">
           {sections.map((section, idx) => (
             <div key={idx} className="settings-section">
               <h3 className="settings-section-title">{section.title}</h3>
-              <div className="settings-list setup-card-glass" style={{ padding: 0 }}>
+              <div className="settings-list">
                 {section.items.map((item, i) => (
                   <div key={i} className="settings-item" onClick={item.type === 'slider' ? undefined : item.action}>
                     <div className="settings-item-row-main">
@@ -277,7 +280,7 @@ export default function SettingsPage() {
 
                       {/* Toggle UI */}
                       {item.type === 'toggle' && (
-                        <div className={`settings-toggle ${item.checked ? 'on' : 'off'}`}>
+                        <div className={`settings-toggle ${item.checked ? 'on' : ''}`}>
                           <div className="settings-toggle-knob" />
                         </div>
                       )}
@@ -294,7 +297,7 @@ export default function SettingsPage() {
                         {item.range ? (
                           // Age Range Dual Slider
                           <div className="range-slider-container" style={{ marginTop: 15, marginBottom: 5 }}>
-                            <div className="pref-header" style={{ fontSize: '0.9rem', marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
+                            <div className="pref-header" style={{ fontSize: '0.9rem', marginBottom: 12, display: 'flex', justifyContent: 'space-between', color: '#94a3b8' }}>
                               <span>Min: {item.range[0]}</span>
                               <span>Max: {item.range[1]}</span>
                             </div>
@@ -309,11 +312,7 @@ export default function SettingsPage() {
                         ) : (
                           // Distance Single Slider
                           <div style={{ width: '100%', marginTop: 10 }}>
-                            {/* Keep existing single slider or upgrade it too? Keeping simple for now as requested specifically for Age Range, but native looks okay for single if styled. 
-                                  Actually, let's keep native for single distance for now unless asked, 
-                                  but styling could be improved. 
-                               */ }
-                            <div className="pref-header" style={{ fontSize: '0.9rem', marginBottom: 5 }}>
+                            <div className="pref-header" style={{ fontSize: '0.9rem', marginBottom: 8, color: '#94a3b8' }}>
                               <span>Current: {item.value}</span>
                             </div>
                             <input
@@ -322,7 +321,6 @@ export default function SettingsPage() {
                               value={distance}
                               onChange={(e) => item.onChange?.(parseInt(e.target.value))}
                               className="range-input-single"
-                              style={{ width: '100%' }}
                             />
                           </div>
                         )}
@@ -350,19 +348,25 @@ export default function SettingsPage() {
 
         {/* Delete Account Modal */}
         {showDeleteModal && (
-          <div className="modal-overlay">
-            <div className="modal-content setup-card-glass" style={{ maxWidth: 400, padding: 20 }}>
-              <h2 style={{ color: '#fff', textAlign: 'center' }}>Delete Request</h2>
-              <p style={{ color: '#aaa', textAlign: 'center', marginBottom: 20, fontSize: '0.9rem' }}>
+          <div className="settings-modal-overlay">
+            <div className="settings-modal-content">
+              <h2 style={{ color: '#fff', textAlign: 'center', marginBottom: 12 }}>Delete Request</h2>
+              <p style={{ color: '#94a3b8', textAlign: 'center', marginBottom: 24, fontSize: '0.95rem', lineHeight: '1.5' }}>
                 Please select a reason for leaving. Your account will be queued for permanent deletion in 30 days.
               </p>
 
               <div className="delete-reasons">
                 {['Found a partner', 'Not interested', 'App issues', 'Other'].map(r => (
-                  <div key={r} style={{ marginBottom: 8 }}>
-                    <label className="qa-option" style={{ marginBottom: 0 }}>
-                      <input type="radio" name="reason" checked={deleteReason === r} onChange={() => setDeleteReason(r)} />
-                      <span>{r}</span>
+                  <div key={r} style={{ marginBottom: 10 }}>
+                    <label className="qa-option" style={{ marginBottom: 0, justifyContent: 'flex-start', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px' }}>
+                      <input
+                        type="radio"
+                        name="reason"
+                        checked={deleteReason === r}
+                        onChange={() => setDeleteReason(r)}
+                        style={{ display: 'block', width: 'auto', marginRight: '10px' }}
+                      />
+                      <span style={{ color: '#fff' }}>{r}</span>
                     </label>
                     {r === 'Other' && deleteReason === 'Other' && (
                       <textarea
@@ -370,17 +374,17 @@ export default function SettingsPage() {
                         placeholder="Please specify..."
                         value={otherReason}
                         onChange={e => setOtherReason(e.target.value)}
-                        style={{ marginTop: 8, fontSize: '0.9rem', padding: 10, width: '100%', height: 80 }}
+                        style={{ marginTop: 8, fontSize: '0.9rem', padding: 12, width: '100%', height: 80, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
                       />
                     )}
                   </div>
                 ))}
               </div>
 
-              <div className="modal-actions" style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-                <button className="btn-ghost" onClick={() => setShowDeleteModal(false)}>Cancel</button>
-                <button className="btn-primary" disabled={isDeleting} onClick={handleDeleteRequest}>
-                  {isDeleting ? 'Submitting...' : 'Confirm Deletion'}
+              <div className="modal-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 24 }}>
+                <button className="btn-ghost" onClick={() => setShowDeleteModal(false)} style={{ width: '100%' }}>Cancel</button>
+                <button className="btn-primary" disabled={isDeleting} onClick={handleDeleteRequest} style={{ width: '100%' }}>
+                  {isDeleting ? 'Submitting...' : 'Confirm'}
                 </button>
               </div>
             </div>
@@ -389,21 +393,21 @@ export default function SettingsPage() {
 
         {/* Blocked Users Modal */}
         {showBlockedModal && (
-          <div className="modal-overlay">
-            <div className="modal-content setup-card-glass" style={{ maxWidth: 400, padding: 20, maxHeight: '80vh', overflowY: 'auto' }}>
-              <h2 style={{ color: '#fff', textAlign: 'center' }}>Blocked Users</h2>
-              <button className="close-modal-btn" onClick={() => setShowBlockedModal(false)}>×</button>
+          <div className="settings-modal-overlay">
+            <div className="settings-modal-content" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+              <h2 style={{ color: '#fff', textAlign: 'center', marginBottom: 20 }}>Blocked Users</h2>
+              <button className="settings-close-modal-btn" onClick={() => setShowBlockedModal(false)}>×</button>
 
               {loadingBlocked ? (
                 <LoadingSpinner />
               ) : blockedUsers.length === 0 ? (
-                <p style={{ color: '#aaa', textAlign: 'center', padding: 20 }}>No blocked users.</p>
+                <p style={{ color: '#94a3b8', textAlign: 'center', padding: 20 }}>No blocked users.</p>
               ) : (
                 <div className="blocked-list">
                   {blockedUsers.map(u => (
                     <div key={u.uid} className="blocked-user-row">
-                      <span>{u.name}</span>
-                      <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: '0.8rem' }} onClick={() => unblockUser(u.uid)}>Unblock</button>
+                      <span style={{ fontWeight: 500 }}>{u.name}</span>
+                      <button className="btn-unblock" onClick={() => unblockUser(u.uid)}>Unblock</button>
                     </div>
                   ))}
                 </div>
@@ -412,162 +416,6 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
-
-      <style>{`
-        .settings-container {
-          padding-top: 80px;
-          max-width: 600px;
-          margin: 0 auto;
-          padding-bottom: 40px;
-        }
-        .settings-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 24px;
-            padding: 0 16px;
-          }
-        .settings-back-btn {
-            background: none;
-            border: none;
-            font-size: 16px;
-            color: var(--text-secondary);
-            cursor: pointer;
-        }
-        .settings-header h1 {
-            font-size: 24px;
-            font-weight: 700;
-            color: #fff;
-            margin: 0;
-        }
-        .settings-section-title {
-            color: #9aa0b4;
-            margin-bottom: 10px;
-            padding-left: 10px;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .settings-list {
-            border-radius: 16px;
-            overflow: hidden;
-        }
-        .settings-item {
-            padding: 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-        }
-        .settings-item:last-child { border-bottom: none; }
-        .settings-item-row-main {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-        }
-        .settings-item-label {
-            font-size: 1rem;
-            color: #fff;
-            font-weight: 500;
-        }
-        .settings-item-value {
-            color: #ff5d7c;
-            font-weight: 600;
-            font-size: 0.95rem;
-            margin-left: 10px;
-        }
-        .settings-toggle {
-            width: 50px;
-            height: 28px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 14px;
-            position: relative;
-            transition: 0.3s;
-        }
-        .settings-toggle.on { background: #34c759; }
-        .settings-toggle-knob {
-            width: 24px;
-            height: 24px;
-            background: #fff;
-            border-radius: 50%;
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            transition: 0.3s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .settings-toggle.on .settings-toggle-knob { transform: translateX(22px); }
-        .settings-chevron { color: #555; font-size: 1.2rem; }
-        
-        /* Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(5px);
-            z-index: 999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .modal-content {
-            width: 100%;
-            position: relative;
-        }
-        .close-modal-btn {
-            position: absolute;
-            top: 10px; right: 15px;
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-        .blocked-user-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            color: #fff;
-        }
-
-        .settings-logout-btn {
-           width: 100%;
-           padding: 16px;
-           background: #fff;
-           border: 1px solid #eee;
-           border-radius: 16px;
-           color: #ff3b30;
-           font-weight: 600;
-           font-size: 16px;
-           cursor: pointer;
-           margin-top: 20px;
-        }
-        .settings-version {
-           text-align: center;
-           font-size: 12px;
-           color: var(--text-secondary);
-           margin-top: 16px;
-           margin-bottom: 8px;
-        }
-        .settings-delete-btn {
-           width: 100%;
-           background: none;
-           border: none;
-           color: var(--text-secondary);
-           font-size: 13px;
-           cursor: pointer;
-           text-decoration: underline;
-        }
-        
-        /* Range Sliders reuse setup styles */
-        .range-slider-container { position: relative; width: 100%; }
-        .range-input, .range-input-single { width: 100%; accent-color: #ff5d7c; }
-        
-      `}</style>
     </>
   )
 }

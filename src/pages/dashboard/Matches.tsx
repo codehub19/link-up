@@ -8,6 +8,9 @@ import { Link } from 'react-router-dom'
 import MaleTabs from '../../components/MaleTabs'
 import FemaleTabs from '../../components/FemaleTabs'
 import ProfileMatchCard from '../../components/ProfileMatchCard'
+import HomeBackground from '../../components/home/HomeBackground'
+import './dashboard.css'
+import './Matches.styles.css'
 
 type Match = {
   id: string
@@ -69,44 +72,57 @@ export default function MatchesPage() {
 
   return (
     <>
+      <HomeBackground />
       <Navbar />
-      <div className="container">
-        {profile?.gender === 'male' ? <MaleTabs/> : <FemaleTabs />}
-        <h2 style={{marginTop:24}}>My Connections</h2>
-        <div className="banner" style={{marginBottom:16}}>
-          These are your matches from all rounds. Click a profile to view details or start a chat.
+      <div className="dashboard-container">
+        {profile?.gender === 'male' ? <MaleTabs /> : <FemaleTabs />}
+
+        <div className="matches-hero">
+          <h1 className="matches-title text-gradient">My Connections</h1>
+          <p className="matches-subtitle">Your matches from all rounds.</p>
         </div>
+
+        <div className="matches-info-banner">
+          Click a profile to view details or start a chat with your matches.
+        </div>
+
         {matches.length === 0 ? (
-          <div className="empty">No matches yet.</div>
+          <div className="matches-empty-card">
+            <div className="matches-empty-title">No Matches Yet</div>
+            <p className="matches-empty-text">Join the next matching round to find verified connections!</p>
+            <Link className="matches-action-btn" to="/dashboard/rounds">View Rounds</Link>
+          </div>
         ) : (
-          <div className="grid cols-2" style={{gap:20}}>
+          <div className="matches-grid">
             {(() => {
-  // Build a map: otherUid -> Match (pick the latest match if multiple)
-  const uniqueMatches: Record<string, Match> = {}
-  matches.forEach(m => {
-    const otherUid = m.participants.find((uid: string) => uid !== user?.uid)
-    if (!otherUid) return
-    // If already seen, keep the one with latest createdAt (if available)
-    if (!uniqueMatches[otherUid] || (
-      m.createdAt && uniqueMatches[otherUid].createdAt && m.createdAt.seconds > uniqueMatches[otherUid].createdAt.seconds
-    )) {
-      uniqueMatches[otherUid] = m
-    }
-  })
-  // Only one card per matched user!
-  return Object.entries(uniqueMatches).map(([otherUid, m]) => {
-    const u = users[otherUid]
-    return u ? (
-      <ProfileMatchCard
-        key={u.uid}
-        user={u}
-        footer={
-          <Link className="btn" to={`/dashboard/chat?with=${encodeURIComponent(u.uid)}`}>Chat</Link>
-        }
-      />
-    ) : null
-  })
-})()}
+              // Build a map: otherUid -> Match (pick the latest match if multiple)
+              const uniqueMatches: Record<string, Match> = {}
+              matches.forEach(m => {
+                const otherUid = m.participants.find((uid: string) => uid !== user?.uid)
+                if (!otherUid) return
+                // If already seen, keep the one with latest createdAt (if available)
+                if (!uniqueMatches[otherUid] || (
+                  m.createdAt && uniqueMatches[otherUid].createdAt && m.createdAt.seconds > uniqueMatches[otherUid].createdAt.seconds
+                )) {
+                  uniqueMatches[otherUid] = m
+                }
+              })
+              // Only one card per matched user!
+              return Object.entries(uniqueMatches).map(([otherUid, m]) => {
+                const u = users[otherUid]
+                return u ? (
+                  <ProfileMatchCard
+                    key={u.uid}
+                    user={u}
+                    footer={
+                      <Link className="match-card-action-btn" to={`/dashboard/chat?with=${encodeURIComponent(u.uid)}`}>
+                        Start Chat
+                      </Link>
+                    }
+                  />
+                ) : null
+              })
+            })()}
           </div>
         )}
       </div>

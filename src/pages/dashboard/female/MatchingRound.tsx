@@ -10,6 +10,9 @@ import ProfileMiniCard from '../../../components/ProfileMiniCard'
 import Carousel from '../../../components/Carousel'
 import { toast } from 'sonner'
 import { Link } from 'react-router-dom'
+import HomeBackground from '../../../components/home/HomeBackground'
+import '../male/Rounds.styles.css'
+import '../dashboard.css'
 
 type UserDoc = {
   uid: string
@@ -169,12 +172,18 @@ export default function MatchingRound() {
   if (roundId === null) {
     return (
       <>
+        <HomeBackground />
         <Navbar />
-        <div className="container">
+        <div className="dashboard-container">
           <FemaleTabs />
-          <h2>The next round is coming soon!</h2>
-          <p className="muted">We’ll notify you when it’s live.</p>
-          <Link className="btn" to="/dashboard/connections">My Connections</Link>
+          <div className="rounds-hero">
+            <h1 className="rounds-title">Upcoming Rounds</h1>
+          </div>
+          <div className="rounds-empty-card">
+            <div className="rounds-empty-title">Next Round Coming Soon</div>
+            <p className="rounds-empty-text">We'll notify you when it's live.</p>
+            <Link className="rounds-action-btn" to="/dashboard/connections">View My Connections</Link>
+          </div>
         </div>
       </>
     )
@@ -182,56 +191,98 @@ export default function MatchingRound() {
 
   return (
     <>
+      <HomeBackground />
       <Navbar />
-      <div className="container">
+      <div className="dashboard-container">
         <FemaleTabs />
-        {/* Show round live badge if round is live */}
-        {roundStatus.live && (
-          <div className="badge badge-live" style={{ marginBottom: 12 }}>
-            {roundStatus.phase === 'boys'
-              ? "Boys' Round is LIVE now!"
-              : "Girls' Round is LIVE now!"}
-          </div>
-        )}
-        <div className="banner">Boys who liked you this round. Select and reveal to match!</div>
+
+        <div className="rounds-hero">
+          <h1 className="rounds-title text-gradient">Matching Round</h1>
+          {/* Subheading */}
+          <p className="rounds-subtitle">See who liked you and reveal your match.</p>
+          {/* Show round live badge if round is live */}
+          {roundStatus.live && (
+            <div style={{ marginTop: '1rem' }}>
+              <div className="live-round-badge">
+                {roundStatus.phase === 'boys' ? "Boys' Round Live" : "Girls' Round Live"}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="rounds-info-banner">
+          Boys who liked you this round. Select and reveal to match!
+        </div>
 
         {boyUids.length === 0 ? (
-          <div className="empty">No boys have liked your profile yet this round.</div>
+          <div className="rounds-empty-card" style={{ padding: '2rem' }}>
+            <p className="rounds-empty-text">No boys have liked your profile yet this round.</p>
+          </div>
         ) : boys.length === 0 ? (
-          <div className="empty">Loading profiles…</div>
+          <div className="rounds-empty-card" style={{ padding: '2rem' }}>
+            <p className="rounds-empty-text">Loading profiles...</p>
+          </div>
         ) : (
-          <Carousel onChange={handleCarouselChange}>
-            {boys.map((b, idx) => (
-              <ProfileMiniCard
-                key={b.uid}
-                user={b}
-                expanded={expandedIdx === idx}
-                onExpand={() => setExpandedIdx(idx)}
-                onCollapse={() => setExpandedIdx(null)}
-                footer={
-                  <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 8 }}>
-                    {/* Badges */}
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                      {b.userType === 'general' && <span className="tag" style={{ fontSize: 10, padding: '2px 6px', background: '#eee' }}>General User</span>}
-                      {b.datingPreference === 'college_only' && <span className="tag" style={{ fontSize: 10, padding: '2px 6px', background: '#eef', color: '#00f' }}>College Only</span>}
-                    </div>
+          <div className="rounds-carousel-wrapper">
+            <Carousel onChange={handleCarouselChange}>
+              {boys.map((b, idx) => (
+                <ProfileMiniCard
+                  key={b.uid}
+                  user={b}
+                  expanded={expandedIdx === idx}
+                  onExpand={() => setExpandedIdx(idx)}
+                  onCollapse={() => setExpandedIdx(null)}
+                  footer={
+                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 8 }}>
+                      {/* Badges */}
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                        {b.userType === 'general' && <span className="tag-general">General User</span>}
+                        {b.datingPreference === 'college_only' && <span className="tag-college-only">College Only</span>}
+                      </div>
 
-                    {confirmedBoyUids.has(b.uid) ? (
-                      <div className="tag" style={{ background: "#e8e8e8", color: "#555", textAlign: 'center' }}>Already revealed</div>
-                    ) : (
-                      <button
-                        className="btn primary"
-                        onClick={() => confirm(b.uid)}
-                        disabled={confirmedBoyUids.has(b.uid)}
-                      >
-                        Select & Reveal
-                      </button>
-                    )}
-                  </div>
-                }
-              />
-            ))}
-          </Carousel>
+                      {confirmedBoyUids.has(b.uid) ? (
+                        <button
+                          className="btn ghost"
+                          disabled
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem',
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            border: 'none',
+                            background: 'rgba(255,255,255,0.1)',
+                            color: '#ddd',
+                            marginTop: '8px'
+                          }}
+                        >
+                          Already Revealed
+                        </button>
+                      ) : (
+                        <button
+                          className="btn nav-btn-primary"
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem',
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            border: 'none',
+                            background: 'var(--grad-primary)',
+                            color: 'white',
+                            marginTop: '8px',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => confirm(b.uid)}
+                          disabled={confirmedBoyUids.has(b.uid)}
+                        >
+                          Select & Reveal
+                        </button>
+                      )}
+                    </div>
+                  }
+                />
+              ))}
+            </Carousel>
+          </div>
         )}
       </div>
     </>

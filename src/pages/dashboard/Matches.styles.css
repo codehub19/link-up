@@ -1,0 +1,121 @@
+/* ==========================================================================
+   Matches Page Styles
+   ========================================================================== */
+
+/* --- Matches Hero --- */
+.matches-hero {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.matches-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+    color: var(--clr-text-primary);
+}
+
+.matches-subtitle {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* --- Info Banner --- */
+.matches-info-banner {
+    background: var(--clr-bg-alt);
+    border: 1px solid var(--clr-border-glass);
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: var(--clr-text-secondary);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* --- Matches Grid --- */
+.matches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+    width: 100%;
+}
+
+/* --- Empty States (Glass Cards) --- */
+.matches-empty-card {
+    background: var(--clr-bg-alt);
+    border: 1px solid var(--clr-border-glass);
+    border-radius: 24px;
+    padding: 3rem 2rem;
+    text-align: center;
+    max-width: 500px;
+    margin: 3rem auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    backdrop-filter: blur(12px);
+}
+
+.matches-empty-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--clr-text-primary);
+}
+
+.matches-empty-text {
+    color: var(--clr-text-muted);
+    line-height: 1.6;
+}
+
+.matches-action-btn {
+    background: var(--grad-primary);
+    color: white;
+    padding: 0.8rem 2rem;
+    border-radius: 100px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.matches-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(244, 63, 94, 0.3);
+}
+
+/* --- Card Actions --- */
+.match-card-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 24px;
+    background: #f43f5e;
+    color: white;
+    border-radius: 99px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    width: 100%;
+    box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.2);
+}
+
+.match-card-action-btn:hover {
+    background: #e11d48;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 8px -1px rgba(244, 63, 94, 0.3);
+}
+
+@media (max-width: 768px) {
+    .matches-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .matches-title {
+        font-size: 2rem;
+    }
+}

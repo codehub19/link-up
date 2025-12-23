@@ -12,6 +12,9 @@ import {
 } from "firebase/firestore";
 import LoadingHeart from "../../components/LoadingHeart";
 import Navbar from "../../components/Navbar";
+import HomeBackground from "../../components/home/HomeBackground";
+import "./Notifications.styles.css";
+import "./dashboard.css"; // Ensure global dash styles
 
 type Notification = {
   id: string;
@@ -24,10 +27,29 @@ type Notification = {
   [key: string]: any;
 };
 
-function formatDate(secs?: number) {
+// Helper to format time relative or absolute
+function formatTime(secs?: number) {
   if (!secs) return "";
-  const d = new Date(secs * 1000);
-  return d.toLocaleString();
+  return new Date(secs * 1000).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// Helper for date headers (Today, Yesterday, etc.)
+function getDateHeader(dateStr: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (dateStr === today) return "Today";
+  if (dateStr === yesterday) return "Yesterday";
+  return new Date(dateStr).toLocaleDateString(undefined, {
+    weekday: 'long', month: 'short', day: 'numeric'
+  });
+}
+
+function formatDateKey(secs?: number) {
+  if (!secs) return "";
+  return new Date(secs * 1000).toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
 export default function NotificationsPage() {
@@ -57,8 +79,10 @@ export default function NotificationsPage() {
       );
 
       // Build the notificationsData array explicitly typed
-      const snapPersonal = await getDocs(qPersonal);
-      const snapGlobal = await getDocs(qGlobal);
+      const [snapPersonal, snapGlobal] = await Promise.all([
+        getDocs(qPersonal),
+        getDocs(qGlobal)
+      ]);
 
       const notificationsData: Notification[] = [
         ...snapPersonal.docs.map((doc) => ({
@@ -72,14 +96,8 @@ export default function NotificationsPage() {
       ];
 
       notificationsData.sort((a, b) => {
-        const aTime =
-          a && a.createdAt && typeof a.createdAt.seconds === "number"
-            ? a.createdAt.seconds
-            : 0;
-        const bTime =
-          b && b.createdAt && typeof b.createdAt.seconds === "number"
-            ? b.createdAt.seconds
-            : 0;
+        const aTime = a?.createdAt?.seconds || 0;
+        const bTime = b?.createdAt?.seconds || 0;
         return bTime - aTime;
       });
 
@@ -89,132 +107,83 @@ export default function NotificationsPage() {
     fetchNotifications();
   }, [user?.uid]);
 
+  // Mark as seen logic
   useEffect(() => {
     if (!user?.uid || notifications.length === 0) return;
     notifications.forEach((n) => {
       if (!n.seen && n.userUid === user.uid) {
-        updateDoc(doc(db, "notifications", n.id), { seen: true }).catch(() => {});
+        updateDoc(doc(db, "notifications", n.id), { seen: true }).catch(() => { });
       }
     });
   }, [notifications, user?.uid]);
 
-  // Group by date for better readability
+  // Group by date
   const grouped = notifications.reduce((acc, n) => {
-    const dateStr = formatDate(n.createdAt?.seconds).slice(0, 10); // YYYY-MM-DD
+    const dateStr = formatDateKey(n.createdAt?.seconds);
+    if (!dateStr) return acc;
     if (!acc[dateStr]) acc[dateStr] = [];
     acc[dateStr].push(n);
     return acc;
   }, {} as Record<string, Notification[]>);
 
+  // Sort dates descending
+  const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
   return (
     <>
+      <HomeBackground />
       <Navbar />
-    <div className="container" style={{ maxWidth: "70%", margin: "40px auto 0 auto" }}>
-      <h2 style={{ marginBottom: 18 }}>Notifications</h2>
-      {loading ? (
-        <div className="loading-page-wrapper">
-          <LoadingHeart size={72} />
+      <div className="dashboard-container">
+        <div className="notifications-hero">
+          <h1 className="notifications-title text-gradient">Notifications</h1>
+          <p className="notifications-subtitle">Stay updated with your latest matches and activity.</p>
         </div>
-      ) : notifications.length === 0 ? (
-        <div style={{ color: "#888", marginTop: 32, textAlign: "center" }}>
-          <span style={{ fontSize: 18 }}>No notifications in the last 7 days.</span>
-        </div>
-      ) : (
-        <div>
-          {Object.entries(grouped).map(([date, notifs]) => (
-            <div key={date} style={{ marginBottom: 28 }}>
-              <div
-                style={{
-                  fontWeight: 600,
-                  fontSize: 15,
-                  color: "#ff5d7c",
-                  marginBottom: 10,
-                  marginTop: 18,
-                }}
-              >
-                {date}
-              </div>
-              <ul
-                style={{
-                  padding: 0,
-                  listStyle: "none",
-                  marginRight: 0,
-                  marginLeft: 0,
-                }}
-              >
-                {notifs.map((n) => (
-                  <li
-                    key={n.id}
-                    style={{
-                      margin: "18px 0",
-                      background: n.seen ? "#232a38" : "#2d3748",
-                      color: "#fff",
-                      borderRadius: 12,
-                      padding: "12px 16px",
-                      boxShadow: "0 2px 8px #0002",
-                      position: "relative",
-                      opacity: n.seen ? 0.85 : 1,
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, fontSize: 17 }}>
-                      {n.title}
-                      {n.userUid === null && (
-                        <span
-                          style={{
-                            fontSize: 12,
-                            marginLeft: 8,
-                            color: "#90caf9",
-                            background: "#232a38",
-                            borderRadius: 4,
-                            padding: "2px 6px",
-                          }}
-                        >
-                          Group
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ marginTop: 6 }}>{n.body}</div>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        color: "#90caf9",
-                        marginTop: 6,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span>
-                        {n.createdAt && typeof n.createdAt.seconds === "number"
-                          ? new Date(n.createdAt.seconds * 1000).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : ""}
-                      </span>
-                      {!n.seen && (
-                        <span
-                          style={{
-                            marginLeft: 10,
-                            color: "#fff",
-                            background: "#ff5d7c",
-                            borderRadius: 6,
-                            padding: "2px 8px",
-                            fontSize: 12,
-                          }}
-                        >
-                          New
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-    </>
 
+        {loading ? (
+          <div className="loading-wrapper">
+            <LoadingHeart size={64} />
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="empty-notifications">
+            <p>No notifications in the last 7 days.</p>
+          </div>
+        ) : (
+          <div>
+            {sortedDates.map((date) => (
+              <div key={date}>
+                <div className="notification-group-title">
+                  {getDateHeader(date)}
+                </div>
+                <ul className="notification-list">
+                  {grouped[date].map((n) => (
+                    <li key={n.id} className={`notification-card ${!n.seen ? 'unread' : ''}`}>
+                      <div className="notif-header">
+                        <div className="notif-title">
+                          {n.title}
+                          {n.userUid === null && (
+                            <span className="badge-group">Group</span>
+                          )}
+                        </div>
+                        {!n.seen && (
+                          <span className="badge-new">New</span>
+                        )}
+                      </div>
+
+                      <div className="notif-body">
+                        {n.body}
+                      </div>
+
+                      <div className="notif-meta">
+                        {formatTime(n.createdAt?.seconds)}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

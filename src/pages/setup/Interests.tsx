@@ -7,7 +7,7 @@ import './setup.styles.css'
 
 type Props = { embedded?: boolean; onComplete?: () => void }
 
-const ALL = ['Design','Music','Gaming','Fitness','Travel','Photography','Startups','Reading','Dance','Coding','Art','Volunteering','Food','Movies','Outdoors']
+const ALL = ['Design', 'Music', 'Gaming', 'Fitness', 'Travel', 'Photography', 'Startups', 'Reading', 'Dance', 'Coding', 'Art', 'Volunteering', 'Food', 'Movies', 'Outdoors']
 
 export default function Interests({ embedded, onComplete }: Props) {
   const { user, profile, refreshProfile } = useAuth()
@@ -59,7 +59,7 @@ export default function Interests({ embedded, onComplete }: Props) {
           </div>
           <div className="chips-count">{picked.length}/5 selected</div>
           <div className="setup-card-footer">
-            <button className="btn-primary-lg" disabled={picked.length===0 || saving} onClick={save}>
+            <button className="btn-primary-lg" disabled={picked.length === 0 || saving} onClick={save}>
               {saving ? 'Saving…' : 'Continue'}
             </button>
           </div>

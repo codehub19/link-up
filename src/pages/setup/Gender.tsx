@@ -35,10 +35,10 @@ export default function Gender({ embedded, onComplete }: Props) {
           <h1 className="setup-title">Your Gender</h1>
           <p className="setup-sub">Select one to continue.</p>
           <div className="gender-grid">
-            <button className={`gender-pill ${sel==='male'?'is-selected':''}`} onClick={()=>setSel('male')}>
+            <button className={`gender-pill ${sel === 'male' ? 'is-selected' : ''}`} onClick={() => setSel('male')}>
               <span className="gender-label">Male</span>
             </button>
-            <button className={`gender-pill ${sel==='female'?'is-selected':''}`} onClick={()=>setSel('female')}>
+            <button className={`gender-pill ${sel === 'female' ? 'is-selected' : ''}`} onClick={() => setSel('female')}>
               <span className="gender-label">Female</span>
             </button>
           </div>

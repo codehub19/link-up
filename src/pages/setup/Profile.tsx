@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Navbar from '../../components/Navbar'
+import HomeBackground from '../../components/home/HomeBackground'
 import { useAuth } from '../../state/AuthContext'
 import { normalizeProfile } from '../../firebase'
 import './setup.styles.css'
@@ -46,8 +47,6 @@ export default function ProfileWizard() {
   useEffect(() => {
     const next = derive(profile)
     setStep(next)
-    // Debug
-    // console.log('[Wizard] profile:', profile, 'derived:', next)
   }, [profile])
 
   if (loading) return null
@@ -99,6 +98,7 @@ export default function ProfileWizard() {
 
   return (
     <>
+      <HomeBackground />
       <Navbar />
       <div className="setup-wrap">
         <div className="setup-top">
@@ -107,7 +107,6 @@ export default function ProfileWizard() {
             onClick={back}
             disabled={!canBack}
             aria-label="Back"
-            style={!canBack ? { opacity: 0.3, cursor: 'default' } : undefined}
           >←</button>
           <div className="setup-progress">
             <div className="setup-progress-bar" style={{ width: `${progress}%` }} />

@@ -2,37 +2,38 @@
 /* Timeline (Why It Works)                                                    */
 /* ========================================================================== */
 :root {
-  --why-grad-bg: linear-gradient(180deg,#130b0f 80%,#1a1015 100%);
+  --why-grad-bg: linear-gradient(180deg, #130b0f 80%, #1a1015 100%);
   --why-card-bg: rgba(34, 18, 25, 0.78);
-  --why-card-border: 1.2px solid rgba(255,65,108,0.13);
+  --why-card-border: 1.2px solid rgba(255, 65, 108, 0.13);
   --why-card-radius: 18px;
   --why-card-shadow: 0 4px 18px -10px #ff416c22;
   --why-dot-size: 34px;
-  --why-dot-grad: linear-gradient(135deg,#ff416c,#ff8f48 80%);
+  --why-dot-grad: linear-gradient(135deg, #ff416c, #ff8f48 80%);
   --why-flowline-width: 3px;
-  --why-flowline-grad: linear-gradient(180deg,#ff416c 0%,#ff8f48 100%);
+  --why-flowline-grad: linear-gradient(180deg, #ff416c 0%, #ff8f48 100%);
 }
 
 .why-works-minimal {
   overflow: hidden;
-  background: var(--why-grad-bg);
-  padding: clamp(56px,9vw,110px) 0;
+  background: transparent;
+  padding: clamp(56px, 9vw, 110px) 0;
   position: relative;
 }
 
 .why-works-title {
   text-align: center;
   margin: 0 0 12px;
-  font-size: clamp(2rem,3rem,3.3rem);
-  background: linear-gradient(90deg,#fff,#fde5e7);
-  -webkit-background-clip:text; color:transparent;
+  font-size: clamp(2rem, 3rem, 3.3rem);
+  background: linear-gradient(90deg, #fff, #fde5e7);
+  -webkit-background-clip: text;
+  color: transparent;
   font-weight: 700;
 }
 
 .why-works-sub {
   text-align: center;
   margin: 0 auto 46px;
-  color: var(--clr-text-soft,#d9cfd7);
+  color: var(--clr-text-soft, #d9cfd7);
   max-width: 54ch;
   font-size: 1.08rem;
 }
@@ -59,9 +60,17 @@
   z-index: 1;
   animation: why-flow-pulse 2.6s linear infinite;
 }
+
 @keyframes why-flow-pulse {
-  0%,100% { filter: brightness(1);}
-  50% { filter: brightness(1.15);}
+
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+
+  50% {
+    filter: brightness(1.15);
+  }
 }
 
 .why-works-step {
@@ -70,12 +79,23 @@
   gap: 20px;
   position: relative;
   min-height: 60px;
-  animation: why-step-in 0.7s cubic-bezier(.19,1,.22,1) backwards;
+  animation: why-step-in 0.7s cubic-bezier(.19, 1, .22, 1) backwards;
 }
+
 @keyframes why-step-in {
-  0% { opacity: 0; transform: translateY(28px) scale(0.97);}
-  70% { opacity: 1;}
-  100% { opacity: 1; transform: translateY(0) scale(1);}
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+  }
+
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .why-works-dot {
@@ -101,16 +121,27 @@
   border-radius: 50%;
   background: var(--why-dot-grad);
   box-shadow: 0 2px 12px -6px #ff416c36;
-  border: 1.3px solid rgba(255,65,108,0.16);
+  border: 1.3px solid rgba(255, 65, 108, 0.16);
   transition: box-shadow .18s;
   position: relative;
   z-index: 2;
-  animation: why-dot-pop 0.7s cubic-bezier(.19,1,.22,1) backwards;
+  animation: why-dot-pop 0.7s cubic-bezier(.19, 1, .22, 1) backwards;
 }
+
 @keyframes why-dot-pop {
-  0% { opacity: 0; transform: scale(0.8);}
-  70% { opacity: 1;}
-  100% { opacity: 1; transform: scale(1);}
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .why-works-card {
@@ -135,26 +166,26 @@
   margin-bottom: 6px;
   color: #fff;
   letter-spacing: 0.01em;
-  background: linear-gradient(90deg,#fff,#ffd9cc 80%);
+  background: linear-gradient(90deg, #fff, #ffd9cc 80%);
   -webkit-background-clip: text;
   color: transparent;
 }
 
 .why-works-step-text {
   font-size: 0.95rem;
-  color: var(--clr-text-soft,#d9cfd7);
+  color: var(--clr-text-soft, #d9cfd7);
   line-height: 1.5;
   letter-spacing: 0.01em;
 }
 
 
-.container h2{
+.container h2 {
   margin: 0 0 10px;
   /* font-size: clamp(2.2rem, 5vw, 3.1rem);
   font-weight: 700; */
   letter-spacing: .5px;
   line-height: 1.05;
-  background: linear-gradient(90deg,#fff,#f2e9ea 30%,#fff);
+  background: linear-gradient(90deg, #fff, #f2e9ea 30%, #fff);
   -webkit-background-clip: text;
   color: transparent;
 }
@@ -164,18 +195,32 @@
     gap: 22px;
     max-width: 98vw;
   }
+
   .why-works-dot {
-    width: 26px; min-width: 26px; height: 26px;
+    width: 26px;
+    min-width: 26px;
+    height: 26px;
   }
+
   .why-works-dot-inner {
-    width: 26px; height: 26px; font-size: 0.93rem;
+    width: 26px;
+    height: 26px;
+    font-size: 0.93rem;
   }
+
   .why-works-card {
     padding: 12px 9px 10px 9px;
-    min-width: 0; max-width: 98vw;
+    min-width: 0;
+    max-width: 98vw;
   }
-  .why-works-step-title { font-size: 0.99rem; }
-  .why-works-step-text { font-size: 0.89rem; }
+
+  .why-works-step-title {
+    font-size: 0.99rem;
+  }
+
+  .why-works-step-text {
+    font-size: 0.89rem;
+  }
 }
 
 
@@ -185,16 +230,19 @@
     font-size: 1.35rem;
     margin-bottom: 12px;
   }
+
   .why-works-sub {
     font-size: .98rem;
     margin-bottom: 22px;
     padding: 0 4px;
   }
+
   .why-works-timeline {
     gap: 16px;
     max-width: 100vw;
     padding-left: 0;
   }
+
   .why-works-step {
     flex-direction: row;
     align-items: flex-start;
@@ -203,13 +251,20 @@
     margin-bottom: 0;
     width: 100%;
   }
+
   .why-works-dot {
-    width: 22px; min-width: 22px; height: 22px;
+    width: 22px;
+    min-width: 22px;
+    height: 22px;
     font-size: .92rem;
   }
+
   .why-works-dot-inner {
-    width: 22px; height: 22px; font-size: .85rem;
+    width: 22px;
+    height: 22px;
+    font-size: .85rem;
   }
+
   .why-works-card {
     padding: 10px 10px;
     min-width: 0;
@@ -219,14 +274,17 @@
     font-size: .96rem;
     margin-bottom: 0;
   }
+
   .why-works-step-title {
     font-size: .97rem;
     margin-bottom: 4px;
   }
+
   .why-works-step-text {
     font-size: .89rem;
     line-height: 1.45;
   }
+
   .why-works-flowline {
     left: 11px;
     width: 2px;

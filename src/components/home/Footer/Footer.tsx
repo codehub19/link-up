@@ -1,45 +1,71 @@
-import react from 'react';
-import './Footer.styles.css';
-import { Link } from 'react-router-dom';
+import React from "react";
+import "./Footer.styles.css";
+import { Link } from "react-router-dom";
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="footer-modern">
-        <div className="container footer-inner">
-          <div className="footer-cols">
-            <div>
-              <h4>DateU</h4>
-              <p className="muted small">Built for campus connections.</p>
-            </div>
-            <div>
-              <h5>Product</h5>
-              <ul>
-                <li><Link to="/rounds">Rounds</Link></li>
-                <li><Link to="/how-it-works">How It Works</Link></li>
-                <li><Link to="/pricing">Pricing</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h5>Company</h5>
-              <ul>
-                <li><Link to="/about">About</Link></li>
-                <li><Link to="/support">Support</Link></li>
-                <li><Link to="/community-guidelines">Community Guidelines</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h5>Legal</h5>
-              <ul>
-                <li><Link to="/legal/privacy">Privacy</Link></li>
-                <li><Link to="/legal/terms">Terms</Link></li>
-                <li><Link to="/legal/cookies">Cookies</Link></li>
-              </ul>
+      <div className="container">
+        <div className="footer-grid">
+          {/* Brand Column */}
+          <div className="footer-brand">
+            <h2 className="footer-logo text-gradient">DateU</h2>
+            <p className="footer-desc">
+              Dating for the modern campus.
+              <br />
+              REAL connections, verified students.
+            </p>
+            <div className="footer-socials">
+              <a href="#" className="social-link">𝕏</a>
+              <a href="#" className="social-link">Instagram</a>
+              <a href="#" className="social-link">LinkedIn</a>
             </div>
           </div>
-          <div className="copy small">
-            © {new Date().getFullYear()} DateU • Crafted for better digital social pacing.
+
+          {/* Links Columns */}
+          <div className="footer-col">
+            <h4>Product</h4>
+            <ul>
+              <li><Link to="/rounds">How it Works</Link></li>
+              <li><Link to="/success-stories">Stories</Link></li>
+              <li><Link to="/pricing">Premium</Link></li>
+              <li><Link to="/download">Download App</Link></li>
+            </ul>
+          </div>
+
+          <div className="footer-col">
+            <h4>Company</h4>
+            <ul>
+              <li><Link to="/about">About Us</Link></li>
+              <li><Link to="/careers">Careers</Link></li>
+              <li><Link to="/blog">Blog</Link></li>
+              <li><Link to="/contact">Contact</Link></li>
+            </ul>
+          </div>
+
+          <div className="footer-col">
+            <h4>Legal</h4>
+            <ul>
+              <li><Link to="/legal/privacy">Privacy Policy</Link></li>
+              <li><Link to="/legal/terms">Terms of Service</Link></li>
+              <li><Link to="/legal/guidelines">Guidelines</Link></li>
+              <li><Link to="/legal/security">Security</Link></li>
+            </ul>
           </div>
         </div>
-      </footer>
-  )}
-  
+
+        <div className="footer-bottom">
+          <p className="copyright">
+            © {currentYear} DateU Inc. All rights reserved.
+          </p>
+          <div className="bottom-links">
+            <span className="status-dot"></span>
+            <span>All Systems Operational</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}

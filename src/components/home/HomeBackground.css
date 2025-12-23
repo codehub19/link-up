@@ -1,0 +1,79 @@
+/* Fixed background wrapper */
+.home-background {
+    position: fixed;
+    inset: 0;
+    z-index: -10;
+    background-color: #09090b;
+    /* Zinc 950 Base */
+    overflow: hidden;
+}
+
+/* Base Gradient - Subtle & Professional */
+.hb-gradient {
+    position: absolute;
+    inset: 0;
+    /* Very subtle ambient light at the top, fading to solid dark */
+    background:
+        radial-gradient(ellipse at 50% 0%, #1e1b4b 0%, transparent 60%),
+        /* Subtle Indigo top highlight */
+        linear-gradient(180deg, rgba(9, 9, 11, 0) 0%, #09090b 100%);
+    opacity: 0.8;
+}
+
+/* Noise Texture - Matte finish */
+.hb-noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 1;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+}
+
+/* Orbs Container - Static, elegant glow */
+.hb-orbs {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    filter: blur(140px);
+}
+
+.hb-orb {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.15;
+    /* Very subtle */
+}
+
+/* Just one main ambient glow for the hero */
+.hb-orb-1 {
+    width: 80vw;
+    height: 40vw;
+    top: -20%;
+    left: 10%;
+    background: #f43f5e;
+    /* Rose tint */
+    opacity: 0.12;
+}
+
+.hb-orb-2 {
+    width: 50vw;
+    height: 50vw;
+    top: 20%;
+    right: -20%;
+    background: #4f46e5;
+    /* Indigo tint */
+    opacity: 0.08;
+}
+
+/* Grid Overlay - Technical/Structured look */
+.hb-grid {
+    position: absolute;
+    inset: 0;
+    background-size: 80px 80px;
+    background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    mask-image: linear-gradient(180deg, black 0%, transparent 80%);
+    pointer-events: none;
+}

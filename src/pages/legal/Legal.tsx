@@ -1,54 +1,46 @@
 import React from "react";
 import { PageWrapper } from "./AppLayout";
-import { useNavigate } from "react-router-dom";
-
+import { Link } from "react-router-dom";
 
 export default function Legal() {
-  const navigate = useNavigate();
-
   return (
     <PageWrapper title="Legal Information">
-      <p>
-        This page provides an overview of the legal agreements and policies that govern your use of the dateu.in platform. By accessing or using our services, you agree to be bound by these documents.
+      <p className="text-xl text-gray-300 mb-8 leading-relaxed">
+        We believe in transparency. Here you can find all the legal agreements and policies that govern the use of DateU.
       </p>
-      <p className="text-muted" style={{marginBottom: "1.5rem"}}>It is your responsibility to read and understand them fully.</p>
 
-      <div>
-        <div className="card">
-          <h3>
-            <a onClick={() => navigate("/terms")}>Terms and Conditions</a>
-          </h3>
-          <p>
-            This document outlines the rules for using our platform, your rights and responsibilities, our role as a platform provider, and the limitations of our liability. Your use of our service is contingent upon your agreement to these terms.
+      <div className="grid md:grid-cols-2 gap-6">
+        <Link to="/legal/terms" className="group bg-white/5 hover:bg-white/10 border border-white/10 p-6 rounded-xl transition-all">
+          <h3 className="text-xl font-bold text-white mb-2 group-hover:text-rose-400 transition-colors">Terms of Service</h3>
+          <p className="text-sm text-gray-400">
+            The rules for using our platform, your rights, and our responsibilities.
           </p>
-        </div>
-        <div className="card">
-          <h3>
-            <a onClick={() => navigate("/privacy")}>Privacy Policy</a>
-          </h3>
-          <p>
-            This policy details what personal information we collect from you, how we use it, with whom we may share it, and the measures we take to protect it. We are committed to safeguarding your privacy.
+        </Link>
+
+        <Link to="/legal/privacy" className="group bg-white/5 hover:bg-white/10 border border-white/10 p-6 rounded-xl transition-all">
+          <h3 className="text-xl font-bold text-white mb-2 group-hover:text-rose-400 transition-colors">Privacy Policy</h3>
+          <p className="text-sm text-gray-400">
+            How we collect, use, and protect your personal information.
           </p>
-        </div>
-        <div className="card">
-          <h3>
-            <a onClick={() => navigate("/cookies")}>Cookies Policy</a>
-          </h3>
-          <p>
-            This document explains what cookies are, how we use them on our website to improve your experience, and your choices regarding their use.
+        </Link>
+
+        <Link to="/legal/guidelines" className="group bg-white/5 hover:bg-white/10 border border-white/10 p-6 rounded-xl transition-all">
+          <h3 className="text-xl font-bold text-white mb-2 group-hover:text-rose-400 transition-colors">Community Guidelines</h3>
+          <p className="text-sm text-gray-400">
+            Code of conduct for a safe and respectful dating environment.
           </p>
-        </div>
-        <div className="card">
-          <h3>
-            <a onClick={() => navigate("/community")}>Community Guidelines</a>
-          </h3>
-          <p>
-            These are the rules of conduct for all members of the dateu.in community. They are designed to ensure a safe and respectful environment for everyone. Violations may result in account suspension or termination.
+        </Link>
+
+        <Link to="/legal/security" className="group bg-white/5 hover:bg-white/10 border border-white/10 p-6 rounded-xl transition-all">
+          <h3 className="text-xl font-bold text-white mb-2 group-hover:text-rose-400 transition-colors">Security</h3>
+          <p className="text-sm text-gray-400">
+            Our commitment to data protection and safe verification.
           </p>
-        </div>
+        </Link>
       </div>
-      <p style={{marginTop: "2rem", fontWeight: "bold"}} className="text-accent">
-        These documents are legally binding. If you do not agree with any part of them, you must not use our services.
+
+      <p className="mt-8 text-sm text-gray-500 font-medium">
+        These documents are legally binding. By using DateU, you agree to them.
       </p>
     </PageWrapper>
   );

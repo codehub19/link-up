@@ -1,135 +1,124 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../state/AuthContext'
-import InstallPWAButton from './InstallPWAButton'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../state/AuthContext";
+import InstallPWAButton from "./InstallPWAButton";
+import MobileNavbar from "./MobileNavbar";
+import "./Navbar.styles.css";
 
-// Bell icon SVG as a component
-function BellIcon({ size = 24, color = "#fff" }) {
+// --- Icons ---
+function BellIcon({ className }: { className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 22c1.104 0 2-.896 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.309-2.691-6-6-6S6 7.691 6 11v5l-2 2v1h16v-1l-2-2zM18 17H6v-.382l1.447-1.447C7.791 14.463 8 13.748 8 13V11c0-2.209 1.791-4 4-4s4 1.791 4 4v2c0 .748.209 1.463.553 2.171L18 16.618V17z"
-        fill={color}
-      />
+    <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
     </svg>
   );
 }
 
-// Dashboard icon SVG as a component
-function DashboardIcon({ size = 22, color = "#fff" }) {
+function GridIcon({ className }: { className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="3" width="7" height="7" rx="2" fill={color} />
-      <rect x="14" y="3" width="7" height="7" rx="2" fill={color} />
-      <rect x="14" y="14" width="7" height="7" rx="2" fill={color} />
-      <rect x="3" y="14" width="7" height="7" rx="2" fill={color} />
+    <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
     </svg>
-  )
+  );
 }
 
 export default function Navbar() {
-  const { user, profile, logout, login } = useAuth()
-  const loc = useLocation()
-  const navigate = useNavigate()
-  const [hasUnread, setHasUnread] = useState(false)
+  const { user, profile, login } = useAuth();
+  const loc = useLocation();
+  const navigate = useNavigate();
+  const [hasUnread, setHasUnread] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  // Only active for exact dashboard path
-  const dashboardActive = loc.pathname === '/dashboard' || loc.pathname === '/dashboard/'
-  // Only active for notifications
-  const notificationsActive = loc.pathname === '/dashboard/notifications'
-  const profilePath = profile?.gender === 'male' ? '/dashboard' : '/dashboard/'
-
-  // Listen for new notification events to show badge
+  // Scroll effect for glassmorphism intensity or transparency changes (optional hook)
   useEffect(() => {
-    const handler = () => setHasUnread(true)
-    window.addEventListener('new-notification', handler)
-    return () => window.removeEventListener('new-notification', handler)
-  }, [])
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-  // Clear badge when visiting notifications page
+  // Notification listener
   useEffect(() => {
-    if (notificationsActive) setHasUnread(false)
-  }, [loc.pathname])
+    const handler = () => setHasUnread(true);
+    window.addEventListener("new-notification", handler);
+    return () => window.removeEventListener("new-notification", handler);
+  }, []);
+
+  // Clear notification badge
+  const notificationsActive = loc.pathname === "/dashboard/notifications";
+  useEffect(() => {
+    if (notificationsActive) setHasUnread(false);
+  }, [loc.pathname, notificationsActive]);
+
+  const dashboardPath = "/dashboard";
+  const isDashboardActive = loc.pathname.startsWith("/dashboard") && !notificationsActive;
 
   return (
-    <nav className="nav">
-      <div className="container">
-        <div className="nav-left">
-          <Link to="/" className="logo">DateU</Link>
-        </div>
-        <div className="nav-right">
-          {user && profile?.isProfileComplete && (
-            <>
-              <Link
-                to={profilePath}
-                className={`nav-link icon-btn ${dashboardActive ? 'active' : ''}`}
-                title="Dashboard"
-                style={{ display: "inline-flex", alignItems: "center", marginRight: 8 }}
-              >
-                <DashboardIcon size={24} color={dashboardActive ? "#ff5d7c" : "#fff"} />
-              </Link>
-              {/* Notifications Bell */}
-              <div
-                style={{
-                  position: "relative",
-                  marginLeft: 18,
-                  cursor: "pointer",
-                  display: "inline-block"
-                }}
-                onClick={() => {
-                  setHasUnread(false)
-                  navigate('/dashboard/notifications')
-                }}
-                className={`icon-btn ${notificationsActive ? 'active' : ''}`}
-                title="Notifications"
-                aria-label="Notifications"
-              >
-                <BellIcon size={28} color={notificationsActive ? "#ff5d7c" : "#fff"} />
-                {hasUnread && !notificationsActive && (
-                  <span style={{
-                    position: "absolute",
-                    top: 2,
-                    right: 2,
-                    width: 10,
-                    height: 10,
-                    background: "#ff5d7c",
-                    borderRadius: "50%",
-                    border: "2px solid #232a38"
-                  }} />
-                )}
-              </div>
-            </>
-          )}
-          {/* Responsive row for buttons */}
-          <div className="row nav-actions-mobile">
-            <InstallPWAButton className="btn btn-ghost" label="Install App" />
-            {user && profile?.isProfileComplete ? (
-              // Logout removed, moved to Settings page
-              null
-            ) : user ? (
-              <Link to="/setup/gender" className="btn btn-primary">Complete Profile</Link>
-            ) : (
-              <button className="btn btn-primary" onClick={login}>Login with Google</button>
+    <>
+      <header className={`navbar-modern ${scrolled ? "scrolled" : ""}`}>
+        <div className="navbar-container">
+
+          {/* Left: Brand */}
+          <Link to="/" className="nav-brand-link">
+            <h1 className="nav-brand text-gradient">DateU</h1>
+          </Link>
+
+          {/* Right: Actions */}
+          <div className="nav-group">
+
+            {user && profile?.isProfileComplete && (
+              <>
+                <Link
+                  to={dashboardPath}
+                  className={`nav-icon-btn ${isDashboardActive ? "active" : ""}`}
+                  title="Dashboard"
+                >
+                  <GridIcon />
+                </Link>
+
+                <button
+                  className={`nav-icon-btn ${notificationsActive ? "active" : ""}`}
+                  title="Notifications"
+                  onClick={() => {
+                    setHasUnread(false);
+                    navigate("/dashboard/notifications");
+                  }}
+                >
+                  <BellIcon />
+                  {hasUnread && !notificationsActive && <span className="badge-dot" />}
+                </button>
+              </>
             )}
+
+            {/* Buttons: PWA + Login/Action */}
+            <div className="nav-group gap-2"> {/* Tighter gap for buttons */}
+              <div className="hide-mobile">
+                <InstallPWAButton className="nav-btn nav-btn-ghost" label="Install App" />
+              </div>
+
+              {user && profile?.isProfileComplete ? (
+                // If logged in & setup, maybe show nothing or settings icon? Keeping generic for now as requested.
+                null
+              ) : user ? (
+                <Link to="/setup/profile" className="nav-btn nav-btn-primary">
+                  Complete Setup
+                </Link>
+              ) : (
+                <button onClick={login} className="nav-btn nav-btn-primary">
+                  Login
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-      {/* Minimal mobile media query for action buttons */}
-      <style>{`
-        @media (max-width: 600px) {
-          .nav-actions-mobile {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          }
-          .nav-actions-mobile .btn,
-          .nav-actions-mobile .btn-primary,
-          .nav-actions-mobile .btn-ghost {
-            width: 100%;
-            margin: 0;
-          }
-        }
-      `}</style>
-    </nav>
-  )
+      </header>
+      {/* Global Mobile Navigation Dock */}
+      <MobileNavbar />
+    </>
+  );
 }

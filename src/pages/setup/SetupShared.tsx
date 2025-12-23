@@ -79,7 +79,7 @@ export function GenderIcon({ type }: { type: 'male' | 'female' }) {
         <circle cx="9" cy="15" r="5.5" stroke="url(#g)" strokeWidth="1.8" />
         <defs>
           <linearGradient id="g" x1="0" y1="0" x2="24" y2="24">
-            <stop stopColor="#ff416c"/><stop offset="1" stopColor="#ff4b2b"/>
+            <stop stopColor="#ff416c" /><stop offset="1" stopColor="#ff4b2b" />
           </linearGradient>
         </defs>
       </svg>
@@ -88,10 +88,10 @@ export function GenderIcon({ type }: { type: 'male' | 'female' }) {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="8" r="4" stroke="url(#g2)" strokeWidth="1.8" />
-      <path d="M12 12v8M8 18h8" stroke="url(#g2)" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M12 12v8M8 18h8" stroke="url(#g2)" strokeWidth="1.8" strokeLinecap="round" />
       <defs>
         <linearGradient id="g2" x1="0" y1="0" x2="24" y2="24">
-          <stop stopColor="#ff416c"/><stop offset="1" stopColor="#ff4b2b"/>
+          <stop stopColor="#ff416c" /><stop offset="1" stopColor="#ff4b2b" />
         </linearGradient>
       </defs>
     </svg>
@@ -102,8 +102,8 @@ export function CameraBadge() {
   return (
     <span className="camera-badge" aria-hidden>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <path d="M7 7h10l1.2 2H21v10H3V9h2.8L7 7z" stroke="white" strokeWidth="1.7"/>
-        <circle cx="12" cy="14" r="3.5" stroke="white" strokeWidth="1.7"/>
+        <path d="M7 7h10l1.2 2H21v10H3V9h2.8L7 7z" stroke="white" strokeWidth="1.7" />
+        <circle cx="12" cy="14" r="3.5" stroke="white" strokeWidth="1.7" />
       </svg>
     </span>
   )

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
 import {
@@ -11,10 +11,12 @@ import {
 import { createOrder, verifyPayment } from '../services/razorpay'
 import { createPayment } from '../services/payments'
 import Navbar from '../components/Navbar'
+import HomeBackground from '../components/home/HomeBackground'
 import { doc, getDoc } from "firebase/firestore";
 import { db } from '../firebase'
 import { useDialog } from '../components/ui/Dialog'
-
+import LoadingHeart from '../components/LoadingHeart'
+import './PaymentPage.styles.css'
 
 declare global {
   interface Window {
@@ -32,7 +34,6 @@ export default function PaymentPage() {
   const params = useParams()
 
   const planId = sp.get('plan') || sp.get('planId') || 'pro'
-
   const amountOverride = sp.get('amount')
 
   const [resolvedPlan, setResolvedPlan] = useState<PlanLike | null>(null)
@@ -52,93 +53,24 @@ export default function PaymentPage() {
       await ensurePlans()
       const p = await getPlanById(planId)
       setPlan(p)
-      if (!p) setError('Plan not found or inactive.')
+      if (!p && !amountOverride) setError('Plan not found or inactive.')
     } catch (e: any) {
       console.error(e)
       setError('Failed to load plans.')
     } finally {
       setLoadingPlan(false)
     }
-  }, [planId])
+  }, [planId, amountOverride])
 
   useEffect(() => {
     loadPlan()
   }, [loadPlan])
 
-  async function loadRazorpayScript() {
-    if (window.Razorpay) return
-    await new Promise<void>((resolve, reject) => {
-      const s = document.createElement('script')
-      s.src = 'https://checkout.razorpay.com/v1/checkout.js'
-      s.onload = () => resolve()
-      s.onerror = () => reject(new Error('Failed to load Razorpay SDK'))
-      document.body.appendChild(s)
-    })
-  }
-
-  async function startPayment() {
-    if (!user) {
-      setError('Please sign in first.')
-      return
-    }
-    if (!plan) {
-      setError('Plan not loaded.')
-      return
-    }
-    setError(null)
-    setInitializing(true)
-
-    try {
-      await loadRazorpayScript()
-      // Server now derives price; we only send planId
-      const order = await createOrder(plan.id)
-
-      const options = {
-        key: order.keyId,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'DateU',
-        description: `Purchase: ${plan.name}`,
-        order_id: order.orderId,
-        prefill: {
-          name: user.displayName || '',
-          email: user.email || '',
-        },
-        handler: async (resp: any) => {
-          try {
-            const verifyRes = await verifyPayment({
-              orderId: resp.razorpay_order_id,
-              paymentId: resp.razorpay_payment_id,
-              signature: resp.razorpay_signature,
-              planId: plan.id,
-            })
-            setSuccess(true)
-            if (!verifyRes.subscriptionProvisioned) {
-              setProvisionPending(true)
-            }
-            setInitializing(false)
-            setTimeout(() => navigate('/dashboard/plans'), 1200)
-          } catch (e: any) {
-            console.error(e)
-            setError(e?.message || 'Verification failed. Contact support.')
-            setInitializing(false)
-          }
-        },
-        modal: {
-          ondismiss: () => setInitializing(false),
-        },
-        theme: { color: '#ff416c' },
-      }
-
-      const rzp = new window.Razorpay(options)
-      rzp.open()
-    } catch (e: any) {
-      console.error(e)
-      setError(e?.message || 'Could not start payment.')
-      setInitializing(false)
-    }
-  }
-
+  // Simple mobile device detection
+  useEffect(() => {
+    const mobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    setIsMobile(mobile)
+  }, [])
 
   useEffect(() => {
     const local = loadingPlan ? null : plan ? { id: plan.id, name: plan.name, amount: plan.amount } : null
@@ -154,7 +86,7 @@ export default function PaymentPage() {
         const d = snap.data() as any
         setResolvedPlan({ id: snap.id, name: d.name || snap.id, amount: Number(d.price || d.amount || 0) })
       } else {
-        // Fallback to URL amount and id if admin plan not found (keeps flow working)
+        // Fallback to URL amount and id if admin plan not found 
         setResolvedPlan({
           id: paramPlanId,
           name: paramPlanId,
@@ -162,20 +94,22 @@ export default function PaymentPage() {
         })
       }
     })()
-  }, [planId, amountOverride])
+  }, [planId, amountOverride, plan, loadingPlan])
 
   async function onConfirmPaid() {
     if (!user) { await showAlert('Please login first'); return }
     if (!resolvedPlan) { await showAlert('Plan not loaded yet'); return }
+    if (!proof) { await showAlert('Please attach a payment screenshot'); return }
+
     setSubmitting(true)
     try {
       await createPayment({
         uid: user.uid,
-        planId: resolvedPlan.id,      // IMPORTANT: store the exact plan id so status chips match
+        planId: resolvedPlan.id,
         amount: amountOverride ? Number(amountOverride) : resolvedPlan.amount,
         upiId: UPI_ID,
       }, proof || undefined)
-      await showAlert('Payment submitted. We will verify it shortly.')
+      await showAlert('Payment submitted! We will verify and activate your plan shortly.')
       navigate('/dashboard/plans')
     } catch (e: any) {
       console.error(e)
@@ -191,199 +125,134 @@ export default function PaymentPage() {
     }).catch(() => { })
   }
 
-  useEffect(() => {
-    // Simple mobile device detection
-    const mobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    setIsMobile(mobile)
-  }, [])
-
   if (!resolvedPlan) {
     return (
-      <>
-        <Navbar />
-        <div className="container"><div className="card" style={{ maxWidth: 820, margin: '24px auto', padding: 24 }}>Loading…</div></div>
-      </>
+      <div className="loading-page-wrapper">
+        <LoadingHeart size={72} />
+      </div>
     )
   }
 
   const amount = amountOverride ? Number(amountOverride) : resolvedPlan.amount
 
-
   return (
     <>
+      <HomeBackground />
       <Navbar />
-      <div className="container" style={{ maxWidth: 820, padding: '24px 0' }}>
-        <div className="card" style={{ maxWidth: 820, margin: '24px auto', padding: 24 }}>
-          <h2 style={{ marginTop: 0 }}>Complete Payment</h2>
-          <p style={{ marginTop: 6, color: 'var(--muted)' }}>
-            Plan: <b>{resolvedPlan.name}</b> • Amount: <b>₹{amount}</b>
-          </p>
+      <div className="dashboard-container payment-page-container">
 
-          <div
-            className="row"
-            style={{ gap: 24, alignItems: 'flex-start', flexWrap: 'wrap', marginTop: 16 }}
-          >
-            <div className="stack" style={{ minWidth: 260 }}>
-              <img
-                src={UPI_QR_URL}
-                alt="UPI QR"
-                style={{
-                  width: 260,
-                  height: 260,
-                  objectFit: 'contain',
-                  borderRadius: 12,
-                  border: '1px solid var(--card-border)',
-                }}
-              />
-              <small style={{ color: 'var(--muted)' }}>Scan the QR with your UPI app</small>
-            </div>
-
-            <div className="stack" style={{ flex: 1, minWidth: 260 }}>
-              <label style={{ fontWeight: 600 }}>UPI ID</label>
-              <div className="row" style={{ gap: 8 }}>
-                <input className="input" readOnly value={UPI_ID} />
-                <button type="button" className="btn btn-primary" onClick={copyUPI}>
-                  Copy
-                </button>
-              </div>
-
-              {/* ✅ Conditional UPI Buttons Section (Mobile Only) */}
-              {isMobile && (
-                <div style={{ marginTop: 20 }}>
-                  <label style={{ fontWeight: 600 }}>Pay Using</label>
-                  <div
-                    className="row"
-                    style={{
-                      flexWrap: 'wrap',
-                      gap: 8,
-                      marginTop: 8,
-                    }}
-                  >
-                    <a
-                      href={`upi://pay?pa=${encodeURIComponent(
-                        UPI_ID
-                      )}&pn=DateU&am=${amount}&cu=INR`}
-                      className="btn"
-                      style={{
-                        background: '#4285F4',
-                        color: 'white',
-                        flex: '1 1 45%',
-                        textAlign: 'center',
-                      }}
-                    >
-                      Pay with GPay
-                    </a>
-
-                    <a
-                      href={`upi://pay?pa=${encodeURIComponent(
-                        UPI_ID
-                      )}&pn=DateU&am=${amount}&cu=INR`}
-                      className="btn"
-                      style={{
-                        background: '#5D3FD3',
-                        color: 'white',
-                        flex: '1 1 45%',
-                        textAlign: 'center',
-                      }}
-                    >
-                      Pay with PhonePe
-                    </a>
-
-                    <a
-                      href={`upi://pay?pa=${encodeURIComponent(
-                        UPI_ID
-                      )}&pn=DateU&am=${amount}&cu=INR`}
-                      className="btn"
-                      style={{
-                        background: '#02b1ff',
-                        color: 'white',
-                        flex: '1 1 45%',
-                        textAlign: 'center',
-                      }}
-                    >
-                      Pay with Paytm
-                    </a>
-                  </div>
-                  <small style={{ color: 'var(--muted)', display: 'block', marginTop: 6 }}>
-                    Works best on mobile devices with these apps installed.
-                  </small>
-                </div>
-              )}
-              {/* ✅ End conditional section */}
-
-              <div className="stack" style={{ marginTop: 16 }}>
-                <label style={{ fontWeight: 600 }}>Payment screenshot (IMPORTANT)</label>
-                <input
-                  className="input"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setProof(e.target.files?.[0] || null)}
-                />
-                <small style={{ color: 'var(--muted)' }}>Attach proof to speed up approval.</small>
-              </div>
-
-              <div className="row" style={{ justifyContent: 'flex-end', marginTop: 16 }}>
-                <button className="btn btn-primary" onClick={onConfirmPaid} disabled={submitting}>
-                  {submitting ? 'Submitting…' : 'I have paid'}
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* Header */}
+        <div className="payment-hero">
+          <h1 className="payment-title text-gradient">Complete Payment</h1>
+          <p className="payment-subtitle">Secure your spot in the next round</p>
         </div>
 
-        <div className="card" style={{ padding: 28 }}>
-          <h2 style={{ marginTop: 0 }}>Complete Payment</h2>
+        {/* Main Card */}
+        <div className="payment-card">
+          <div className="payment-content">
 
-          {loadingPlan && (
-            <p className="muted" style={{ marginTop: 4 }}>Loading plan...</p>
-          )}
-
-          {!loadingPlan && plan && (
-            <p className="muted" style={{ marginTop: 4 }}>
-              Plan:&nbsp;
-              <strong>{plan.name}</strong>
-              &nbsp;• Amount:&nbsp;
-              <strong>₹{plan.price}</strong>
-            </p>
-          )}
-
-          {!loadingPlan && !plan && (
-            <div className="banner" style={{ marginTop: 16 }}>
-              Plan unavailable or inactive.
+            {/* Left Col: QR */}
+            <div className="qr-section">
+              <div className="qr-code-wrapper">
+                <img
+                  src={UPI_QR_URL}
+                  alt="Payment QR Code"
+                  className="qr-image"
+                />
+              </div>
+              <p className="qr-instruction">
+                Scan with any UPI app<br />
+                (GPay, PhonePe, Paytm)
+              </p>
             </div>
-          )}
 
-          <p style={{ marginTop: 18 }}>
-            {!plan
-              ? 'Select a valid plan to proceed.'
-              : 'Click the button below to pay securely via Razorpay. Do not refresh or close the window until payment completes.'}
-          </p>
+            {/* Right Col: Details */}
+            <div className="payment-details">
 
-          {error && (
-            <div className="banner" style={{ marginTop: 16 }}>
-              {error}
+              {/* Plan Box */}
+              <div className="plan-summary-box">
+                <div>
+                  <div className="plan-label">Selected Plan</div>
+                  <div className="plan-name">{resolvedPlan.name}</div>
+                </div>
+                <div className="plan-price">₹{amount}</div>
+              </div>
+
+              {/* UPI ID */}
+              <div className="upi-box">
+                <label className="input-label">UPI ID</label>
+                <div className="copy-input-group">
+                  <input className="upi-input" readOnly value={UPI_ID} />
+                  <button type="button" className="btn-copy" onClick={copyUPI}>
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Options (Conditional) */}
+              {isMobile && (
+                <div className="upi-box">
+                  <label className="input-label">Quick Pay</label>
+                  <div className="mobile-pay-options">
+                    <a
+                      href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
+                      className="btn-upi-intent"
+                      style={{ background: '#4285F4' }}
+                    >
+                      GPay
+                    </a>
+                    <a
+                      href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
+                      className="btn-upi-intent"
+                      style={{ background: '#5D3FD3' }}
+                    >
+                      PhonePe
+                    </a>
+                    <a
+                      href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
+                      className="btn-upi-intent"
+                      style={{ background: '#02b1ff' }}
+                    >
+                      Paytm
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Proof */}
+              <div className="upload-box">
+                <label className="input-label">Payment Screenshot</label>
+                <div
+                  className={`file-input-wrapper ${proof ? 'has-file' : ''}`}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setProof(e.target.files?.[0] || null)}
+                  />
+                  {proof ? (
+                    <span className="upload-success">
+                      ✓ Screenshot Attached: {proof.name.slice(0, 20)}...
+                    </span>
+                  ) : (
+                    <span className="upload-placeholder">
+                      Click to upload screenshot
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit Action */}
+              <button
+                className="btn-confirm-payment"
+                onClick={onConfirmPaid}
+                disabled={submitting}
+              >
+                {submitting ? 'Verifying...' : 'Submit Payment'}
+              </button>
+
             </div>
-          )}
-          {success && (
-            <div className="banner" style={{ marginTop: 16 }}>
-              Payment successful
-              {provisionPending ? ', provisioning your plan...' : '! Redirecting...'}
-            </div>
-          )}
-
-          <div style={{ marginTop: 30 }}>
-            <button
-              className="btn btn-secondary"
-              disabled
-              title="Coming soon"
-            >
-              Payment Gateway (Coming Soon)
-            </button>
           </div>
-
-          <small style={{ display: 'block', marginTop: 24, color: 'var(--muted)' }}>
-            Payment Gateway integration is coming soon! Please use the UPI payment option above for now.
-          </small>
         </div>
       </div>
     </>

@@ -6,12 +6,19 @@ import SetupGuard from './components/SetupGuard'
 import { useAuth } from './state/AuthContext'
 import ProfileWizard from './pages/setup/Profile'
 import Legal from './pages/legal/Legal'
-import Terms from './pages/setup/Terms'
+import TermsOfService from './pages/legal/TermsOfService'
 import Support from './pages/legal/Support'
 import Pricing from './pages/legal/Pricing'
 import About from './pages/legal/About'
 import CommunityGuidelines from './pages/legal/CommunityGuidelines'
 import PrivacyPolicy from './pages/legal/PrivacyPolicy'
+import Security from './pages/legal/Security'
+import RoundsPage from './pages/marketing/RoundsPage'
+import SuccessStoriesPage from './pages/marketing/SuccessStoriesPage'
+import DownloadPage from './pages/marketing/DownloadPage'
+import CareersPage from './pages/marketing/CareersPage'
+import BlogPage from './pages/marketing/BlogPage'
+import ContactPage from './pages/marketing/ContactPage'
 import MaleRound from './pages/dashboard/male/MatchingRounds'
 import RoundMatchesAdmin from './pages/admin/RoundMatchesAdmin'
 import NotificationsPage from './pages/dashboard/Notifications'
@@ -55,10 +62,20 @@ export default function App() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/support" element={<Support />} />
           <Route path="/legal/legal" element={<Legal />} />
-          <Route path="/legal/terms" element={<Terms />} />
+          <Route path="/legal/terms" element={<TermsOfService />} />
           <Route path="/legal/privacy" element={<PrivacyPolicy />} />
           {/* <Route path="/legal/cookies" element={<Cookies />} /> */}
-          <Route path="/community-guidelines" element={<CommunityGuidelines />} />
+          <Route path="/legal/guidelines" element={<CommunityGuidelines />} />
+          <Route path="/community-guidelines" element={<Navigate to="/legal/guidelines" replace />} />
+          <Route path="/legal/security" element={<Security />} />
+
+          {/* Marketing / Footer Pages */}
+          <Route path="/rounds" element={<RoundsPage />} />
+          <Route path="/success-stories" element={<SuccessStoriesPage />} />
+          <Route path="/download" element={<DownloadPage />} />
+          <Route path="/careers" element={<CareersPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/contact" element={<ContactPage />} />
 
           {/* Unified wizard */}
           <Route

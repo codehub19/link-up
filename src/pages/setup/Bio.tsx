@@ -40,11 +40,11 @@ export default function Bio({ embedded, onComplete }: Props) {
             className="bio-field"
             maxLength={250}
             value={bio}
-            onChange={e=>setBio(e.target.value)}
+            onChange={e => setBio(e.target.value)}
             rows={6}
             placeholder="Share your vibe, passions, or a fun hook..."
           />
-          <div style={{ textAlign:'right', fontSize:12, color:'#9aa0b4' }}>{bio.length}/250</div>
+          <div style={{ textAlign: 'right', fontSize: 12, color: '#9aa0b4' }}>{bio.length}/250</div>
           <div className="setup-card-footer">
             <button className="btn-primary-lg" disabled={!bio.trim() || saving} onClick={save}>
               {saving ? 'Saving…' : 'Continue'}

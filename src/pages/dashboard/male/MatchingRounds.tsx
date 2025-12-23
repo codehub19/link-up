@@ -10,6 +10,9 @@ import ProfileMiniCard from '../../../components/ProfileMiniCard'
 import Carousel from '../../../components/Carousel'
 import { toast } from 'sonner'
 import { Link } from 'react-router-dom'
+import HomeBackground from '../../../components/home/HomeBackground'
+import './Rounds.styles.css'
+import '../dashboard.css' // Ensure generic dashboard styles are loaded
 
 type UserDoc = {
   uid: string
@@ -193,8 +196,6 @@ export default function MatchingRounds() {
 
   // UI logic
   const hasActivePlan = !!subscription && subscription.status === 'active'
-
-  // Get live status for the round
   const roundStatus = roundObj ? getRoundLiveStatus(roundObj.phases) : { live: false, phase: null }
 
   const handleCarouselChange = () => {
@@ -204,12 +205,18 @@ export default function MatchingRounds() {
   if (roundId === null) {
     return (
       <>
+        <HomeBackground />
         <Navbar />
-        <div className="container">
+        <div className="dashboard-container">
           <MaleTabs />
-          <h2>The next round is coming soon!</h2>
-          <p className="muted">We’ll notify you when it’s live.</p>
-          <Link className="btn" to="/dashboard/connections">My Connections</Link>
+          <div className="rounds-hero">
+            <h1 className="rounds-title">Upcoming Rounds</h1>
+          </div>
+          <div className="rounds-empty-card">
+            <div className="rounds-empty-title">Next Round Coming Soon</div>
+            <p className="rounds-empty-text">We're curating the best matches for you. We'll notify you as soon as the next round goes live!</p>
+            <Link className="rounds-action-btn" to="/dashboard/matches">View My Connections</Link>
+          </div>
         </div>
       </>
     )
@@ -217,72 +224,94 @@ export default function MatchingRounds() {
 
   return (
     <>
+      <HomeBackground />
       <Navbar />
-      <div className="container">
+      <div className="dashboard-container">
         <MaleTabs />
-        {/* Show round live badge if round is live */}
-        {roundStatus.live && (
-          <div className="badge badge-live" style={{ marginBottom: 12 }}>
-            {roundStatus.phase === 'boys'
-              ? "Boys' Round is LIVE now!"
-              : "Girls' Round is LIVE now!"}
-          </div>
-        )}
-        {!loadingSub && (
-          !hasAnySubscription ? (
-            <div className="empty" style={{ marginTop: 32 }}>
-              <div>Purchase your first plan to get exclusive discounts!</div>
-              <div style={{ margin: '16px 0' }}>
-                <a className="btn primary" href="/dashboard/plans">
-                  Purchase Plan
-                </a>
+
+        <div className="rounds-hero">
+          <h1 className="rounds-title text-gradient">Matching Round</h1>
+          {/* Subheading */}
+          <p className="rounds-subtitle">Discover your curated matches for this round.</p>
+          {/* Show round live badge if round is live */}
+          {roundStatus.live && (
+            <div style={{ marginTop: '1rem' }}>
+              <div className="live-round-badge">
+                {roundStatus.phase === 'boys' ? "Boys' Round Live" : "Girls' Round Live"}
               </div>
             </div>
+          )}
+        </div>
+
+        {!loadingSub && (
+          !hasAnySubscription ? (
+            <div className="rounds-empty-card">
+              <div className="rounds-empty-title">Ready to Match?</div>
+              <p className="rounds-empty-text">Purchase your first plan to join the exclusive matching rounds and find verified students.</p>
+              <a className="rounds-action-btn" href="/dashboard/plans">Purchase Plan</a>
+            </div>
           ) : !hasActivePlan ? (
-            <div className="empty" style={{ marginTop: 32 }}>
-              <div>Your current plan has expired. Please purchase a plan to continue.</div>
-              <div style={{ margin: '16px 0' }}>
-                <a className="btn primary" href="/dashboard/plans">
-                  Purchase/Upgrade to participate in matching rounds
-                </a>
-              </div>
+            <div className="rounds-empty-card">
+              <div className="rounds-empty-title">Plan Expired</div>
+              <p className="rounds-empty-text">Your membership has expired. Renew your plan to unlock this round and continue matching.</p>
+              <a className="rounds-action-btn" href="/dashboard/plans">Upgrade Plan</a>
             </div>
           ) : (
             <>
-              <div className="banner">Curated girls assigned to you this round.</div>
-              {assignedUids.length === 0 ? (
-                <div className="empty">No profiles assigned to you yet. Please check back later.</div>
-              ) : girls.length === 0 ? (
-                <div className="empty">Loading assigned profiles…</div>
-              ) : (
-                <Carousel onChange={handleCarouselChange}>
-                  {girls.map((g, idx) => (
-                    <ProfileMiniCard
-                      key={g.uid}
-                      user={g}
-                      expanded={expandedIdx === idx}
-                      onExpand={() => setExpandedIdx(idx)}
-                      onCollapse={() => setExpandedIdx(null)}
-                      footer={
-                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 8 }}>
-                          {/* Badges */}
-                          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                            {g.userType === 'general' && <span className="tag" style={{ fontSize: 10, padding: '2px 6px', background: '#eee' }}>General User</span>}
-                            {g.datingPreference === 'college_only' && <span className="tag" style={{ fontSize: 10, padding: '2px 6px', background: '#eef', color: '#00f' }}>College Only</span>}
-                          </div>
+              <div className="rounds-info-banner">
+                Curated profiles assigned to you this round. Like your favorites to connect!
+              </div>
 
-                          <button
-                            className={`btn ${liked.has(g.uid) ? 'ghost' : 'primary'}`}
-                            onClick={() => like(g.uid)}
-                            disabled={liked.has(g.uid)}
-                          >
-                            {liked.has(g.uid) ? 'Liked' : 'Like'}
-                          </button>
-                        </div>
-                      }
-                    />
-                  ))}
-                </Carousel>
+              {assignedUids.length === 0 ? (
+                <div className="rounds-empty-card" style={{ padding: '2rem' }}>
+                  <p className="rounds-empty-text">No profiles assigned to you yet. Please check back shortly.</p>
+                </div>
+              ) : girls.length === 0 ? (
+                <div className="rounds-empty-card" style={{ padding: '2rem' }}>
+                  <p className="rounds-empty-text">Loading your matches...</p>
+                </div>
+              ) : (
+                <div className="rounds-carousel-wrapper">
+                  <Carousel onChange={handleCarouselChange}>
+                    {girls.map((g, idx) => (
+                      <ProfileMiniCard
+                        key={g.uid}
+                        user={g}
+                        expanded={expandedIdx === idx}
+                        onExpand={() => setExpandedIdx(idx)}
+                        onCollapse={() => setExpandedIdx(null)}
+                        footer={
+                          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 8 }}>
+                            {/* Badges */}
+                            <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                              {g.userType === 'general' && <span className="tag-general">General User</span>}
+                              {g.datingPreference === 'college_only' && <span className="tag-college-only">College Only</span>}
+                            </div>
+
+                            <button
+                              className={`btn ${liked.has(g.uid) ? 'ghost' : 'nav-btn-primary'}`} // using text/primary btn
+                              style={{
+                                width: '100%',
+                                padding: '0.8rem',
+                                borderRadius: '12px',
+                                fontWeight: 700,
+                                border: 'none',
+                                cursor: liked.has(g.uid) ? 'default' : 'pointer',
+                                background: liked.has(g.uid) ? 'rgba(255,255,255,0.1)' : 'var(--grad-primary)',
+                                color: 'white',
+                                marginTop: '8px'
+                              }}
+                              onClick={() => like(g.uid)}
+                              disabled={liked.has(g.uid)}
+                            >
+                              {liked.has(g.uid) ? 'Liked' : 'Like Profile'}
+                            </button>
+                          </div>
+                        }
+                      />
+                    ))}
+                  </Carousel>
+                </div>
               )}
             </>
           )

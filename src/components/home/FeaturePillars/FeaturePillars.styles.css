@@ -2,46 +2,78 @@
 /* Feature Pillars (Warm)                                                     */
 /* ========================================================================== */
 .feature-pillars {
-  background: linear-gradient(180deg,#130b11,#1a1015);
+  background: transparent;
   position: relative;
   overflow: hidden;
 }
+
 .feature-pillars::before {
-  content:""; position:absolute; inset:0;
+  content: "";
+  position: absolute;
+  inset: 0;
   background: var(--grad-glow);
-  opacity:.32; pointer-events:none;
+  opacity: .32;
+  pointer-events: none;
 }
 
 .section-title {
-  text-align:center; font-size:clamp(2rem,3.05rem,3.25rem);
-  margin:0 0 12px; font-weight:700; letter-spacing:-0.5px;
-  background: linear-gradient(90deg,#fff,#f8e2e5 55%,#ffd9cc);
-  -webkit-background-clip:text; color:transparent;
+  text-align: center;
+  font-size: clamp(2rem, 3.05rem, 3.25rem);
+  margin: 0 0 12px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: linear-gradient(90deg, #fff, #f8e2e5 55%, #ffd9cc);
+  -webkit-background-clip: text;
+  color: transparent;
 }
+
 .section-sub {
-  text-align:center; margin:0 auto 44px; max-width:56ch;
-  font-size:1.05rem; color:var(--clr-text-soft); line-height:1.55;
+  text-align: center;
+  margin: 0 auto 44px;
+  max-width: 56ch;
+  font-size: 1.05rem;
+  color: var(--clr-text-soft);
+  line-height: 1.55;
 }
 
 .pillars-grid {
-  display:grid; gap:26px; grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  display: grid;
+  gap: 26px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
 }
+
 .pillar-card {
-  position:relative;
-  background: linear-gradient(#201318,#151014) padding-box,
-              linear-gradient(140deg,#ff416c40,#ff8f4840) border-box;
-  border:1px solid transparent;
+  position: relative;
+  background: linear-gradient(#201318, #151014) padding-box,
+    linear-gradient(140deg, #ff416c40, #ff8f4840) border-box;
+  border: 1px solid transparent;
   border-radius: var(--radius-xl);
-  padding:24px 22px 26px;
+  padding: 24px 22px 26px;
   backdrop-filter: blur(12px);
   box-shadow: var(--shadow-soft);
   transition: transform var(--dur-fast) var(--ease-smooth),
-              box-shadow var(--dur-fast);
+    box-shadow var(--dur-fast);
 }
+
 .pillar-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 14px 40px -14px #0009, 0 6px 16px -10px #000c;
 }
-.pillar-icon { font-size:1.9rem; margin-bottom:10px; }
-.pillar-card h3 { margin:0 0 8px; font-size:1.02rem; font-weight:600; }
-.pillar-card p { margin:0; font-size:.86rem; line-height:1.45; color:var(--clr-text-soft); }
+
+.pillar-icon {
+  font-size: 1.9rem;
+  margin-bottom: 10px;
+}
+
+.pillar-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+
+.pillar-card p {
+  margin: 0;
+  font-size: .86rem;
+  line-height: 1.45;
+  color: var(--clr-text-soft);
+}

@@ -8,22 +8,22 @@ import './setup.styles.css'
 type Props = { embedded?: boolean; onComplete?: () => void }
 
 const COM = [
-  { value:'extremely', label:'A. Extremely important—must be an excellent communicator.' },
-  { value:'very', label:'B. Very important—I need open, honest discussion.' },
-  { value:'moderate', label:'C. Moderately important—I can work with most styles.' },
-  { value:'low', label:'D. Not a huge priority; actions speak louder.' },
+  { value: 'extremely', label: 'A. Extremely important—must be an excellent communicator.' },
+  { value: 'very', label: 'B. Very important—I need open, honest discussion.' },
+  { value: 'moderate', label: 'C. Moderately important—I can work with most styles.' },
+  { value: 'low', label: 'D. Not a huge priority; actions speak louder.' },
 ]
 const CONFLICT = [
-  { value:'address_immediately', label:'A. Discuss it immediately and resolve quickly.' },
-  { value:'cool_down', label:'B. Need time to cool down first.' },
-  { value:'wait_other', label:'C. Wait for the other person to initiate.' },
-  { value:'avoid', label:'D. Avoid conflict / keep peace.' },
+  { value: 'address_immediately', label: 'A. Discuss it immediately and resolve quickly.' },
+  { value: 'cool_down', label: 'B. Need time to cool down first.' },
+  { value: 'wait_other', label: 'C. Wait for the other person to initiate.' },
+  { value: 'avoid', label: 'D. Avoid conflict / keep peace.' },
 ]
 const SUNDAY = [
-  { value:'relax_brunch', label:'A. Sleeping in, late brunch, relaxing.' },
-  { value:'active_fitness', label:'B. Gym / run / active outing.' },
-  { value:'personal_project', label:'C. Personal project or learning.' },
-  { value:'social_family', label:'D. Time with family or friends.' },
+  { value: 'relax_brunch', label: 'A. Sleeping in, late brunch, relaxing.' },
+  { value: 'active_fitness', label: 'B. Gym / run / active outing.' },
+  { value: 'personal_project', label: 'C. Personal project or learning.' },
+  { value: 'social_family', label: 'D. Time with family or friends.' },
 ]
 
 export default function Questions1({ embedded, onComplete }: Props) {
@@ -55,12 +55,12 @@ export default function Questions1({ embedded, onComplete }: Props) {
     }
   }
 
-  const group = (title: string, cur: string, set: (v:string)=>void, opts: any[]) => (
+  const group = (title: string, cur: string, set: (v: string) => void, opts: any[]) => (
     <fieldset className="qa-group">
       <legend>{title}</legend>
-      {opts.map(o=>(
-        <label key={o.value} className={`qa-option ${cur===o.value?'on':''}`}>
-          <input type="radio" value={o.value} checked={cur===o.value} onChange={()=>set(o.value)} />
+      {opts.map(o => (
+        <label key={o.value} className={`qa-option ${cur === o.value ? 'on' : ''}`}>
+          <input type="radio" value={o.value} checked={cur === o.value} onChange={() => set(o.value)} />
           <span>{o.label}</span>
         </label>
       ))}

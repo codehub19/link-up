@@ -1,0 +1,147 @@
+/* ==========================================================================
+   Modern Navbar Styles (Professional Dark)
+   ========================================================================== */
+
+.navbar-modern {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    /* Glassmorphism */
+    background: rgba(9, 9, 11, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--clr-border-glass);
+    transition: all 0.3s ease;
+}
+
+.navbar-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 72px;
+    /* Fixed height for consistency */
+    padding: 0 1.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+/* --- Brand --- */
+.nav-brand-link {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+/* --- Groups --- */
+.nav-group {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* --- Navigation Buttons (Icons) --- */
+.nav-icon-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--clr-text-muted);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.nav-icon-btn:hover {
+    background: var(--clr-bg-glass);
+    color: var(--clr-text-primary);
+}
+
+.nav-icon-btn.active {
+    background: rgba(244, 63, 94, 0.1);
+    /* Rose tint */
+    color: var(--clr-accent-main);
+    border-color: rgba(244, 63, 94, 0.2);
+}
+
+/* --- Notification Badge --- */
+.badge-dot {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 8px;
+    height: 8px;
+    background-color: var(--clr-accent-main);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--clr-bg-deep);
+}
+
+/* --- Action Buttons --- */
+.nav-btn {
+    padding: 0.6rem 1.25rem;
+    border-radius: 100px;
+    /* Pillow shape for modern tech feel */
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.nav-btn-ghost {
+    background: transparent;
+    color: var(--clr-text-primary);
+    border-color: var(--clr-border-light);
+}
+
+.nav-btn-ghost:hover {
+    background: var(--clr-bg-glass);
+    border-color: var(--clr-border-strong);
+}
+
+.nav-btn-primary {
+    background: var(--grad-primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(244, 63, 94, 0.25);
+}
+
+.nav-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(244, 63, 94, 0.35);
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+    .navbar-container {
+        padding: 0 1rem;
+        height: 64px;
+    }
+
+    .nav-group {
+        gap: 0.75rem;
+    }
+
+    .hide-mobile {
+        display: none;
+    }
+
+    /* Optimize buttons for mobile */
+    .nav-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+}

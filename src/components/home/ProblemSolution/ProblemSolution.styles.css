@@ -1,0 +1,143 @@
+.problem-section {
+    padding-bottom: 80px;
+}
+
+.badge-pill {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--clr-accent-amber);
+    background: rgba(255, 179, 71, 0.1);
+    padding: 6px 14px;
+    border-radius: 99px;
+    border: 1px solid rgba(255, 179, 71, 0.2);
+    margin-bottom: 16px;
+    display: inline-block;
+}
+
+.comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-top: 40px;
+    align-items: center;
+}
+
+.comp-card {
+    border-radius: 32px;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Old Way Style - Desaturated/Ghostly */
+.old-way {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    color: var(--clr-text-faint);
+}
+
+.old-way h3 {
+    color: var(--clr-text-faint);
+}
+
+.icon-x {
+    font-size: 1.5rem;
+    color: #ff4b4b;
+    opacity: 0.7;
+}
+
+/* New Way Style - Vibrant */
+.new-way {
+    background: var(--grad-glass-surface);
+    border: 1px solid var(--clr-accent);
+    box-shadow: 0 20px 50px -20px rgba(255, 65, 108, 0.3);
+    transform: scale(1.05);
+    /* Emphasize */
+}
+
+.new-way h3 {
+    background: var(--grad-hero-text);
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.icon-check {
+    font-size: 1.5rem;
+    color: #53e88d;
+}
+
+.comp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 20px;
+}
+
+.comp-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.comp-list li {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.li-icon {
+    font-size: 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.new-way .li-icon {
+    background: linear-gradient(135deg, rgba(255, 65, 108, 0.2), rgba(255, 143, 72, 0.1));
+    border: 1px solid rgba(255, 65, 108, 0.2);
+}
+
+.comp-list strong {
+    display: block;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+    color: #fff;
+}
+
+.old-way strong {
+    color: var(--clr-text-soft);
+}
+
+.glow-effect {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 65, 108, 0.08), transparent 60%);
+    pointer-events: none;
+}
+
+@media (max-width: 800px) {
+    .comparison-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .new-way {
+        transform: none;
+    }
+}

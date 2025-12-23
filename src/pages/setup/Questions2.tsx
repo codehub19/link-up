@@ -8,17 +8,17 @@ import './setup.styles.css'
 type Props = { embedded?: boolean; onComplete?: () => void }
 
 const TRAVEL = [
-  { value:'relaxing_resort', label:'A. Relaxing beach / resort getaway.' },
-  { value:'explore_city', label:'B. Backpacking / exploring a new city.' },
-  { value:'active_adventure', label:'C. Active trip (hiking / skiing / camping).' },
-  { value:'visit_family', label:'D. Visiting family or friends.' },
+  { value: 'relaxing_resort', label: 'A. Relaxing beach / resort getaway.' },
+  { value: 'explore_city', label: 'B. Backpacking / exploring a new city.' },
+  { value: 'active_adventure', label: 'C. Active trip (hiking / skiing / camping).' },
+  { value: 'visit_family', label: 'D. Visiting family or friends.' },
 ]
 const LOVE = [
-  { value:'words', label:'A. Words of Affirmation' },
-  { value:'quality_time', label:'B. Quality Time' },
-  { value:'acts', label:'C. Acts of Service' },
-  { value:'touch', label:'D. Physical Touch' },
-  { value:'gifts', label:'E. Receiving Gifts' },
+  { value: 'words', label: 'A. Words of Affirmation' },
+  { value: 'quality_time', label: 'B. Quality Time' },
+  { value: 'acts', label: 'C. Acts of Service' },
+  { value: 'touch', label: 'D. Physical Touch' },
+  { value: 'gifts', label: 'E. Receiving Gifts' },
 ]
 
 export default function Questions2({ embedded, onComplete }: Props) {
@@ -49,12 +49,12 @@ export default function Questions2({ embedded, onComplete }: Props) {
     }
   }
 
-  const group = (title:string, cur:string, setter:(v:string)=>void, opts:any[]) => (
+  const group = (title: string, cur: string, setter: (v: string) => void, opts: any[]) => (
     <fieldset className="qa-group">
       <legend>{title}</legend>
-      {opts.map(o=>(
-        <label key={o.value} className={`qa-option ${cur===o.value?'on':''}`}>
-          <input type="radio" value={o.value} checked={cur===o.value} onChange={()=>setter(o.value)} />
+      {opts.map(o => (
+        <label key={o.value} className={`qa-option ${cur === o.value ? 'on' : ''}`}>
+          <input type="radio" value={o.value} checked={cur === o.value} onChange={() => setter(o.value)} />
           <span>{o.label}</span>
         </label>
       ))}

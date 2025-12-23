@@ -12,7 +12,7 @@ const FAQS = [
   },
   {
     q: "Do I have to be a student?",
-    a: "Yes right now. Academic affiliation adds a baseline trust layer for everyone.",
+    a: "No! DateU is open to everyone. Students verify their ID to get a badge and can choose to hide from non-students for total privacy.",
   },
   {
     q: "Why not infinite swipes?",
@@ -23,15 +23,7 @@ const FAQS = [
 export default function FAQ() {
   return (
     <section className="section faq-modern">
-      <div className="hero-back">
-        <div className="hero-gradient-layer" />
-        <div className="hero-noise-layer" />
-        <div className="hero-orbs">
-          <span className="orb orb-a" />
-          <span className="orb orb-b" />
-          <span className="orb orb-c" />
-        </div>
-      </div>
+
       <div className="container">
         <h2>FAQ</h2>
         <div className="faq-items">

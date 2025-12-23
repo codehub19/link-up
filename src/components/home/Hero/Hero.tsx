@@ -1,74 +1,57 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../../state/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
-import MatchPreview from "../MatchPreview/MatchPreview";
 import "./Hero.styles.css";
-
-const ROTATING_WORDS = ["Cool", "Real", "Safe", "Fun"];
-function useRotatingWord(interval = 2200) {
-  const [i, setI] = React.useState(0);
-  React.useEffect(() => {
-    const id = setInterval(() => setI(v => (v + 1) % ROTATING_WORDS.length), interval);
-    return () => clearInterval(id);
-  }, [interval]);
-  return ROTATING_WORDS[i];
-}
 
 export default function Hero() {
   const { user, login } = useAuth();
-  const navigate = useNavigate();
-  const rotating = useRotatingWord();
-  const handlePrimary = () => {
-    if (user) navigate("/dashboard");
-    else login();
-  };
+
   return (
-    <section className="hero-wrapper">
-      <div className="hero-back">
-        <div className="hero-gradient-layer" />
-        <div className="hero-noise-layer" />
-        <div className="hero-orbs">
-          <span className="orb orb-a" />
-          <span className="orb orb-b" />
-          <span className="orb orb-c" />
-        </div>
-      </div>
-      <div className="hero-inner container">
-        <div className="hero-left">
-          <h1 className="hero-title">
-            Find <span className="rotating-word">{rotating}</span> Connections That Actually Matter
+    <section className="hero-modern">
+      <div className="container hero-container">
+        <div className="hero-content">
+          <div className="hero-badge">
+            <span className="live-dot"></span>
+            <span>Now Live at Top Universities</span>
+          </div>
+
+          <h1 className="hero-title display-text">
+            Dating for <br />
+            <span className="text-gradient">Real Connections.</span>
           </h1>
-          <p className="hero-sub">
-            DateU blends curated rounds, human matching signals, and a safety‑first core to help you build genuine relationships—not endless swipes.
-          </p>
-          <div className="hero-ctas">
-            <button onClick={handlePrimary} className="btn btn-primary hero-btn-main">
-              {user ? "Go to Dashboard" : "Get Started"}
-            </button>
-            <Link to="/how-it-works" className="btn hero-btn-secondary">
-              How It Works
-            </Link>
+
+          Skip the endless swiping. DateU connects you with verified students through curated rounds and safe, meaningful interactions.
+
+          <div className="hero-actions">
+            {!user ? (
+              <button onClick={login} className="btn-modern btn-glow">
+                Start Matching
+              </button>
+            ) : (
+              <Link to="/dashboard" className="btn-modern btn-glow">
+                Go to Dashboard
+              </Link>
+            )}
+            <a href="#how-it-works" className="btn-modern btn-glass">
+              How it works
+            </a>
           </div>
-          <div className="hero-mini-stats">
-            <div>
-              <strong>+92%</strong>
-              <span>report deeper chats</span>
+
+          <div className="hero-stats">
+            <div className="stat-item">
+              <strong>10k+</strong>
+              <span>Students</span>
             </div>
-            <div>
-              <strong>Curated</strong>
-              <span>limited round spots</span>
+            <div className="stat-sep"></div>
+            <div className="stat-item">
+              <strong>92%</strong>
+              <span>Verified</span>
             </div>
-            <div>
-              <strong>Safety</strong>
-              <span>verified & guided</span>
+            <div className="stat-sep"></div>
+            <div className="stat-item">
+              <strong>4.9</strong>
+              <span>Rating</span>
             </div>
-          </div>
-        </div>
-        <div className="hero-right">
-          <MatchPreview />
-          <div className="hero-callout">
-            <span className="hc-dot" />
-            Real profiles • No infinite feed • Transparent quotas
           </div>
         </div>
       </div>
