@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react'
 
 const ALL_INTERESTS = [
-  'Music','Gaming','Books','Travel','Startups','Fitness','Movies','Tech','Art','Dance','Food','Photography',
+  'Design', 'Music', 'Gaming', 'Fitness', 'Travel', 'Photography', 'Startups',
+  'Reading', 'Books', 'Dance', 'Coding', 'Tech', 'Art', 'Volunteering', 'Food',
+  'Movies', 'Outdoors'
 ]
 
 export default function InterestsSelect({
@@ -41,7 +43,9 @@ export default function InterestsSelect({
           {opt.label}
         </button>
       ))}
-      <div className="muted">Select up to {max}</div>
+      <div className="muted" style={{ marginTop: 8 }}>
+        Selected {selected.size}/{max}
+      </div>
     </div>
   )
 }

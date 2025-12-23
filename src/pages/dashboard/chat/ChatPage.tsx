@@ -16,6 +16,7 @@ import ReportModal from '../../../components/chat/ReportModal'
 import { blockUser, unblockUser, subscribeAmIBlockedBy, subscribeBlockedUids } from '../../../services/blocks'
 import FullScreenChat from './FullScreenChat'
 import '../../../styles/chat.css'
+import { useDialog } from '../../../components/ui/Dialog'
 
 type UserDoc = { uid: string; name?: string; photoUrl?: string; instagramId?: string; bio?: string; interests?: string[]; college?: string }
 type ThreadDoc = {
@@ -47,6 +48,7 @@ export default function ChatPage() {
   const q = useQuery()
   const withUid = q.get('with') || undefined
   const isMobile = useIsMobile()
+  const { showAlert, showConfirm } = useDialog()
 
   const [threads, setThreads] = useState<ThreadDoc[]>([])
   const [matches, setMatches] = useState<MatchDoc[]>([])
@@ -398,13 +400,13 @@ export default function ChatPage() {
 
   const handleDelete = useCallback(async (msgId: string) => {
     if (!user || !selectedId) return
-    if (confirm('Delete this message?')) {
+    if (await showConfirm('Delete this message?')) {
       // Optimistic remove? Or just wait for snapshot. Snapshot is fast enough.
       try {
         await import('../../../services/chat').then(mod => mod.deleteMessage(selectedId, msgId))
       } catch (e) {
         console.error('Failed to delete', e)
-        alert('Failed to delete message')
+        await showAlert('Failed to delete message')
       }
     }
   }, [selectedId, user])
@@ -438,9 +440,15 @@ export default function ChatPage() {
       await import('../../../services/chat').then(mod => mod.editMessage(selectedId, id, newText))
     } catch (e) {
       console.error('Failed to edit message', e)
-      alert('Failed to edit message')
+      await showAlert('Failed to edit message')
     }
   }
+
+  // Reset reply/edit state when switching chats
+  useEffect(() => {
+    setReplyTo(null)
+    setEditingMessage(null)
+  }, [selectedId])
 
   // Deduplicate messages for display
   const displayMessages = useMemo(() => {
@@ -528,7 +536,7 @@ export default function ChatPage() {
             className="icon-btn danger-hover"
             onClick={async () => {
               if (!selectedPeer) return
-              if (confirm('Are you sure you want to block this user?')) {
+              if (await showConfirm('Are you sure you want to block this user?')) {
                 await blockUser(user.uid, selectedPeer.uid)
               }
             }}
@@ -554,6 +562,7 @@ export default function ChatPage() {
     return (
       <>
         <FullScreenChat
+          key={selectedId}
           currentUid={user.uid}
           messages={displayMessages}
           onSend={iAmBlocked || iBlockedThem ? () => { } : async (t, a) => onSend(t, a)}
@@ -668,7 +677,7 @@ export default function ChatPage() {
                             className="icon-btn danger-hover"
                             onClick={async () => {
                               if (!selectedPeer) return
-                              if (confirm('Are you sure you want to block this user?')) {
+                              if (await showConfirm('Are you sure you want to block this user?')) {
                                 await blockUser(user.uid, selectedPeer.uid)
                               }
                             }}
@@ -697,6 +706,7 @@ export default function ChatPage() {
                   ) : null}
 
                   <ChatWindow
+                    key={selectedId}
                     currentUid={user.uid}
                     messages={displayMessages}
                     onSend={iAmBlocked || iBlockedThem ? () => { } : async (t, a) => onSend(t, a)}

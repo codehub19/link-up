@@ -35,10 +35,10 @@ export default function FemaleTabs() {
           <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF1493" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Matches">
             <title>Matches</title>
             <g transform="translate(-1.6 0)" strokeOpacity="0.45">
-              <path d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.682 4.318 12.682a4.5 4.5 0 010-6.364z"/>
+              <path d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.682 4.318 12.682a4.5 4.5 0 010-6.364z" />
             </g>
             <g transform="translate(1.6 0)">
-              <path d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.682 4.318 12.682a4.5 4.5 0 010-6.364z"/>
+              <path d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.682 4.318 12.682a4.5 4.5 0 010-6.364z" />
             </g>
           </svg>
         </span>
@@ -61,11 +61,11 @@ export default function FemaleTabs() {
             <circle cx="15.5" cy="11.5" r="0.8"/>
           </svg> */}
 
-           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" role="img" aria-labelledby="chatOutlineTitle">
-          <title id="chatOutlineTitle">Chat</title>
-          <path fill="none" stroke="#7DD3FC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-                d="M21 15a2 2 0 0 1-2 2H8l-4 3V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/>
-        </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" role="img" aria-labelledby="chatOutlineTitle">
+            <title id="chatOutlineTitle">Chat</title>
+            <path fill="none" stroke="#7DD3FC" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+              d="M21 15a2 2 0 0 1-2 2H8l-4 3V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" />
+          </svg>
         </span>
         <span className="tab-btn-label">Chat</span>
       </Link>
@@ -79,9 +79,9 @@ export default function FemaleTabs() {
           {/* User profile */}
           <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6CA0DC" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Profile">
             <title>User Profile</title>
-            <circle cx="12" cy="7" r="4"/>
-            <path d="M6 21v-2a6 6 0 0 1 12 0v2"/>
-            <path d="M4 19c4-3 12-3 16 0" strokeOpacity="0.3"/>
+            <circle cx="12" cy="7" r="4" />
+            <path d="M6 21v-2a6 6 0 0 1 12 0v2" />
+            <path d="M4 19c4-3 12-3 16 0" strokeOpacity="0.3" />
           </svg>
         </span>
         <span className="tab-btn-label">Profile</span>

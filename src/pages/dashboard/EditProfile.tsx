@@ -357,7 +357,7 @@ export default function EditProfile() {
             <CollegeSelect
               value={college}
               onChange={setCollege}
-              placeholder="Search your college (Delhi NCR)"
+              placeholder="Search your college"
             />
           </label>
           <div className="save-row">

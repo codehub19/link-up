@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { uploadChatAudio } from '../../firebase'
+import { useDialog } from '../ui/Dialog'
 
 export default function MessageInput({
   onSend,
@@ -26,6 +27,7 @@ export default function MessageInput({
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
+  const { showAlert } = useDialog()
 
   const inputRef = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -112,7 +114,7 @@ export default function MessageInput({
 
     } catch (error) {
       console.error('Error accessing microphone:', error)
-      alert('Could not access microphone')
+      await showAlert('Could not access microphone')
     }
   }
 
@@ -145,7 +147,7 @@ export default function MessageInput({
         if (onCancelReply) onCancelReply();
       } catch (error) {
         console.error('Failed to upload audio', error)
-        alert('Failed to send audio message')
+        await showAlert('Failed to send audio message')
       } finally {
         setIsUploading(false)
       }
@@ -175,17 +177,17 @@ export default function MessageInput({
         </div>
       )}
       {replyTo && (
-          <div className="reply-banner">
-            <div className="reply-info">
-              <span className="reply-label">Replying to {replyTo.senderUid === currentUid ? 'Yourself' : 'message'}</span>
-              <span className="reply-text text-truncate">{replyTo.type === 'audio' ? '🎤 Audio Message' : replyTo.text}</span>
-            </div>
-            <button className="reply-close" onClick={onCancelReply}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
+        <div className="reply-banner">
+          <div className="reply-info">
+            <span className="reply-label">Replying to {replyTo.senderUid === currentUid ? 'Yourself' : 'message'}</span>
+            <span className="reply-text text-truncate">{replyTo.type === 'audio' ? '🎤 Audio Message' : replyTo.text}</span>
+          </div>
+          <button className="reply-close" onClick={onCancelReply}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
       )}
       {isRecording ? (

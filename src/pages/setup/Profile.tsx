@@ -8,17 +8,18 @@ import Terms from './Terms'
 import Gender from './Gender'
 import Details from './Details'
 import Interests from './Interests'
+import Preferences from './Preferences'
 import Questions1 from './Questions1'
 import Questions2 from './Questions2'
 import Bio from './Bio'
 import Photos from './Photos'
 
 type StepId =
-  | 'terms' | 'gender' | 'details' | 'interests'
+  | 'terms' | 'gender' | 'details' | 'interests' | 'preferences'
   | 'q1' | 'q2' | 'bio' | 'photos' | 'done'
 
 const ORDER: StepId[] = [
-  'terms','gender','details','interests','q1','q2','bio','photos','done'
+  'terms', 'gender', 'details', 'interests', 'preferences', 'q1', 'q2', 'bio', 'photos', 'done'
 ]
 
 function derive(raw: any | null): StepId {
@@ -29,6 +30,8 @@ function derive(raw: any | null): StepId {
   if (!p.gender || !s.gender) return 'gender'
   if (!p.name || !p.college || !p.dob || !s.profile) return 'details'
   if (!p.interests?.length || !s.interests) return 'interests'
+  // Assume preferences are set if s.preferences is true, or check fields
+  if ((p.ageRangeMin === undefined) || !s.preferences) return 'preferences'
   if (!p.communicationImportance || !p.conflictApproach || !p.sundayStyle || !s.q1) return 'q1'
   if (!p.travelPreference || !p.loveLanguage || !s.q2) return 'q2'
   if (!p.bio || !s.bio) return 'bio'
@@ -74,6 +77,7 @@ export default function ProfileWizard() {
     case 'gender': body = <Gender {...shared} />; break
     case 'details': body = <Details {...shared} />; break
     case 'interests': body = <Interests {...shared} />; break
+    case 'preferences': body = <Preferences {...shared} />; break
     case 'q1': body = <Questions1 {...shared} />; break
     case 'q2': body = <Questions2 {...shared} />; break
     case 'bio': body = <Bio {...shared} />; break

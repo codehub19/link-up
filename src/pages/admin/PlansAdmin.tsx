@@ -3,6 +3,7 @@ import AdminGuard from './AdminGuard'
 import { collection, doc, getDocs, setDoc, updateDoc, deleteDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import AdminHeader from '../../components/admin/AdminHeader'
+import { useDialog } from '../../components/ui/Dialog'
 
 type Plan = {
   id: string
@@ -25,12 +26,13 @@ export default function PlansAdmin() {
   const [supportAvailable, setSupportAvailable] = useState<boolean>(false)
   const [active, setActive] = useState<boolean>(true)
   const [saving, setSaving] = useState(false)
+  const { showConfirm } = useDialog()
 
   async function load() {
     const snap = await getDocs(collection(db, 'plans'))
     setPlans(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })))
   }
-  useEffect(()=>{ load() }, [])
+  useEffect(() => { load() }, [])
 
   function toSlug(s: string) {
     return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -60,7 +62,7 @@ export default function PlansAdmin() {
   }
 
   async function removePlan(p: Plan) {
-    const ok = window.confirm(`Remove plan "${p.name}"? This does not affect existing subscriptions but users won't see this plan anymore.`)
+    const ok = await showConfirm(`Remove plan "${p.name}"? This does not affect existing subscriptions but users won't see this plan anymore.`)
     if (!ok) return
     await deleteDoc(doc(db, 'plans', p.id))
     await load()
@@ -77,30 +79,30 @@ export default function PlansAdmin() {
             <div className="row" style={{ gap: 12, width: '100%', flexWrap: 'wrap' }}>
               <div className="stack" style={{ minWidth: 220, flex: 1 }}>
                 <label style={{ fontWeight: 600 }}>Plan name</label>
-                <input className="input" placeholder="e.g., Starter" value={name} onChange={e=>setName(e.target.value)} />
+                <input className="input" placeholder="e.g., Starter" value={name} onChange={e => setName(e.target.value)} />
               </div>
               <div className="stack" style={{ minWidth: 160 }}>
                 <label style={{ fontWeight: 600 }}>Price (₹)</label>
-                <input className="input" type="number" placeholder="Price" value={price} onChange={e=>setPrice(Number(e.target.value||0))} />
+                <input className="input" type="number" placeholder="Price" value={price} onChange={e => setPrice(Number(e.target.value || 0))} />
               </div>
               <div className="stack" style={{ minWidth: 160 }}>
                 <label style={{ fontWeight: 600 }}>Match quota</label>
-                <input className="input" type="number" placeholder="Match quota" value={matchQuota} onChange={e=>setMatchQuota(Number(e.target.value||0))} />
+                <input className="input" type="number" placeholder="Match quota" value={matchQuota} onChange={e => setMatchQuota(Number(e.target.value || 0))} />
               </div>
               <div className="stack" style={{ minWidth: 160 }}>
                 <label style={{ fontWeight: 600 }}>Rounds allowed</label>
-                <input className="input" type="number" placeholder="Rounds allowed" value={roundsAllowed} onChange={e=>setRoundsAllowed(Number(e.target.value||1))} />
+                <input className="input" type="number" placeholder="Rounds allowed" value={roundsAllowed} onChange={e => setRoundsAllowed(Number(e.target.value || 1))} />
               </div>
             </div>
 
             <div className="stack">
               <label style={{ fontWeight: 600 }}>Offers</label>
-              <textarea className="input" placeholder="One offer per line" rows={4} value={offersText} onChange={e=>setOffersText(e.target.value)} />
+              <textarea className="input" placeholder="One offer per line" rows={4} value={offersText} onChange={e => setOffersText(e.target.value)} />
             </div>
 
             <div className="row" style={{ gap: 12 }}>
-              <label><input type="checkbox" checked={supportAvailable} onChange={e=>setSupportAvailable(e.target.checked)} /> Support available</label>
-              <label><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)} /> Active</label>
+              <label><input type="checkbox" checked={supportAvailable} onChange={e => setSupportAvailable(e.target.checked)} /> Support available</label>
+              <label><input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} /> Active</label>
             </div>
 
             <div>
@@ -120,8 +122,8 @@ export default function PlansAdmin() {
                     {p.offers?.length ? <ul style={{ margin: '6px 0 0 18px' }}>{p.offers.map((o: string) => <li key={o}>{o}</li>)}</ul> : null}
                   </div>
                   <div className="row" style={{ gap: 8 }}>
-                    <button className="btn" onClick={()=>toggleActive(p)}>{p.active ? 'Deactivate' : 'Activate'}</button>
-                    <button className="btn btn-ghost" onClick={()=>removePlan(p)}>Remove</button>
+                    <button className="btn" onClick={() => toggleActive(p)}>{p.active ? 'Deactivate' : 'Activate'}</button>
+                    <button className="btn btn-ghost" onClick={() => removePlan(p)}>Remove</button>
                   </div>
                 </div>
               </div>

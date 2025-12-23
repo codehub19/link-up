@@ -19,6 +19,7 @@ import {
   setDoc,
   updateDoc,
   serverTimestamp,
+  arrayRemove,
 } from 'firebase/firestore'
 import {
   getStorage,
@@ -36,6 +37,7 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  databaseURL: 'https://linkup-dc86a-default-rtdb.firebaseio.com/',
 }
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp()
@@ -134,6 +136,7 @@ export type UserProfile = {
     gender?: boolean
     profile?: boolean
     interests?: boolean
+    preferences?: boolean
     q1?: boolean
     q2?: boolean
     bio?: boolean
@@ -147,7 +150,33 @@ export type UserProfile = {
   lastLoginAt?: any
   phoneNumber?: string
   isPhoneVerified?: boolean
+  // Preferences
+  ageRangeMin?: number
+  ageRangeMax?: number
+  distancePreference?: number // in km
+  globalMode?: boolean
+  pushNotifications?: boolean
+  emailUpdates?: boolean
+  readReceipts?: boolean
+
   [k: string]: any
+}
+
+// ---- Account Deletion Request ----
+export async function requestAccountDeletion(uid: string, reason: string) {
+  const refReq = doc(db, 'account_delete_requests', uid)
+  const userRef = doc(db, 'users', uid)
+  const userSnap = await getDoc(userRef)
+  const userData = userSnap.exists() ? userSnap.data() : {}
+
+  await setDoc(refReq, {
+    uid,
+    email: userData.email || null,
+    phoneNumber: userData.phoneNumber || null,
+    reason,
+    requestedAt: serverTimestamp(),
+    status: 'pending'
+  })
 }
 
 export function normalizeProfile(raw: any | null): UserProfile | null {
@@ -183,7 +212,9 @@ export function computeIsProfileComplete(p?: UserProfile | null): boolean {
     p.loveLanguage &&
     p.bio &&
     p.photoUrl &&
-    s.photos
+    s.photos &&
+    (p.ageRangeMin !== undefined) &&
+    (p.distancePreference !== undefined)
   )
 
   if (!basic) return false
@@ -380,5 +411,5 @@ export async function callConfirmMatchByGirl(payload: { roundId: string; boyUid:
   return fn(payload);
 }
 
-export { doc, getDoc, setDoc, updateDoc, serverTimestamp }
+export { doc, getDoc, setDoc, updateDoc, serverTimestamp, arrayRemove }
 export { FUNCTIONS_REGION }

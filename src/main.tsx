@@ -10,6 +10,7 @@ import { messaging } from "./firebase";
 import { onMessage } from "firebase/messaging";
 import { NotificationPrompt } from './components/NotificationPrompt'
 import { toast } from 'sonner';
+import { DialogProvider } from './components/ui/Dialog';
 
 onMessage(messaging, (payload) => {
   if (Notification.permission === "granted") {
@@ -32,11 +33,13 @@ registerSW({ immediate: true })
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
-        <App />
-        <Toaster position="top-center" richColors />
-        <NotificationPrompt />
+        <DialogProvider>
+          <App />
+          <Toaster position="top-center" richColors />
+          <NotificationPrompt />
+        </DialogProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

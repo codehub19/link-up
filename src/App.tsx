@@ -37,6 +37,7 @@ const AdminHome = lazy(() => import('./pages/admin/AdminHome'))
 const ChatPage = lazy(() => import('./pages/dashboard/chat/ChatPage'))
 const CollegeIdVerification = lazy(() => import('./pages/admin/CollegeIdVerification'))
 const EditProfile = lazy(() => import('./pages/dashboard/EditProfile'))
+const SettingsPage = lazy(() => import('./pages/dashboard/Settings'))
 
 import AnimatedRoutesLayout from './components/layout/AnimatedRoutesLayout'
 
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/setup/gender" element={<Navigate to="/setup/profile" replace />} />
           <Route path="/setup/details" element={<Navigate to="/setup/profile" replace />} />
           <Route path="/setup/interests" element={<Navigate to="/setup/profile" replace />} />
+          <Route path="/setup/preferences" element={<Navigate to="/setup/profile" replace />} />
           <Route path="/setup/q1" element={<Navigate to="/setup/profile" replace />} />
           <Route path="/setup/q2" element={<Navigate to="/setup/profile" replace />} />
           <Route path="/setup/bio" element={<Navigate to="/setup/profile" replace />} />
@@ -166,6 +168,15 @@ export default function App() {
             element={
               <Protected>
                 <EditProfile />
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/dashboard/settings"
+            element={
+              <Protected>
+                <SettingsPage />
               </Protected>
             }
           />

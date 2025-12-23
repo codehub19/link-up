@@ -24,20 +24,81 @@ export default function CollegeSelect({
   const [lastChosen, setLastChosen] = useState<string | null>(value || null)
   const boxRef = useRef<HTMLDivElement | null>(null)
 
-  // Fetch once
+  // Fetch from comprehensive CSV source (~43k colleges)
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        const res = await fetch('/data/colleges-delhi-ncr.json', { cache: 'force-cache' })
-        const json = (await res.json()) as College[]
-        if (alive) setAll(json)
-      } catch {
-        if (alive) setAll([])
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch('https://raw.githubusercontent.com/PriyanKishoreMS/colleges-api/master/data/colleges.csv')
+          if (!res.ok) throw new Error('Failed to fetch')
+          const text = await res.text()
+          if (alive) {
+            // Parse CSV
+            const rows = text.split('\n')
+            // Skip header (id,state,name,address_line1,address_line2,city,district,pin_code)
+            const data = []
+            // Determine indexes (header row is 0)
+            // Simple CSV parsing (handling quotes basics) but for this specific file, we can be a bit more robust or heuristic
+            // Standard: id,state,name,...
+            // indices: state=1, name=2, city=5, district=6
+
+            for (let i = 1; i < rows.length; i++) {
+              const row = rows[i].trim()
+              if (!row) continue
+
+              // Regex to handle quoted CSV fields:
+              // Matches: "quoted value" OR non-comma sequences
+              const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || []
+              // Actually, simple split might fail if commas in quotes. 
+              // Better simple parser:
+              let inQuote = false
+              const fields: string[] = []
+              let current = ''
+              for (let c = 0; c < row.length; c++) {
+                const char = row[c]
+                if (char === '"') {
+                  inQuote = !inQuote
+                } else if (char === ',' && !inQuote) {
+                  fields.push(current)
+                  current = ''
+                } else {
+                  current += char
+                }
+              }
+              fields.push(current) // last field
+
+              if (fields.length < 3) continue
+
+              // CSV columns: id,state,name,address_line1,address_line2,city,district,pin_code
+              const name = fields[2]?.replace(/^"|"$/g, '').trim()
+              const city = fields[5]?.replace(/^"|"$/g, '').trim() || fields[6]?.replace(/^"|"$/g, '').trim() // city or district
+              const state = fields[1]?.replace(/^"|"$/g, '').trim()
+
+              if (name) {
+                data.push({ name, city, state })
+              }
+            }
+
+            // Remove duplicates
+            const seen = new Set()
+            const unique = []
+            for (const m of data) {
+              // Key by name + city to differentiation similarly named colleges in different places
+              const key = (m.name + m.city).toLowerCase()
+              if (!seen.has(key)) {
+                seen.add(key)
+                unique.push(m)
+              }
+            }
+            setAll(unique)
+          }
+        } catch (e) {
+          console.error('Failed to load colleges', e)
+          if (alive) setAll([])
+        } finally {
+          if (alive) setLoading(false)
+        }
+      })()
     return () => { alive = false }
   }, [])
 
@@ -49,7 +110,10 @@ export default function CollegeSelect({
 
   const list = useMemo(() => {
     const q = input.trim().toLowerCase()
+    // If empty input, show nothing or top items? 
+    // Maybe show top 20 or nothing. Let's show nothing to be cleaner unless typing.
     if (!q) return all.slice(0, 20)
+
     return all
       .filter(c => {
         const t = `${c.name} ${c.city ?? ''} ${c.state ?? ''}`.toLowerCase()
@@ -79,19 +143,20 @@ export default function CollegeSelect({
     const v = e.target.value
     setInput(v)
 
-    // If user cleared the field, clear parent value too and keep list closed
+    // ALLOW CUSTOM INPUT:
+    // We strictly update the parent onChange with the custom value.
+    onChange(v)
+
     if (v.trim().length === 0) {
-      if (value !== '') onChange('') // propagate clear
       setLastChosen(null)
       setOpen(false)
       setHighlight(0)
       return
     }
 
-    // Only open when typing non-empty and different from last chosen
-    const shouldOpen = v !== lastChosen
-    setOpen(shouldOpen)
-    if (shouldOpen) setHighlight(0)
+    // Only open when typing non-empty
+    setOpen(true)
+    setHighlight(0)
   }
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

@@ -11,11 +11,12 @@ export default function ProfilePage() {
   const nav = useNavigate()
 
   // List of required fields to consider for profile completion
-  const requiredFields = [
+  // List of required fields to consider for profile completion
+  let requiredFields = [
     'name',
-    'age',
+    'dob', // Use dob instead of age
     'gender',
-    'college',
+    // 'college', // Conditionally added below
     'photoUrl',
     'bio',
     'interests',
@@ -26,8 +27,12 @@ export default function ProfilePage() {
     'sundayStyle',
     'communicationImportance',
     'conflictApproach',
-    // Add other required fields here if needed
   ]
+
+  // Add college only if user is a valid college student
+  if (!profile?.userType || profile.userType === 'college') {
+    requiredFields.push('college')
+  }
 
   // Count how many required fields are filled
   const filledFields = requiredFields.reduce((count, field) => {
@@ -41,6 +46,19 @@ export default function ProfilePage() {
   const completion = requiredFields.length > 0
     ? Math.round((filledFields / requiredFields.length) * 100)
     : 0
+
+  // Calculate display age
+  const age = React.useMemo(() => {
+    if (!profile?.dob) return ''
+    const birth = new Date(profile.dob)
+    const now = new Date()
+    let a = now.getFullYear() - birth.getFullYear()
+    const m = now.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+      a--
+    }
+    return a
+  }, [profile?.dob])
 
   return (
     <>
@@ -92,7 +110,7 @@ export default function ProfilePage() {
             </div>
             <div className="profile-header-details">
               <div className="profile-header-name-row">
-                <span className="profile-header-name">{profile?.name}, {profile?.age}</span>
+                <span className="profile-header-name">{profile?.name}, {age}</span>
                 {profile?.verified && (
                   <span className="profile-header-verified" title="Verified">
                     <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
@@ -104,7 +122,7 @@ export default function ProfilePage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
-                      <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none"/>
+                      <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none" />
                     </svg>
                   </span>
                 )}
@@ -114,15 +132,26 @@ export default function ProfilePage() {
                 className="profile-header-edit-btn"
                 onClick={() => nav('/dashboard/edit-profile')}
               >
-                <svg width="19" height="19" viewBox="0 0 24 24" style={{marginRight: 7}}>
-                  <path d="M4 20h4l10-10-4-4L4 16v4z" fill="#232a38"/>
+                <svg width="19" height="19" viewBox="0 0 24 24" style={{ marginRight: 7 }}>
+                  <path d="M4 20h4l10-10-4-4L4 16v4z" fill="#232a38" />
                 </svg>
                 <span>Edit profile</span>
+              </button>
+              <button
+                className="profile-header-edit-btn"
+                style={{ marginLeft: 8, padding: '0 10px' }}
+                onClick={() => nav('/dashboard/settings')}
+                title="Settings"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#232a38" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
               </button>
             </div>
           </div>
           <div className="profile-college-id">
-            <EditCollegeId />
+            {profile?.userType === 'college' && <EditCollegeId />}
           </div>
         </div>
       </div>

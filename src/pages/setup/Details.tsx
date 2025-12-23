@@ -140,7 +140,7 @@ export default function Details({ embedded, onComplete }: Props) {
             {isCollegeUser && (
               <label className="field">
                 <span className="field-label">College</span>
-                <CollegeSelect value={college} onChange={setCollege} placeholder="Search your college (Delhi NCR)" />
+                <CollegeSelect value={college} onChange={setCollege} placeholder="Search your college" />
               </label>
             )}
 

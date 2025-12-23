@@ -171,8 +171,28 @@ export default function ProfileMiniCard({
     </div>
   )
 
+  // Smooth expand/collapse logic
+  const [renderExpanded, setRenderExpanded] = useState(!!expanded)
+  const [animateOpen, setAnimateOpen] = useState(!!expanded)
+
+  useEffect(() => {
+    if (expanded) {
+      setRenderExpanded(true)
+      // Small delay to ensure DOM is present before adding 'open' class
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setAnimateOpen(true))
+      })
+    } else {
+      setAnimateOpen(false)
+      const t = setTimeout(() => {
+        setRenderExpanded(false)
+      }, 300) // Match CSS transition duration
+      return () => clearTimeout(t)
+    }
+  }, [expanded])
+
   const expandedContent = (
-    <div className="pm-expanded-popup">
+    <div className={`pm-expanded-popup ${animateOpen ? 'open' : ''}`}>
       <div className="pm-expanded-inner">
         <div className="pm-expanded-images-carousel">
           {renderProgressBar()}
@@ -187,7 +207,7 @@ export default function ProfileMiniCard({
         <div className="pm-expanded-header modern">
           <span className="pm-card-name modern">
             {isRevealed() ? (user?.name ?? "Student") : (
-              <span className="pm-hidden-name">Hidden until matched</span>
+              <span className="pm-hidden-name">{user?.name ?? "Student"}</span>
             )}
             {age ? <span className="pm-card-age modern">, {age}</span> : ""}
           </span>
@@ -265,7 +285,7 @@ export default function ProfileMiniCard({
                     <span className="pm-ig">@{user.instagramId}</span>
                   </>
                 ) : (
-                  <span className="pm-ig-hidden">Hidden until matched</span>
+                  <span className="pm-ig-hidden">{user.instagramId}</span>
                 )}
               </div>
             </section>
@@ -286,7 +306,7 @@ export default function ProfileMiniCard({
   return (
     <>
       {collapsedContent}
-      {expanded && expandedContent}
+      {renderExpanded && expandedContent}
       <style>{`
         .pm-card {
           background: #1a1a22;
@@ -554,9 +574,16 @@ export default function ProfileMiniCard({
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(24,25,35,0.97);
+          background: rgba(24,25,35,0.0);
           pointer-events: auto;
+          transition: background 0.3s ease;
+          opacity: 0;
         }
+        .pm-expanded-popup.open {
+          background: rgba(24,25,35,0.95);
+          opacity: 1;
+        }
+
         .pm-expanded-inner {
           background: #181923;
           border-radius: 18px;
@@ -569,6 +596,14 @@ export default function ProfileMiniCard({
           max-height: 98vh;
           display: flex;
           flex-direction: column;
+          
+          transform: translateY(30px) scale(0.95);
+          opacity: 0;
+          transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s ease;
+        }
+        .pm-expanded-popup.open .pm-expanded-inner {
+          transform: translateY(0) scale(1.0);
+          opacity: 1;
         }
         .pm-expanded-images-carousel {
           position: relative;
