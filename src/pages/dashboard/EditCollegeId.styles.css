@@ -1,0 +1,159 @@
+/* ==========================================================================
+   Edit College ID Styles (Glassmorphism)
+   ========================================================================== */
+
+.college-id-card {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.college-id-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--clr-text-primary);
+    margin: 0 0 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.college-id-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* Upload Box Styling */
+.id-upload-box {
+    position: relative;
+    aspect-ratio: 3/2;
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1rem;
+}
+
+.id-upload-box:hover {
+    border-color: var(--clr-accent-main);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.id-upload-box.has-image {
+    border-style: solid;
+    border-color: transparent;
+    background: black;
+}
+
+/* Hidden basic input */
+.id-file-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+
+/* Content inside box */
+.id-upload-content {
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--clr-text-muted);
+}
+
+.id-upload-icon {
+    color: var(--clr-text-secondary);
+    opacity: 0.7;
+}
+
+.id-upload-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.id-upload-sub {
+    font-size: 0.75rem;
+    color: var(--clr-text-muted);
+}
+
+/* Image Preview */
+.id-preview-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Upload Button */
+.id-submit-btn {
+    background: var(--grad-primary);
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 1rem;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 0.5rem;
+    box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);
+}
+
+.id-submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(244, 63, 94, 0.4);
+}
+
+.id-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Status Messages */
+.id-status-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.id-status-text {
+    font-size: 0.95rem;
+    color: var(--clr-text-secondary);
+    line-height: 1.5;
+}
+
+.id-status-sub {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--clr-text-muted);
+}
+
+@media (max-width: 600px) {
+    .college-id-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -39,8 +39,10 @@ export default function HowItWorksSteps() {
                             <div key={idx} className="step-card">
                                 <div className="step-number">{step.num}</div>
                                 <div className="step-icon-box">{step.icon}</div>
-                                <h3>{step.title}</h3>
-                                <p>{step.desc}</p>
+                                <div className="step-content">
+                                    <h3>{step.title}</h3>
+                                    <p>{step.desc}</p>
+                                </div>
                             </div>
                         ))}
                     </div>

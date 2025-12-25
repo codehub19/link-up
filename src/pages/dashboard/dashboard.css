@@ -59,8 +59,8 @@
 }
 
 .tab-btn-active .tab-btn-icon svg {
-    stroke: var(--clr-accent-main);
-    /* Force accent color on active */
+    /* stroke: var(--clr-accent-main); */
+    /* Keep text color (white) */
     filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.4));
 }
 
@@ -138,6 +138,7 @@
 }
 
 .field {
+    overflow: hidden;
     background: var(--clr-bg-alt);
     border: 1px solid var(--clr-border-glass);
     padding: 1.5rem;
@@ -473,6 +474,8 @@
 
 .ig-field {
     display: flex;
+    overflow-x: scroll;
+    scrollbar-width: none;
     align-items: center;
     gap: 0.5rem;
     background: rgba(0, 0, 0, 0.2);

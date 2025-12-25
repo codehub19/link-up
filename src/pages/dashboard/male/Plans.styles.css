@@ -250,7 +250,7 @@
 /* --- Mobile Responsiveness --- */
 @media (max-width: 768px) {
     .plans-container {
-        padding: 60px 1rem 3rem;
+        padding-bottom: 3rem;
     }
 
     .plans-title {
@@ -265,5 +265,9 @@
 
     .banner-actions {
         flex-direction: column;
+    }
+
+    .plans-grid {
+        grid-template-columns: 1fr;
     }
 }

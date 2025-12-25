@@ -3,6 +3,7 @@ import { uploadCollegeId } from "../../firebase";
 import { useAuth } from "../../state/AuthContext";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { compressImage } from "../../utils/compressImage";
+import './EditCollegeId.styles.css';
 
 export default function EditCollegeId() {
   const { user, profile, refreshProfile } = useAuth();
@@ -31,7 +32,6 @@ export default function EditCollegeId() {
       setFrontPreview(null);
     }
   };
-
 
   const handleBackChange = async (file: File | null) => {
     if (file) {
@@ -64,127 +64,94 @@ export default function EditCollegeId() {
     setUploading(false);
   };
 
+  const UploadIcon = () => (
+    <svg className="id-upload-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+
   return (
-    <div>
-      <h3 style={{ fontWeight: 600, marginBottom: 16 }}>
-        Verify your profile with College ID card
+    <div className="college-id-card">
+      <h3 className="college-id-title">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        Verify College ID
       </h3>
+
       {canUpload ? (
         <>
-          <div className="upload-row">
-            <label className="field" style={{ marginBottom: 8, fontWeight: 500 }}>
-              Front Image:
+          <div className="college-id-grid">
+            {/* Front Upload */}
+            <label className={`id-upload-box ${frontPreview ? 'has-image' : ''}`}>
               <input
-                className="field-input"
+                className="id-file-input"
                 type="file"
                 accept="image/*"
                 onChange={e => handleFrontChange(e.target.files?.[0] || null)}
                 disabled={uploading}
-                style={{ marginTop: 8 }}
               />
-              {frontPreview && (
-                <div style={{ marginTop: 8 }}>
-                  <img
-                    src={frontPreview}
-                    alt="Front preview"
-                    style={{
-                      maxWidth: 120,
-                      maxHeight: 80,
-                      borderRadius: 8,
-                      boxShadow: "0 2px 8px #0003",
-                      border: "1px solid #2196f3",
-                    }}
-                  />
+              {frontPreview ? (
+                <img src={frontPreview} alt="Front Preview" className="id-preview-img" />
+              ) : (
+                <div className="id-upload-content">
+                  <UploadIcon />
+                  <span className="id-upload-label">Front ID</span>
+                  <span className="id-upload-sub">Tap to upload</span>
                 </div>
               )}
             </label>
-          </div>
-          <div className="upload-row">
-            <label className="field" style={{ marginBottom: 12, fontWeight: 500 }}>
-              Back Image:
+
+            {/* Back Upload */}
+            <label className={`id-upload-box ${backPreview ? 'has-image' : ''}`}>
               <input
-                className="field-input"
+                className="id-file-input"
                 type="file"
                 accept="image/*"
                 onChange={e => handleBackChange(e.target.files?.[0] || null)}
                 disabled={uploading}
-                style={{ marginTop: 8 }}
               />
-              {backPreview && (
-                <div style={{ marginTop: 8 }}>
-                  <img
-                    src={backPreview}
-                    alt="Back preview"
-                    style={{
-                      maxWidth: 120,
-                      maxHeight: 80,
-                      borderRadius: 8,
-                      boxShadow: "0 2px 8px #0003",
-                      border: "1px solid #2196f3",
-                    }}
-                  />
+              {backPreview ? (
+                <img src={backPreview} alt="Back Preview" className="id-preview-img" />
+              ) : (
+                <div className="id-upload-content">
+                  <UploadIcon />
+                  <span className="id-upload-label">Back ID</span>
+                  <span className="id-upload-sub">Tap to upload</span>
                 </div>
               )}
             </label>
           </div>
-          <button
-            className="btn-gradient"
-            onClick={handleUpload}
-            disabled={uploading}
-            style={{
-              width: "100%",
-              marginTop: 5,
-              fontWeight: 600,
-              fontSize: 16,
-              padding: "12px 0",
-              letterSpacing: 0.2,
-              borderRadius: 10,
-            }}
-          >
-            {uploading ? <LoadingSpinner /> : "Upload College ID"}
+
+          {error && <div style={{ color: "#f43f5e", fontSize: '0.9rem', textAlign: 'center' }}>{error}</div>}
+
+          <button className="id-submit-btn" onClick={handleUpload} disabled={uploading}>
+            {uploading ? <LoadingSpinner color="#fff" size={20} /> : "Upload for Verification"}
           </button>
-          {error && (
-            <div style={{ color: "#f44336", marginTop: 10, fontWeight: 500 }}>
-              {error}
-            </div>
-          )}
         </>
       ) : (
-        <div
-          style={{
-            marginBottom: 18,
-            color: "#bdbdbd",
-            fontWeight: 500,
-            background: "rgba(30,34,46,0.44)",
-            borderRadius: 16,
-            padding: "12px 18px",
-            letterSpacing: 0.2,
-            boxShadow: "0 2px 12px #0002",
-            fontSize: 16,
-          }}
-        >
-          {collegeId?.verified
-            ? (
-              <span>
-                <span role="img" aria-label="verified">✅</span> Your College ID has been verified.<br />
-                <span style={{ fontSize: 13, color: "#b8e9c2" }}>
-                  You cannot update or view images after verification.
-                </span>
-              </span>
-            )
-            : (
-              collegeId?.frontUrl && collegeId?.backUrl && collegeId?.verified === false
-                ? <span>
-                  <span role="img" aria-label="pending">⏳</span> Your College ID is pending verification.<br />
-                  <span style={{ fontSize: 13, color: "#ffe082" }}>
-                    You cannot update or view images until verification is complete.
-                  </span>
-                </span>
-                : <span>
-                  <span role="img" aria-label="not-uploaded">🪪</span> No college ID uploaded yet.
-                </span>
-            )
-          }
+        <div className="id-status-box">
+          <div style={{ fontSize: '1.5rem' }}>
+            {collegeId?.verified ? '✅' : '⏳'}
+          </div>
+          <div className="id-status-text">
+            {collegeId?.verified ? (
+              <>
+                <strong>Verified Student</strong>
+                <span className="id-status-sub">Your college status is active.</span>
+              </>
+            ) : (
+              <>
+                <strong>Pending Verification</strong>
+                <span className="id-status-sub">We are reviewing your ID. This takes ~24h.</span>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

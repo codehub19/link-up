@@ -73,7 +73,7 @@
 .nav-icon-btn.active {
     background: rgba(244, 63, 94, 0.1);
     /* Rose tint */
-    color: var(--clr-accent-main);
+    color: var(--clr-text-primary);
     border-color: rgba(244, 63, 94, 0.2);
 }
 

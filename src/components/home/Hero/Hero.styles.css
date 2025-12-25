@@ -195,17 +195,20 @@
 @media (max-width: 600px) {
   .hero-modern {
     min-height: auto;
-    padding: 120px 0 60px;
+    padding: 120px 1.5rem 60px;
+    /* Add side padding */
   }
 
   .display-text {
-    font-size: 3rem;
+    font-size: 2.5rem;
+    /* Reduce from 3rem */
   }
 
   .hero-actions {
     flex-direction: column;
     width: 100%;
-    max-width: 320px;
+    max-width: 100%;
+    /* Allow full width */
   }
 
   .btn-modern {

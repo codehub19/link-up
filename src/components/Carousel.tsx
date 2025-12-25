@@ -98,24 +98,37 @@ export default function Carousel({
 
   const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
     if (!swipeEnabled || count === 0) return
+
+    // Check if target is interactive (button, input, etc.)
+    // But we still want to allow swipe starting from image navs if possible? 
+    // Actually, relying on browser behavior is best: 
+    // If we don't capture, clicks fire on small moves.
+
     drag.current.active = true
     drag.current.startX = e.clientX
     drag.current.dx = 0
     drag.current.pointerId = e.pointerId
-    try {
-      (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId)
-    } catch { }
+
+    // Use window listeners instead of capture to preserve child clicks
+    window.addEventListener('pointermove', onWindowPointerMove)
+    window.addEventListener('pointerup', onWindowPointerUp)
+    window.addEventListener('pointercancel', onWindowPointerUp)
   }
 
-  const onPointerMove: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    if (!swipeEnabled || !drag.current.active) return
+  const onWindowPointerMove = (e: PointerEvent) => {
+    if (!drag.current.active) return
     drag.current.dx = e.clientX - drag.current.startX
   }
 
-  const onPointerEnd = () => {
-    if (!swipeEnabled || !drag.current.active) return
+  const onWindowPointerUp = (e: PointerEvent) => {
+    if (!drag.current.active) return
     const dx = drag.current.dx
     drag.current.active = false
+
+    window.removeEventListener('pointermove', onWindowPointerMove)
+    window.removeEventListener('pointerup', onWindowPointerUp)
+    window.removeEventListener('pointercancel', onWindowPointerUp)
+
     const threshold = Math.max(48, itemWidth * 0.18)
     if (dx <= -threshold) handleIdxChange((idx + 1) % Math.max(1, count))
     else if (dx >= threshold) handleIdxChange((idx - 1 + Math.max(1, count)) % Math.max(1, count))
@@ -160,10 +173,6 @@ export default function Carousel({
         className={`deck-stage ${swipeEnabled ? 'can-swipe' : 'no-swipe'}`}
         style={{ height: stageH, paddingLeft: sidePad, paddingRight: sidePad }}
         onPointerDown={swipeEnabled ? onPointerDown : undefined}
-        onPointerMove={swipeEnabled ? onPointerMove : undefined}
-        onPointerUp={swipeEnabled ? onPointerEnd : undefined}
-        onPointerCancel={swipeEnabled ? onPointerEnd : undefined}
-        onPointerLeave={swipeEnabled ? onPointerEnd : undefined}
       >
         <div className="deck-lane">
           {slides.map((ch, i) => {

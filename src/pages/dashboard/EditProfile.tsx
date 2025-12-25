@@ -1,17 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Navbar from '../../components/Navbar'
+import HomeBackground from '../../components/home/HomeBackground'
 import { useAuth } from '../../state/AuthContext'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db, uploadProfilePhoto } from '../../firebase'
 import { toast } from 'sonner'
-import AvatarUpload from '../../components/AvatarUpload'
 import InterestsSelect from '../../components/InterestsSelect'
 import CollegeSelect from '../../components/CollegeSelect'
 import { useNavigate } from 'react-router-dom'
 import { compressImage } from '../../utils/compressImage'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import PhoneVerification from '../../components/PhoneVerification'
-import './dashboard.css'
+import HeightSlider from '../../components/ui/HeightSlider'
+import './EditProfile.styles.css'
 
 type PhotoSlot = { id: number; url?: string; file?: File | null }
 const MAX_PHOTOS = 4
@@ -122,7 +123,6 @@ export default function EditProfile() {
           if (!user) return
           const compressed = await compressImage(f)
           setPhotoSlots(prev => prev.map(s => s.id === i ? { ...s, url: previewUrl, file: compressed } : s))
-          // Optionally, uploadProfilePhoto(user.uid, compressed, i) here only for instant preview upload.
         } finally {
           setIsCompressing(prev => {
             const next = [...prev]
@@ -198,209 +198,133 @@ export default function EditProfile() {
     </fieldset>
   )
 
-  if (loading)
-    return (
-      <div className="loading-page-wrapper">
-        <LoadingSpinner />
-      </div>
-    )
+  if (loading) return <div className="loading-page-wrapper"><LoadingSpinner /></div>
 
   return (
     <>
+      <HomeBackground />
       <Navbar />
-      <div className="container edit-profile-container">
-        <button className="edit-profile-back-btn" onClick={() => nav(`/dashboard/${profile?.gender}/profile`)}>
-          ← Back to Profile
-        </button>
-        <div className="edit-profile-hero">
-          <input ref={inputRef} type="file" accept="image/*" hidden />
-          <div className="edit-profile-photos-area">
-            <div className="edit-profile-photos-grid">
+      <div className="edit-profile-wrap">
+        <div className="edit-profile-container">
+          <div className="edit-profile-header">
+            <button className="edit-profile-back-btn" onClick={() => nav(`/dashboard/${profile?.gender}/profile`)}>
+              <span>←</span> Back
+            </button>
+            <h1 className="edit-profile-title text-gradient">Edit Profile</h1>
+          </div>
+
+          <div className="edit-profile-card">
+            <input ref={inputRef} type="file" accept="image/*" hidden />
+
+            {/* Photos Section */}
+            <div className="edit-section-title">Photos</div>
+            <div className="edit-photos-grid">
               {photoSlots.map((slot, idx) => (
-                <div key={slot.id} className={`edit-profile-photo-slot ${slot.url ? 'has-image' : ''}`}>
-                  <div className="edit-profile-photo-inner">
-                    {isCompressing[idx] ? (
-                      <div style={{ textAlign: 'center', color: '#ff5d7c' }}>
-                        <LoadingSpinner color='#ff5d7c' />
-                      </div>
-                    ) : slot.url ? (
-                      <>
-                        <img src={slot.url} alt={`Photo ${idx + 1}`} className="edit-profile-img" />
-                        <button
-                          className="photo-remove"
-                          aria-label="Remove"
-                          onClick={() => removePhoto(idx)}
-                          disabled={saving}
-                        >✕</button>
-                      </>
-                    ) : (
+                <div key={slot.id} className={`edit-photo-slot ${slot.url ? 'has-image' : ''}`} onClick={() => !slot.url && pick(idx)}>
+                  {isCompressing[idx] ? (
+                    <LoadingSpinner color='#ff5d7c' />
+                  ) : slot.url ? (
+                    <>
+                      <img src={slot.url} alt={`Photo ${idx + 1}`} className="edit-photo-img" />
                       <button
-                        className="photo-add"
-                        onClick={() => pick(idx)}
-                        aria-label="Add photo"
-                        disabled={isCompressing.some(Boolean)}
-                      >
-                        <span style={{ fontSize: "2rem" }}>+</span>
-                        <span style={{ fontSize: "0.95rem", fontWeight: 600, marginTop: 7, color: "#ff5d7c" }}>Add</span>
-                      </button>
-                    )}
-                  </div>
-                  {idx === 0 && (
-                    <span className="edit-profile-primary-label">Primary</span>
+                        className="edit-photo-remove"
+                        onClick={(e) => { e.stopPropagation(); removePhoto(idx); }}
+                        disabled={saving}
+                      >✕</button>
+                      {idx === 0 && <span className="photo-badge-primary">Main</span>}
+                    </>
+                  ) : (
+                    <div className="edit-photo-action">
+                      <span style={{ fontSize: "2rem" }}>+</span>
+                      <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Add</span>
+                    </div>
                   )}
                 </div>
               ))}
             </div>
-            <div className="edit-profile-photos-caption">
-              <span>Add up to 4 photos. First chosen becomes primary.</span>
-            </div>
-          </div>
-          <div className="edit-profile-user-details">
-            <div className="edit-profile-main-row">
-              <span className="edit-profile-main-name">{name || 'Your Name'}</span>
-              {verified && (
-                <span className="edit-profile-verified" title="Verified">
-                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                    <circle cx="11" cy="11" r="10" fill="#2196F3" />
-                    <path
-                      d="M7.7 11.8l2.1 2.1 4.1-4.1"
-                      stroke="#fff"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none" />
-                  </svg>
-                </span>
-              )}
-            </div>
-            <div className="edit-profile-main-instagram">
-              {insta ? <span>@{insta.replace(/^@/, '')}</span> : <span style={{ color: '#9aa0b4' }}>Instagram not linked</span>}
-            </div>
+            <span className="photos-caption">First photo will be your main profile picture.</span>
 
-            {/* Phone Verification Status */}
-            <div style={{ marginTop: 12 }}>
+            {/* Verification Status */}
+            <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
               {isPhoneVerified ? (
-                <div className="tag" style={{ background: '#e6fffa', color: '#009688', border: '1px solid #b2dfdb' }}>
+                <div className="tag" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                   ✓ Phone Verified
                 </div>
               ) : (
-                <div className="tag" style={{ background: '#fff3e0', color: '#e65100', border: '1px solid #ffe0b2' }}>
-                  ⚠ Phone Not Verified
-                </div>
+                <PhoneVerification onVerified={() => setIsPhoneVerified(true)} />
               )}
             </div>
+
+            <form onSubmit={e => { e.preventDefault(); save(); }}>
+              <div className="edit-form-grid">
+                <label className="field">
+                  <span className="field-label">Full Name</span>
+                  <input className="field-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+                </label>
+
+                <label className="field">
+                  <span className="field-label">Instagram</span>
+                  <div className="ig-field">
+                    <span>@</span>
+                    <input value={insta.replace(/^@/, '')} onChange={(e) => setInsta(e.target.value)} placeholder="username" />
+                  </div>
+                </label>
+
+                <label className="field">
+                  <span className="field-label">About Me</span>
+                  <textarea className="field-input" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell us about yourself..." rows={3} style={{ resize: 'vertical', minHeight: '100px' }} />
+                </label>
+
+                <div className="field">
+                  <span className="field-label">Interests</span>
+                  <InterestsSelect value={interests} onChange={setInterests} />
+                </div>
+
+                <div className="edit-section-title">Details</div>
+                <div className="field">
+                  <span className="field-label">Height</span>
+                  <div className="range-slider-container" style={{ padding: '0 0.5rem' }}>
+                    <HeightSlider
+                      value={height}
+                      onChange={setHeight}
+                    />
+                  </div>
+                </div>
+
+                <label className="field">
+                  <span className="field-label">College</span>
+                  <CollegeSelect value={college} onChange={setCollege} placeholder="Search your college" />
+                </label>
+
+                <div className="edit-section-title">Personality & Preferences</div>
+                {radioGroup('Communication Importance', communicationImportance, setCommunicationImportance, COM, 'com')}
+                {radioGroup('Conflict Style', conflictApproach, setConflictApproach, CONFLICT, 'conflict')}
+                {radioGroup('Ideal Sunday', sundayStyle, setSundayStyle, SUNDAY, 'sunday')}
+                {radioGroup('Travel Preference', travelPreference, setTravelPreference, TRAVEL, 'travel')}
+                {radioGroup('Love Language', loveLanguage, setLoveLanguage, LOVE, 'love')}
+              </div>
+
+              <div className="edit-actions">
+                <button
+                  className="btn-ghost"
+                  type="button"
+                  onClick={() => {
+                    if (!profile) return
+                    // Simple reset logic
+                    window.location.reload()
+                  }}
+                  disabled={saving}
+                >
+                  Reset
+                </button>
+                <button className="btn-save" type="submit" disabled={saving}>
+                  {saving ? <LoadingSpinner color="white" size={20} /> : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-
-        {/* Phone Verification Section for Unverified Users */}
-        {!isPhoneVerified && (
-          <div style={{ marginBottom: 24 }}>
-            <PhoneVerification onVerified={() => setIsPhoneVerified(true)} />
-          </div>
-        )}
-
-        <form className="edit-profile-form-section" onSubmit={e => { e.preventDefault(); save(); }}>
-          <label className="field">
-            <span className="field-label">Full Name</span>
-            <input
-              className="field-input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-            />
-          </label>
-          <label className="field">
-            <span className="field-label">Instagram</span>
-            <div className="ig-field">
-              <span>@</span>
-              <input
-                value={insta.replace(/^@/, '')}
-                onChange={(e) => setInsta(e.target.value)}
-                placeholder="yourhandle"
-              />
-            </div>
-          </label>
-          <label className="field">
-            <span className="field-label">About Me</span>
-            <textarea
-              className="field-textarea"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="A short bio"
-              rows={3}
-            />
-          </label>
-          <div className="field">
-            <span className="field-label">Interests</span>
-            <div className="interests-wrap">
-              <InterestsSelect value={interests} onChange={setInterests} />
-              <small style={{ color: '#9aa0b4' }}>Pick up to 5 that describe you best</small>
-            </div>
-          </div>
-          {radioGroup('Communication Importance', communicationImportance, setCommunicationImportance, COM, 'com')}
-          {radioGroup('Conflict Style', conflictApproach, setConflictApproach, CONFLICT, 'conflict')}
-          {radioGroup('Ideal Sunday', sundayStyle, setSundayStyle, SUNDAY, 'sunday')}
-          {radioGroup('Travel Preference', travelPreference, setTravelPreference, TRAVEL, 'travel')}
-          {radioGroup('Love Language', loveLanguage, setLoveLanguage, LOVE, 'love')}
-          <label className="field">
-            <span className="field-label">Height</span>
-            <input
-              className="field-input"
-              value={height}
-              onChange={(e) => setHeight(e.target.value)}
-              placeholder="Your height"
-            />
-          </label>
-          <label className="field">
-            <span className="field-label">College</span>
-            <CollegeSelect
-              value={college}
-              onChange={setCollege}
-              placeholder="Search your college"
-            />
-          </label>
-          <div className="save-row">
-            <button
-              className="btn-ghost"
-              type="button"
-              onClick={() => {
-                if (!profile) return
-                setName(profile.name ?? '')
-                setBio(profile.bio ?? '')
-                setInterests(profile.interests ?? [])
-                setInsta(profile.instagramId ?? '')
-                setHeight(profile.height ?? '')
-                setCollege(profile.college ?? '')
-                setLoveLanguage(profile.loveLanguage ?? '')
-                setTravelPreference(profile.travelPreference ?? '')
-                setSundayStyle(profile.sundayStyle ?? '')
-                setCommunicationImportance(profile.communicationImportance ?? '')
-                setConflictApproach(profile.conflictApproach ?? '')
-                setVerified(profile.verified ?? false)
-                setIsPhoneVerified(profile.isPhoneVerified ?? false)
-                const urls = profile?.photoUrls ?? (profile?.photoUrl ? [profile.photoUrl] : [])
-                setPhotoSlots(
-                  Array.from({ length: MAX_PHOTOS }, (_, i) => ({
-                    id: i,
-                    url: urls[i] || '',
-                    file: null,
-                  }))
-                )
-              }}
-              disabled={saving}
-            >
-              Reset
-            </button>
-            <button className="btn-gradient" type="submit" disabled={saving}>
-              {saving ? <LoadingSpinner /> : 'Save Changes'}
-            </button>
-          </div>
-        </form>
       </div>
-      {/* <style>{`
-        
-      `}</style> */}
     </>
   )
 }

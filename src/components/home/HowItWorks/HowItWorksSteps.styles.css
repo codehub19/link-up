@@ -102,6 +102,7 @@
         text-align: left;
         gap: 20px;
         align-items: flex-start;
+        position: relative;
     }
 
     .step-icon-box {
@@ -113,6 +114,9 @@
     }
 
     .step-number {
-        display: none;
+        position: absolute;
+        top: 90px;
+        left: 15px;
+        /* display: none; */
     }
 }

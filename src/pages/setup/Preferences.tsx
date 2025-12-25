@@ -5,6 +5,7 @@ import { updateProfileAndStatus, nextSetupRoute } from '../../firebase'
 import { useNavigate } from 'react-router-dom'
 import './setup.styles.css'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import RangeSlider from '../../components/ui/RangeSlider'
 
 export default function PreferencesPage({ embedded, onComplete }: { embedded?: boolean; onComplete?: () => void }) {
     const { user, profile, refreshProfile } = useAuth()
@@ -19,15 +20,6 @@ export default function PreferencesPage({ embedded, onComplete }: { embedded?: b
     const [saving, setSaving] = useState(false)
 
     // Handlers
-    const handleAgeChange = (idx: 0 | 1, val: number) => {
-        const next = [...ageRange] as [number, number]
-        next[idx] = val
-        // Enforce min < max with slight buffer or just swap
-        if (idx === 0 && val > next[1]) next[1] = val
-        if (idx === 1 && val < next[0]) next[0] = val
-        setAgeRange(next)
-    }
-
     const save = async () => {
         if (!user) return
         setSaving(true)
@@ -39,18 +31,11 @@ export default function PreferencesPage({ embedded, onComplete }: { embedded?: b
                     ageRangeMax: ageRange[1],
                     distancePreference: distance
                 },
-                // We'll consider this part of 'profile' setup or maybe a new key like 'preferences'
-                // For now, let's just mark it as part of 'profile' block or similar, 
-                // effectively it updates the user doc. 
-                // But to ensure 'setupStatus' tracks it, let's assume 'preferences' key.
                 { preferences: true }
             )
             await refreshProfile()
             if (embedded && onComplete) onComplete()
             else {
-                // Assuming this is inserted after setup/interests
-                // We need to verify where to navigate next.
-                // For now, let's explicitly go to q1 or whatever is next in flow.
                 nav('/setup/q1')
             }
         } finally {
@@ -71,23 +56,14 @@ export default function PreferencesPage({ embedded, onComplete }: { embedded?: b
                             <span className="pref-label">Age Range</span>
                             <span className="pref-value">{ageRange[0]} - {ageRange[1]}</span>
                         </div>
-                        {/* Simple Dual Slider Simulation with two inputs */}
+                        {/* Properly implemented RangeSlider with filled track */}
                         <div className="range-slider-container">
-                            <input
-                                type="range"
-                                min="18" max="60"
-                                value={ageRange[0]}
-                                onChange={(e) => handleAgeChange(0, parseInt(e.target.value))}
-                                className="range-input"
+                            <RangeSlider
+                                min={18}
+                                max={60}
+                                value={ageRange}
+                                onChange={setAgeRange}
                             />
-                            <input
-                                type="range"
-                                min="18" max="60"
-                                value={ageRange[1]}
-                                onChange={(e) => handleAgeChange(1, parseInt(e.target.value))}
-                                className="range-input"
-                            />
-                            {/* Visual Track - optional advanced styling could go here */}
                         </div>
                     </div>
 
@@ -102,6 +78,9 @@ export default function PreferencesPage({ embedded, onComplete }: { embedded?: b
                             value={distance}
                             onChange={(e) => setDistance(parseInt(e.target.value))}
                             className="range-input-single"
+                            style={{
+                                background: `linear-gradient(90deg, #ff5d7c ${((distance - 5) / (200 - 5)) * 100}%, rgba(255,255,255,0.1) ${((distance - 5) / (200 - 5)) * 100}%)`
+                            }}
                         />
                     </div>
 
@@ -117,47 +96,44 @@ export default function PreferencesPage({ embedded, onComplete }: { embedded?: b
         .pref-section {
           margin-bottom: 32px;
           background: rgba(255,255,255,0.05);
-          padding: 20px;
+          padding: 24px;
           border-radius: 12px;
+          border: 1px solid var(--clr-border-glass);
         }
         .pref-header {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 12px;
+          margin-bottom: 20px;
           color: #fff;
           font-weight: 600;
         }
         .pref-value {
           color: #ff5d7c;
+          font-weight: 700;
         }
         .range-slider-container {
           position: relative;
           height: 30px;
+          padding: 0 10px;
         }
-        .range-input {
-          position: absolute;
-          width: 100%;
-          pointer-events: none;
-          appearance: none;
-          background: none;
-          top: 50%;
-          transform: translateY(-50%);
-        }
-        .range-input::-webkit-slider-thumb {
-          pointer-events: all;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #ff5d7c;
-          cursor: pointer;
-          appearance: none;
-          position: relative;
-          z-index: 10;
-        }
-        /* Single slider */
+        /* Single slider style match */
         .range-input-single {
           width: 100%;
           accent-color: #ff5d7c;
+          height: 6px;
+          background: rgba(255,255,255,0.1);
+          border-radius: 3px;
+          appearance: none;
+        }
+        .range-input-single::-webkit-slider-thumb {
+          appearance: none;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #fff;
+          border: 2px solid #ff5d7c;
+          cursor: pointer;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
       `}</style>
         </>
