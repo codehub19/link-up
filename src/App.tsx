@@ -91,6 +91,8 @@ export default function App() {
 
           {/* Redirect any legacy step URLs to the unified wizard */}
           <Route path="/setup/gender" element={<Navigate to="/setup/profile" replace />} />
+          <Route path="/setup/looking-for" element={<Navigate to="/setup/profile" replace />} />
+          <Route path="/setup/height" element={<Navigate to="/setup/profile" replace />} />
           <Route path="/setup/details" element={<Navigate to="/setup/profile" replace />} />
           <Route path="/setup/interests" element={<Navigate to="/setup/profile" replace />} />
           <Route path="/setup/preferences" element={<Navigate to="/setup/profile" replace />} />
@@ -98,6 +100,8 @@ export default function App() {
           <Route path="/setup/q2" element={<Navigate to="/setup/profile" replace />} />
           <Route path="/setup/bio" element={<Navigate to="/setup/profile" replace />} />
           <Route path="/setup/photos" element={<Navigate to="/setup/profile" replace />} />
+          <Route path="/setup/relationship-goals" element={<Navigate to="/setup/profile" replace />} />
+          <Route path="/setup/deal-breakers" element={<Navigate to="/setup/profile" replace />} />
           <Route path="/setup/terms" element={<Navigate to="/setup/profile" replace />} />
 
           {/* Dashboard root chooser */}

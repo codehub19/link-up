@@ -511,7 +511,7 @@ th {
 /* Legacy support for existing pages */
 .container.narrow {
   max-width: 720px;
-  padding: 24px
+  padding: 0px
 }
 
 .banner {

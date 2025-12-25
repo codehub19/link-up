@@ -196,7 +196,8 @@
     flex-direction: column;
 }
 
-transform: translateY(0) scale(1);
+.pm-popup-content.open {
+    transform: translateY(0) scale(1);
 }
 
 /* Floating Close Button */
