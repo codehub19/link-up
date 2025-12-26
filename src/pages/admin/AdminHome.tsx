@@ -71,6 +71,7 @@ const DEFAULT_NAV: AdminHeaderNavItem[] = [
   { slug: 'payments', label: 'Payments', href: '/admin/payments' },
   { slug: 'curation', label: 'Curation', href: '/admin/curation' },
   { slug: 'rounds', label: 'Rounds', href: '/admin/rounds' }, // <-- Added here
+  { slug: 'requests', label: 'Requests', href: '/admin/requests' },
   { slug: 'college-id-verification', label: 'College ID Verification', href: '/admin/college-id-verification' }, // <-- Added here
 ]
 
@@ -180,9 +181,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                 pendingCount > 0
                   ? '#8a4b00'
                   : '#1d6b32',
-              border: `1px solid ${
-                pendingCount > 0 ? '#f6c38a' : '#8dd6a6'
-              }`,
+              border: `1px solid ${pendingCount > 0 ? '#f6c38a' : '#8dd6a6'
+                }`,
             }}
           >
             Pending: {pendingCount}

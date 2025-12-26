@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import AdminGuard from './AdminGuard'
+
 import {
   getActiveRound,
   getRoundPhase,
@@ -15,7 +15,7 @@ import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firesto
 import { db } from '../../firebase'
 import { listLikesByGirl, getBoysWhoLikedGirl } from '../../services/likes'
 import { callAdminPromoteMatch } from '../../firebase'
-import AdminHeader from '../../components/admin/AdminHeader'
+
 
 type UserLite = {
   uid: string
@@ -223,196 +223,249 @@ export default function CurationAdmin() {
   }, [phase, girls, likedUsers, selectedUser])
 
   return (
-    <AdminGuard>
-      <div className="container">
-        <div className="card" style={{ padding: 24, margin: '24px auto', maxWidth: 1300 }}>
-          <AdminHeader current="curation" />
-          <h2 style={{ marginTop: 0 }}>Round Curation</h2>
-          {!activeRound ? (
-            <p>No active round</p>
-          ) : (
-            <p style={{ color: 'var(--muted)' }}>
-              Active round: <b>{roundId}</b> | Current phase: <b>{phase.toUpperCase()}</b>
-              <span style={{ marginLeft: 20 }}>
-                <button
-                  className={`btn ${phase === 'boys' ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => handlePhaseSwitch('boys')}
-                  disabled={phase === 'boys'}
-                >
-                  Boys Round
-                </button>
-                <button
-                  className={`btn ${phase === 'girls' ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => handlePhaseSwitch('girls')}
-                  disabled={phase === 'girls'}
-                  style={{ marginLeft: 8 }}
-                >
-                  Girls Round
-                </button>
-              </span>
-              {/* Show phase times */}
-              <div style={{ marginTop: 8 }}>
-                <span><b>Boys Round:</b> {phaseTimes.boys?.startAt ? new Date(phaseTimes.boys.startAt.seconds * 1000).toLocaleString() : '--'} to {phaseTimes.boys?.endAt ? new Date(phaseTimes.boys.endAt.seconds * 1000).toLocaleString() : '--'}</span>
-                <span style={{ marginLeft: 12 }}><b>Girls Round:</b> {phaseTimes.girls?.startAt ? new Date(phaseTimes.girls.startAt.seconds * 1000).toLocaleString() : '--'} to {phaseTimes.girls?.endAt ? new Date(phaseTimes.girls.endAt.seconds * 1000).toLocaleString() : '--'}</span>
-              </div>
-            </p>
-          )}
+    <div className="admin-container">
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h2 style={{ margin: 0 }}>Round Curation</h2>
+        {activeRound && (
+          <div className="row" style={{ gap: 12 }}>
+            <button
+              className="btn btn-primary"
+              style={{ background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', border: 'none' }}
+              onClick={async () => {
+                if (!window.confirm(`Auto-assign 3 random candidates to all unassigned ${phase === 'boys' ? 'boys' : 'girls'}?`)) return;
+                try {
+                  const { autoMatchUsers } = await import('../../services/rounds'); // Lazy import to avoid circular dep if any
+                  const res = await autoMatchUsers(activeRound.id, phase);
+                  alert(`Successfully auto-matched ${res.assignedUsersCount} users!`);
+                  // Force refresh (a bit hacky, but effective)
+                  window.location.reload();
+                } catch (e: any) {
+                  alert('Error: ' + e.message);
+                }
+              }}
+            >
+              🪄 Auto Match
+            </button>
+            <div style={{ width: 1, background: 'var(--admin-border)', margin: '0 8px' }}></div>
+            <button
+              className={`btn ${phase === 'boys' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => handlePhaseSwitch('boys')}
+              disabled={phase === 'boys'}
+            >
+              Boys Round
+            </button>
+            <button
+              className={`btn ${phase === 'girls' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => handlePhaseSwitch('girls')}
+              disabled={phase === 'girls'}
+            >
+              Girls Round
+            </button>
+          </div>
+        )}
+      </div>
 
-          <div className="row" style={{ gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <div className="card" style={{ padding: 16, width: 340, maxHeight: 560, overflow: 'auto' }}>
-              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <b>{phase === 'boys' ? 'Boys' : 'Girls'}</b>
-                <input
-                  className="input"
-                  placeholder="Search by name or insta"
-                  style={{ maxWidth: 180 }}
-                  value={filter}
-                  onChange={e => setFilter(e.target.value)}
-                />
+      {!activeRound ? (
+        <div className="admin-card">
+          <p>No active round found.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr 340px', gap: 24, alignItems: 'start' }}>
+
+          {/* Column 1: List (Source) */}
+          <div className="admin-card" style={{ padding: 0, overflow: 'hidden', height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: 16, borderBottom: '1px solid var(--admin-border)' }}>
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontWeight: 600 }}>{phase === 'boys' ? 'Boys' : 'Girls'}</div>
+                <div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>{filteredUsers.length} total</div>
               </div>
-              <div className="stack">
-                {filteredUsers.map(u => (
-                  <button
-                    key={u.uid}
-                    className={`btn ${selectedUser?.uid === u.uid ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setSelectedUser(prev => prev?.uid === u.uid ? null : u)}
-                    style={{ justifyContent: 'flex-start' }}
-                  >
-                    <div className="row" style={{ gap: 10, alignItems: 'center' }}>
-                      <div className="avatar" style={{ width: 28, height: 28, borderRadius: 999, overflow: 'hidden', background: '#f3f3f3' }}>
-                        {u.photoUrl ? <img src={u.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
-                      </div>
-                      <div>
-                        <div>{u.name || u.uid}</div>
-                        <small style={{ color: 'var(--muted)' }}>@{u.instagramId}</small>
-                        {/* Badges */}
-                        <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
-                          {u.userType === 'general' && <span className="tag" style={{ fontSize: 9, padding: '1px 4px', background: '#eee' }}>Gen</span>}
-                          {u.datingPreference === 'college_only' && <span className="tag" style={{ fontSize: 9, padding: '1px 4px', background: '#eef' }}>Col-Only</span>}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <input
+                className="input"
+                placeholder="Search..."
+                style={{ marginTop: 8 }}
+                value={filter}
+                onChange={e => setFilter(e.target.value)}
+              />
             </div>
-
-            <div className="card" style={{ padding: 16, flex: 1, minWidth: 420 }}>
-              {!selectedUser ? (
-                <p>Select a {phase === 'boys' ? 'boy' : 'girl'} to curate</p>
-              ) : (
-                <>
-                  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div className="row" style={{ gap: 12, alignItems: 'center' }}>
-                      <div className="avatar" style={{ width: 56, height: 56, borderRadius: 999, overflow: 'hidden', background: '#f3f3f3' }}>
-                        {selectedUser.photoUrl ? <img src={selectedUser.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{selectedUser.name || selectedUser.uid}</div>
-                        <div style={{ color: 'var(--muted)' }}>
-                          @{selectedUser.instagramId} {selectedUser.college ? `• ${selectedUser.college}` : ''}
-                        </div>
-                        <div style={{ marginTop: 4 }}>
-                          {selectedUser.userType === 'general'
-                            ? <span className="tag" style={{ background: '#eee' }}>General User</span>
-                            : <span className="tag" style={{ background: '#eef' }}>Student</span>
-                          }
-                          <span className="tag" style={{ marginLeft: 6, background: selectedUser.datingPreference === 'college_only' ? '#ffe' : '#efe' }}>
-                            Prefers: {selectedUser.datingPreference === 'college_only' ? 'College Only' : 'Everyone'}
-                          </span>
-                        </div>
-                      </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+              {filteredUsers.map(u => (
+                <div
+                  key={u.uid}
+                  onClick={() => setSelectedUser(prev => prev?.uid === u.uid ? null : u)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    background: selectedUser?.uid === u.uid ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                    border: selectedUser?.uid === u.uid ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid transparent',
+                    marginBottom: 4
+                  }}
+                >
+                  <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+                    <div className="avatar" style={{ width: 32, height: 32, borderRadius: 999, overflow: 'hidden', background: '#333', flexShrink: 0 }}>
+                      {u.photoUrl ? <img src={u.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
                     </div>
-                    <button className="btn btn-primary" onClick={persistAssignments}>Save assignments</button>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--admin-text-main)' }}>{u.name || u.uid}</div>
+                      <div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>@{u.instagramId}</div>
+                    </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-                  <div className="row" style={{ gap: 16, flexWrap: 'wrap', marginTop: 12 }}>
-                    <div className="card" style={{ padding: 12, flex: 1, minWidth: 320 }}>
-                      <b>
-                        {phase === 'boys'
-                          ? 'Assign girls to this boy (toggle to assign)'
-                          : 'Assign boys to this girl (from her likes, toggle to assign)'}
-                      </b>
-                      <div className="grid cols-2" style={{ gap: 8, marginTop: 8 }}>
-                        {filteredCandidates.map(u => (
-                          <div key={u.uid} className={`card ${assignedSet.has(u.uid) ? 'selected' : ''}`} style={{ padding: 10 }}>
-                            <div className="row" style={{ gap: 10 }}>
-                              <div className="avatar" style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', background: '#f3f3f3' }}>
-                                {u.photoUrl ? <img src={u.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 600 }}>{u.name || u.uid}</div>
-                                <small style={{ color: 'var(--muted)' }}>@{u.instagramId}{u.college ? ` • ${u.college}` : ''}</small>
-                                <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                                  {u.userType === 'general' && <span className="tag" style={{ fontSize: 10, padding: '1px 4px', background: '#eee' }}>Gen</span>}
-                                  {u.datingPreference === 'college_only' && <span className="tag" style={{ fontSize: 10, padding: '1px 4px', background: '#eef' }}>Col-Only</span>}
-                                </div>
-                                {u.bio ? <div style={{ fontSize: 12, marginTop: 6, color: 'var(--muted)' }}>{u.bio}</div> : null}
-                                <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                                  {(u.interests ?? []).slice(0, 4).map(i => <span key={i} className="tag">{i}</span>)}
-                                </div>
-                                {/* NEW: Previously matched tag */}
-                                {previouslyMatchedUids.has(u.uid) && (
-                                  <span className="tag" style={{ background: '#feecb7', color: '#b77c00', marginLeft: 8 }}>
-                                    Matched in previous round
-                                  </span>
-                                )}
-                              </div>
-                              <div>
-                                <input
-                                  type="checkbox"
-                                  checked={assignedSet.has(u.uid)}
-                                  onChange={() => {
-                                    setAssigned(prev => assignedSet.has(u.uid) ? prev.filter(x => x !== u.uid) : [...prev, u.uid])
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        {filteredCandidates.length === 0
-                          ? <div style={{ color: 'var(--muted)' }}>
-                            {phase === 'boys'
-                              ? 'No girls available (check filters).'
-                              : 'No boys liked this girl yet (or filtered out).'}
-                          </div>
-                          : null}
-                      </div>
+          {/* Column 2: Selected Profile */}
+          <div className="stack" style={{ gap: 24 }}>
+            {selectedUser ? (
+              <div className="admin-card">
+                <div className="row" style={{ gap: 16 }}>
+                  <div className="avatar" style={{ width: 80, height: 80, borderRadius: 999, overflow: 'hidden', background: '#333', flexShrink: 0 }}>
+                    {selectedUser.photoUrl ? <img src={selectedUser.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ margin: '0 0 4px 0', color: 'var(--admin-text-main)' }}>{selectedUser.name}</h3>
+                    <div className="row" style={{ gap: 8, color: 'var(--admin-text-muted)', fontSize: 14 }}>
+                      <span>@{selectedUser.instagramId}</span>
+                      <span>•</span>
+                      <span>{selectedUser.gender}</span>
+                      {selectedUser.college && <><span>•</span><span>{selectedUser.college}</span></>}
                     </div>
-
-                    {phase === 'girls' && (
-                      <div className="card" style={{ padding: 12, flex: 1, minWidth: 320 }}>
-                        <b>Girl’s likes (this round)</b>
-                        <div className="grid cols-2" style={{ gap: 8, marginTop: 8 }}>
-                          {likedUsers.map(u => (
-                            <div key={u.uid} className="card" style={{ padding: 10 }}>
-                              <div className="row" style={{ gap: 10 }}>
-                                <div className="avatar" style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', background: '#f3f3f3' }}>
-                                  {u.photoUrl ? <img src={u.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: 600 }}>{u.name || u.uid}</div>
-                                  <small style={{ color: 'var(--muted)' }}>@{u.instagramId}{u.college ? ` • ${u.college}` : ''}</small>
-                                </div>
-                                <div>
-                                  <button className="btn btn-primary" onClick={() => promoteLike(u.uid)}>Promote</button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                          {likedUsers.length === 0
-                            ? <div style={{ color: 'var(--muted)' }}>No likes yet.</div>
-                            : null}
-                        </div>
+                    <div style={{ marginTop: 8, fontSize: 13, display: 'flex', gap: 6 }}>
+                      {selectedUser.userType === 'general'
+                        ? <span className="badge badge-neutral">General User</span>
+                        : <span className="badge badge-info">Student</span>
+                      }
+                      <span className="badge badge-warning">
+                        Prefers: {selectedUser.datingPreference === 'college_only' ? 'College Only' : 'Everyone'}
+                      </span>
+                    </div>
+                    {selectedUser.bio && <p style={{ marginTop: 12, fontSize: 14, color: 'var(--admin-text-muted)' }}>{selectedUser.bio}</p>}
+                    {selectedUser.interests && (
+                      <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+                        {selectedUser.interests.map(i => (
+                          <span key={i} className="badge badge-neutral" style={{ background: 'rgba(255,255,255,0.05)' }}>{i}</span>
+                        ))}
                       </div>
                     )}
                   </div>
-                </>
-              )}
+                </div>
+                <div style={{ borderTop: '1px solid var(--admin-border)', marginTop: 20, paddingTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-primary" onClick={persistAssignments}>
+                    Save Assignments ({assigned.length})
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="admin-card" style={{ padding: 40, textAlign: 'center', color: 'var(--admin-text-muted)' }}>
+                Select a user from the left list to view details and manage assignments.
+              </div>
+            )}
+
+            {selectedUser && (
+              <div className="admin-card">
+                <div className="row" style={{ justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ fontWeight: 600 }}>
+                    {phase === 'boys' ? 'Assign candidates (Girls)' : 'Candidates (Boys)'}
+                  </div>
+                </div>
+
+                <div className="grid cols-2" style={{ gap: 12 }}>
+                  {filteredCandidates.map(u => (
+                    <div
+                      key={u.uid}
+                      className="admin-card"
+                      style={{ padding: 12, border: assignedSet.has(u.uid) ? '1px solid var(--admin-accent)' : '1px solid var(--admin-border)', cursor: 'pointer' }}
+                      onClick={() => {
+                        setAssigned(prev => assignedSet.has(u.uid) ? prev.filter(x => x !== u.uid) : [...prev, u.uid])
+                      }}
+                    >
+                      <div className="row" style={{ gap: 10 }}>
+                        <div className="avatar" style={{ width: 40, height: 40, borderRadius: 8, overflow: 'hidden', background: '#333', flexShrink: 0 }}>
+                          {u.photoUrl ? <img src={u.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{u.name}</div>
+                          <div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>@{u.instagramId}</div>
+                          <div style={{ marginTop: 6 }} className="row">
+                            {previouslyMatchedUids.has(u.uid) && (
+                              <span className="badge badge-warning" style={{ fontSize: 10 }}>Previously Matched</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <input type="checkbox" checked={assignedSet.has(u.uid)} onChange={() => { }} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredCandidates.length === 0 && (
+                    <div style={{ gridColumn: '1/-1', color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>
+                      No candidates available based on preferences/likes.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Column 3: Likes / Extra (Right Panel) */}
+          <div className="stack" style={{ gap: 24 }}>
+            <div className="admin-card">
+              <div style={{ fontWeight: 600, marginBottom: 12 }}>
+                Round Info
+              </div>
+              <div className="stack" style={{ gap: 8, fontSize: 13 }}>
+                <div className="row" style={{ justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--admin-text-muted)' }}>Status</span>
+                  <span className="badge badge-success">Active</span>
+                </div>
+                <div className="row" style={{ justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--admin-text-muted)' }}>Phase</span>
+                  <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{phase}</span>
+                </div>
+                <hr style={{ border: 'none', borderTop: '1px solid var(--admin-border)', margin: '8px 0' }} />
+                <div>
+                  <div style={{ color: 'var(--admin-text-muted)', marginBottom: 2 }}>Boys Phase</div>
+                  <div>{phaseTimes.boys?.startAt ? new Date(phaseTimes.boys.startAt.seconds * 1000).toLocaleString() : '--'}</div>
+                  <div style={{ color: 'var(--admin-text-muted)', fontSize: 11 }}>to</div>
+                  <div>{phaseTimes.boys?.endAt ? new Date(phaseTimes.boys.endAt.seconds * 1000).toLocaleString() : '--'}</div>
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ color: 'var(--admin-text-muted)', marginBottom: 2 }}>Girls Phase</div>
+                  <div>{phaseTimes.girls?.startAt ? new Date(phaseTimes.girls.startAt.seconds * 1000).toLocaleString() : '--'}</div>
+                  <div style={{ color: 'var(--admin-text-muted)', fontSize: 11 }}>to</div>
+                  <div>{phaseTimes.girls?.endAt ? new Date(phaseTimes.girls.endAt.seconds * 1000).toLocaleString() : '--'}</div>
+                </div>
+              </div>
             </div>
+
+            {phase === 'girls' && selectedUser && (
+              <div className="admin-card">
+                <div style={{ fontWeight: 600, marginBottom: 12 }}>
+                  Likes Received (This Round)
+                </div>
+                <div className="stack" style={{ gap: 8 }}>
+                  {likedUsers.map(u => (
+                    <div key={u.uid} style={{ fontSize: 13, borderBottom: '1px solid var(--admin-border)', paddingBottom: 8 }}>
+                      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="row" style={{ gap: 8 }}>
+                          <div className="avatar" style={{ width: 24, height: 24, borderRadius: 999, overflow: 'hidden' }}>
+                            {u.photoUrl && <img src={u.photoUrl} style={{ width: '100%' }} />}
+                          </div>
+                          <div>{u.name}</div>
+                        </div>
+                        <button className="btn btn-xs btn-primary" onClick={() => promoteLike(u.uid)}>Promote</button>
+                      </div>
+                    </div>
+                  ))}
+                  {likedUsers.length === 0 && <div style={{ color: 'var(--admin-text-muted)', fontSize: 13 }}>No likes found.</div>}
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
-    </AdminGuard>
+      )}
+    </div>
   )
 }

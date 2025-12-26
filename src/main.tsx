@@ -13,17 +13,20 @@ import { toast } from 'sonner';
 import { DialogProvider } from './components/ui/Dialog';
 
 onMessage(messaging, (payload) => {
+  const title = payload.notification?.title || payload.data?.title || "DateU";
+  const body = payload.notification?.body || payload.data?.body;
+  const icon = payload.notification?.icon || "/icons/icon-192.png";
+
   if (Notification.permission === "granted") {
-    new Notification(payload.notification?.title || "Notification", {
-      body: payload.notification?.body,
-      icon: payload.notification?.icon,
+    new Notification(title, {
+      body: body,
+      icon: icon,
     });
   }
   // In-app toast
-  toast(payload.notification?.title || "Notification", {
-    description: payload.notification?.body,
+  toast(title, {
+    description: body,
     duration: 6000,
-    icon: payload.notification?.icon,
   });
   window.dispatchEvent(new Event("new-notification"));
 });

@@ -46,20 +46,16 @@ export const onMessageCreate = onDocumentCreated(
 
         if (tokens.length > 0) {
             const payload = {
-                notification: {
+                data: {
                     title: senderName,
                     body: text,
-                    icon: '/icon-192.png' // Ensure this exists in public or use absolute URL
-                },
-                data: {
                     threadId,
-                    url: `/dashboard/chat?threadId=${threadId}` // actionable click
+                    url: `/dashboard/chat?threadId=${threadId}`
                 }
             }
 
             const response = await admin.messaging().sendEachForMulticast({
                 tokens,
-                notification: payload.notification,
                 data: payload.data
             })
 

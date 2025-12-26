@@ -133,7 +133,12 @@ export default function MalePlans() {
   }, [user, sub]);
 
   const choose = (p: any) => {
-    nav(`/pay?planId=${encodeURIComponent(p.id)}&amount=${Number(p.price || p.amount || 0)}`)
+    // Calculate potential discount
+    const original = Number(p.price || p.amount || 0)
+    const discount = Number(p.discountPercent || 0)
+    const finalPrice = discount > 0 ? Math.round(original * (1 - discount / 100)) : original
+
+    nav(`/pay?planId=${encodeURIComponent(p.id)}&amount=${finalPrice}`)
   }
 
   const getStatusBadge = (planId: string) => {
@@ -224,7 +229,25 @@ export default function MalePlans() {
                   </div>
 
                   <div className="plan-price-block">
-                    <span className="plan-price">₹{p.price ?? p.amount}</span>
+                    {p.discountPercent > 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                        <span className="plan-price">₹{Math.round(p.price * (1 - p.discountPercent / 100))}</span>
+                        <span style={{ textDecoration: 'line-through', color: 'rgba(255,255,255,0.4)', fontSize: '1.1rem' }}>₹{p.price}</span>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          background: 'rgba(16, 185, 129, 0.2)',
+                          color: '#34d399',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontWeight: 'bold',
+                          transform: 'translateY(-4px)'
+                        }}>
+                          {p.discountPercent}% OFF
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="plan-price">₹{p.price ?? p.amount}</span>
+                    )}
                     {/* <span className="plan-period">/ month</span> (optional if recurring) */}
                   </div>
 

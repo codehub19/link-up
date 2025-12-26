@@ -58,10 +58,16 @@ export const sendPushNotification = onCall({ region: "asia-south2" }, async (req
     if (token) tokens.push(token);
   }
 
-  if (tokens.length) {
+  const uniqueTokens = [...new Set(tokens)];
+
+  if (uniqueTokens.length) {
     await admin.messaging().sendEachForMulticast({
-      tokens,
-      notification: { title, body },
+      tokens: uniqueTokens,
+      data: {
+        title,
+        body,
+        click_action: '/dashboard/notifications' // Optional helps some browsers
+      },
     });
   }
 

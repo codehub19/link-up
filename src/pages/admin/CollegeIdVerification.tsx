@@ -40,13 +40,13 @@ export default function CollegeIdVerification() {
     }
     fetchUsers();
   }, [actionStatus]);
-  
+
   // Only show if admin
   if (!profile?.isAdmin) {
     return <div>You do not have admin access.</div>;
   }
 
-  
+
 
   const handleVerify = async (uid: string) => {
     setActionStatus(null);
@@ -81,185 +81,104 @@ export default function CollegeIdVerification() {
   // Modal popup for viewing College ID images
   // ...imports and verification logic as before...
 
-// Responsive Modal popup for viewing College ID images
-const Modal = ({ user, onClose }: { user: any; onClose: () => void }) => (
-  <div className="cid-modal-overlay" onClick={onClose}>
-    <div className="cid-modal-content setup-card setup-card-glass" onClick={e => e.stopPropagation()}>
-      <button className="cid-modal-close-btn" onClick={onClose} aria-label="Close">&times;</button>
-      <div style={{ textAlign: "center" }}>
-        <h4 style={{ marginBottom: 12, fontSize: "1.25rem", fontWeight: 600 }}>
-          College ID for {user.name || user.email || user.id}
-        </h4>
-        <div style={{ marginBottom: 10 }}>
-          <b>Front:</b><br/>
-          <img src={user.collegeId.frontUrl} alt="Front"
-            style={{
-              width: "100%",
-              maxWidth: 340,
-              maxHeight: "40vh",
-              borderRadius: 10,
-              boxShadow: "0 2px 8px #0006",
-              objectFit: "contain"
-            }} />
+  // Responsive Modal popup for viewing College ID images
+  const Modal = ({ user, onClose }: { user: any; onClose: () => void }) => (
+    <div className="admin-modal-overlay" onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+      <div className="admin-card" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, width: '90%', maxHeight: '90vh', overflow: 'auto', position: 'relative' }}>
+        <button
+          onClick={onClose}
+          style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer' }}
+        >
+          &times;
+        </button>
+
+        <h3 style={{ marginTop: 0, textAlign: 'center' }}>College ID Verification</h3>
+        <p style={{ textAlign: 'center', color: 'var(--admin-text-muted)' }}>{user.name} ({user.college})</p>
+
+        <div className="stack" style={{ gap: 24, marginTop: 24 }}>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>Front Side</div>
+            <img src={user.collegeId.frontUrl} alt="Front" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--admin-border)' }} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>Back Side</div>
+            <img src={user.collegeId.backUrl} alt="Back" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--admin-border)' }} />
+          </div>
         </div>
-        <div>
-          <b>Back:</b><br/>
-          <img src={user.collegeId.backUrl} alt="Back"
-            style={{
-              width: "100%",
-              maxWidth: 340,
-              maxHeight: "40vh",
-              borderRadius: 10,
-              boxShadow: "0 2px 8px #0006",
-              objectFit: "contain"
-            }} />
+
+        <div className="row" style={{ marginTop: 32, gap: 12 }}>
+          <button className="btn btn-primary" style={{ flex: 1, background: '#16a34a', borderColor: '#16a34a' }} onClick={() => { handleVerify(user.id); onClose(); }}>
+            Verify
+          </button>
+          <button className="btn btn-ghost" style={{ flex: 1, color: '#dc2626' }} onClick={() => { handleReject(user.id); onClose(); }}>
+            Reject
+          </button>
         </div>
       </div>
     </div>
-    <style>
-      {`
-      .cid-modal-overlay {
-        position: fixed;
-        z-index: 1000;
-        top: 0; left: 0; right: 0; bottom: 0;
-        width: 100vw; height: 100vh;
-        background: rgba(20, 20, 30, 0.75);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .cid-modal-content {
-        position: relative;
-        max-width: 420px;
-        width: 96vw;
-        max-height: 92vh;
-        overflow-y: auto;
-        border-radius: 18px;
-        box-shadow: 0 8px 40px #000a;
-        padding: 2rem 1rem 1.5rem 1rem;
-        background: rgba(30, 34, 46, 0.98);
-        transition: max-width 0.2s;
-      }
-      @media (max-width: 600px) {
-        .cid-modal-content {
-          max-width: 96vw;
-          padding: 1.2rem 0.5rem 1rem 0.5rem;
-        }
-        .cid-modal-close-btn {
-          top: 8px;
-          right: 8px;
-          font-size: 1.6rem;
-        }
-      }
-      .cid-modal-close-btn {
-        position: absolute;
-        top: 12px;
-        right: 18px;
-        font-size: 2rem;
-        background: none;
-        border: none;
-        color: #fff;
-        opacity: 0.7;
-        cursor: pointer;
-        transition: opacity 0.2s;
-        z-index: 10;
-      }
-      .cid-modal-close-btn:hover { opacity: 1; }
-      `}
-    </style>
-  </div>
-);
+  );
 
-// ...rest of your admin page as before...
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2 style={{ fontWeight: 600, marginBottom: 18, fontSize: "2rem" }}>College ID Verification (Admin)</h2>
-      {loading ? (
-        <p>Loading...</p>
-      ) : error ? (
-        <div style={{ color: "red" }}>{error}</div>
-      ) : (
-        <>
-          {users.length === 0 ? (
-            <p>No users pending verification.</p>
-          ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", background: "rgba(30,34,46,0.96)", borderRadius: 20, boxShadow: "0 2px 24px #0002" }}>
+    <div className="admin-container">
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h2 style={{ margin: 0 }}>College ID Verification</h2>
+        {users.length > 0 && <span className="badge badge-warning">{users.length} Pending</span>}
+      </div>
+
+      <div className="admin-card">
+        {loading ? (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--admin-text-muted)' }}>Loading pending verifications...</div>
+        ) : error ? (
+          <div style={{ padding: 24, color: '#dc2626' }}>{error}</div>
+        ) : users.length === 0 ? (
+          <div style={{ padding: 48, textAlign: 'center', color: 'var(--admin-text-muted)' }}>
+            No users pending verification. All caught up! 🎉
+          </div>
+        ) : (
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
               <thead>
-                <tr style={{ background: "#222b", color: "#fff" }}>
-                  <th style={{ padding: 12, borderRadius: 10 }}>User</th>
-                  <th style={{ padding: 12, borderRadius: 10 }}>College ID</th>
-                  <th style={{ padding: 12, borderRadius: 10 }}>Actions</th>
+                <tr>
+                  <th>User Details</th>
+                  <th>College</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u.id} style={{ borderBottom: "1px solid #333a" }}>
-                    <td style={{ padding: 14 }}>
-                     <div>
-  <div><b>{u.name}</b></div>
-  <div>{u.email}</div>
-  <div style={{ fontSize: 13, color: "#90CAF9" }}>UID: {u.id}</div>
-  {u.college && (
-    <div style={{ fontSize: 14, color: "#2196f3", marginTop: 4 }}>
-      <b>College:</b> {u.college}
-    </div>
-  )}
-  {u.dob && (
-    <div style={{ fontSize: 14, color: "#90caf9" }}>
-      <b>DOB:</b> {u.dob}
-    </div>
-  )}
-  {u.instagramId && (
-    <div style={{ fontSize: 14, color: "#90caf9" }}>
-      <b>Instagram:</b> @{u.instagramId}
-    </div>
-  )}
-  {/* Add more profile fields as needed */}
-</div>
+                  <tr key={u.id}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{u.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>{u.email}</div>
+                      {u.instagramId && <div style={{ fontSize: 12, color: '#3b82f6' }}>@{u.instagramId}</div>}
                     </td>
-                    <td style={{ padding: 14 }}>
-                      <button
-                        className="btn-gradient"
-                        style={{ padding: "8px 20px", borderRadius: 8, fontWeight: 500, fontSize: 15 }}
-                        onClick={() => setModalUser(u)}
-                      >
-                        View College ID
-                      </button>
+                    <td>
+                      {u.college || <span className="text-muted">-</span>}
                     </td>
-                    <td style={{ padding: 14 }}>
-                      <button
-                        className="btn-gradient"
-                        style={{ marginRight: 12, padding: "8px 24px", borderRadius: 8, fontWeight: 500, fontSize: 15, background: "#4caf50", color: "#fff" }}
-                        onClick={() => handleVerify(u.id)}
-                      >
-                        Mark as Verified
-                      </button>
-                      <button
-                        className="btn-gradient"
-                        style={{
-                          padding: "8px 24px",
-                          borderRadius: 8,
-                          fontWeight: 500,
-                          fontSize: 15,
-                          background: "#f44336",
-                          color: "#fff"
-                        }}
-                        onClick={() => handleReject(u.id)}
-                      >
-                        Reject
+                    <td>
+                      <span className="badge badge-warning">Pending Review</span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="btn btn-sm btn-primary" onClick={() => setModalUser(u)}>
+                        Review ID
                       </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-          {actionStatus && <div style={{ marginTop: 16, fontWeight: 500, color: "#2196f3" }}>{actionStatus}</div>}
-        </>
-      )}
-      {modalUser && (
-        <Modal user={modalUser} onClose={() => setModalUser(null)} />
-      )}
+          </div>
+        )}
+
+        {actionStatus && (
+          <div style={{ marginTop: 16, padding: 12, background: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', borderRadius: 6, fontSize: 13 }}>
+            {actionStatus}
+          </div>
+        )}
+      </div>
+
+      {modalUser && <Modal user={modalUser} onClose={() => setModalUser(null)} />}
     </div>
   );
 }

@@ -84,7 +84,17 @@ export default function PaymentPage() {
       const snap = await getDoc(doc(db, 'plans', paramPlanId))
       if (snap.exists()) {
         const d = snap.data() as any
-        setResolvedPlan({ id: snap.id, name: d.name || snap.id, amount: Number(d.price || d.amount || 0) })
+        const originalPrice = Number(d.price || d.amount || 0)
+        const discount = Number(d.discountPercent || 0)
+        const finalPrice = discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice
+
+        setResolvedPlan({
+          id: snap.id,
+          name: d.name || snap.id,
+          amount: finalPrice,
+          originalAmount: discount > 0 ? originalPrice : undefined,
+          discountPercent: discount > 0 ? discount : undefined
+        } as any)
       } else {
         // Fallback to URL amount and id if admin plan not found 
         setResolvedPlan({
@@ -175,7 +185,19 @@ export default function PaymentPage() {
                   <div className="plan-label">Selected Plan</div>
                   <div className="plan-name">{resolvedPlan.name}</div>
                 </div>
-                <div className="plan-price">₹{amount}</div>
+                <div className="plan-price">
+                  ₹{amount}
+                  {(resolvedPlan as any).originalAmount && (
+                    <div style={{ fontSize: '0.8rem', color: '#888', textDecoration: 'line-through' }}>
+                      ₹{(resolvedPlan as any).originalAmount}
+                    </div>
+                  )}
+                  {(resolvedPlan as any).discountPercent && (
+                    <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 'bold' }}>
+                      {(resolvedPlan as any).discountPercent}% OFF
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* UPI ID */}

@@ -32,20 +32,26 @@
     border: 1px solid var(--clr-border-glass);
     border-radius: 24px;
     padding: 2.5rem;
+    width: 100%;
     max-width: 900px;
     margin: 0 auto;
     position: relative;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4);
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .payment-content {
     display: grid;
     grid-template-columns: 1fr 1.2fr;
     gap: 3rem;
-    align-items: start;
+    align-items: center;
+    justify-content: center;
 }
+
+
 
 /* --- QR Code Section (Left) --- */
 .qr-section {
@@ -84,6 +90,9 @@
 .payment-details {
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    width: 80%;
+    margin: 0 auto;
     gap: 2rem;
 }
 

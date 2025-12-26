@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import ProfileMatchCard from "../../components/ProfileMatchCard";
-import { AdminHeader } from "./AdminHome";
+
 
 type UserDoc = {
   uid: string;
@@ -41,11 +41,11 @@ export default function RoundMatchesAdmin() {
         matches.map(async (m) => {
           const boyDoc = await getDoc(doc(db, "users", m.boyUid));
           const girlDoc = await getDoc(doc(db, "users", m.girlUid));
-         return {
-  boy: boyDoc.exists() ? { ...(boyDoc.data() as UserDoc), uid: m.boyUid } : null,
-  girl: girlDoc.exists() ? { ...(girlDoc.data() as UserDoc), uid: m.girlUid } : null,
-  match: m,
-};
+          return {
+            boy: boyDoc.exists() ? { ...(boyDoc.data() as UserDoc), uid: m.boyUid } : null,
+            girl: girlDoc.exists() ? { ...(girlDoc.data() as UserDoc), uid: m.girlUid } : null,
+            match: m,
+          };
         })
       );
       setMatchPairs(pairs);
@@ -54,34 +54,47 @@ export default function RoundMatchesAdmin() {
   }, [roundId]);
 
   return (
-    <div className="container">
-      <AdminHeader current="rounds" />
-      <h2>Matches for Round: {roundId}</h2>
+    <div className="admin-container">
+      <div className="row" style={{ alignItems: 'center', marginBottom: 24, gap: 12 }}>
+        <h2 style={{ margin: 0 }}>Matches for Round: <span className="text-primary">{roundId}</span></h2>
+      </div>
+
       {matchPairs.length === 0 ? (
-        <div>No matches yet.</div>
+        <div className="admin-card" style={{ textAlign: 'center', padding: 40, color: 'var(--admin-text-muted)' }}>
+          No matches found for this round.
+        </div>
       ) : (
-        <div className="match-card-grid">
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(600px, 1fr))', gap: 24 }}>
           {matchPairs.map((pair, i) => (
-            <div className="match-card" key={i}>
-              <div style={{ display: "flex", gap: 16 }}>
-                {/* Defensive: Only render ProfileMatchCard if boy/girl is not null */}
+            <div className="admin-card" key={i} style={{ padding: 0, overflow: 'hidden' }}>
+              <div className="row" style={{ padding: 12, background: 'var(--admin-bg)', borderBottom: '1px solid var(--admin-border)', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--admin-text-muted)' }}>PAIR #{i + 1}</span>
+                <span style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>
+                  {pair.match.timestamp ? new Date(pair.match.timestamp.seconds * 1000).toLocaleString() : ""}
+                </span>
+              </div>
+              <div className="row" style={{ padding: 16, alignItems: 'center', justifyContent: 'space-around' }}>
+                {/* Boy Profile */}
                 {pair.boy && (
-                  <ProfileMatchCard
-                    user={pair.boy}
-                  />
+                  <div style={{ transform: 'scale(0.9)' }}>
+                    <ProfileMatchCard user={pair.boy} />
+                  </div>
                 )}
-                {pair.girl && (
-                  <ProfileMatchCard
-                    user={pair.girl}
-                  />
-                )}
-                <div className="match-meta" style={{ marginLeft: "auto", alignSelf: "center" }}>
-                  <span>
-                    {pair.match.timestamp
-                      ? new Date(pair.match.timestamp.seconds * 1000).toLocaleString()
-                      : ""}
-                  </span>
+
+                {/* Match Indicator */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#ec4899', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 20 }}>
+                    ❤️
+                  </div>
+                  <span className="badge badge-success">Matched</span>
                 </div>
+
+                {/* Girl Profile */}
+                {pair.girl && (
+                  <div style={{ transform: 'scale(0.9)' }}>
+                    <ProfileMatchCard user={pair.girl} />
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -27,6 +27,7 @@ import NotificationsAdminList from './pages/admin/AdminNotification'
 import LoadingHeart from './components/LoadingHeart'
 import MatchesPage from './pages/dashboard/Matches'
 import ProfileView from './pages/dashboard/ProfileView'
+import AdminGuard from './pages/admin/AdminGuard'
 
 /* Lazy dashboard/admin pages (unchanged) */
 const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
@@ -40,9 +41,13 @@ const PaymentsAdmin = lazy(() => import('./pages/admin/PaymentsAdmin'))
 const CurationAdmin = lazy(() => import('./pages/admin/CurationAdmin'))
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 const PlansAdmin = lazy(() => import('./pages/admin/PlansAdmin'))
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout'))
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AdminHome = lazy(() => import('./pages/admin/AdminHome'))
+import { Outlet } from 'react-router-dom'
 const ChatPage = lazy(() => import('./pages/dashboard/chat/ChatPage'))
 const CollegeIdVerification = lazy(() => import('./pages/admin/CollegeIdVerification'))
+const RequestsAdmin = lazy(() => import('./pages/admin/RequestsAdmin'))
 const EditProfile = lazy(() => import('./pages/dashboard/EditProfile'))
 const SettingsPage = lazy(() => import('./pages/dashboard/Settings'))
 
@@ -209,15 +214,28 @@ export default function App() {
 
           {/* Admin */}
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/home" element={<Protected><AdminHome /></Protected>} />
-          <Route path="/admin/rounds" element={<Protected><RoundsAdmin /></Protected>} />
-          <Route path="/admin/payments" element={<Protected><PaymentsAdmin /></Protected>} />
-          <Route path="/admin/curation" element={<Protected><CurationAdmin /></Protected>} />
-          <Route path="/admin/plans" element={<Protected><PlansAdmin /></Protected>} />
-          <Route path="/admin/rounds/:roundId/matches" element={<RoundMatchesAdmin />} />
-          <Route path="/admin/college-id-verification" element={<CollegeIdVerification />} />
-          <Route path="/admin/send-notification" element={<SendNotificationAdmin />} />
-          <Route path="/admin/notifications" element={<NotificationsAdminList />} />
+
+          {/* Admin Routes with Layout */}
+          <Route element={
+            <Protected>
+              <AdminGuard>
+                <AdminLayout>
+                  <Outlet />
+                </AdminLayout>
+              </AdminGuard>
+            </Protected>
+          }>
+            <Route path="/admin/home" element={<AdminDashboard />} />
+            <Route path="/admin/rounds" element={<RoundsAdmin />} />
+            <Route path="/admin/requests" element={<RequestsAdmin />} />
+            <Route path="/admin/payments" element={<PaymentsAdmin />} />
+            <Route path="/admin/curation" element={<CurationAdmin />} />
+            <Route path="/admin/plans" element={<PlansAdmin />} />
+            <Route path="/admin/rounds/:roundId/matches" element={<RoundMatchesAdmin />} />
+            <Route path="/admin/college-id-verification" element={<CollegeIdVerification />} />
+            <Route path="/admin/send-notification" element={<SendNotificationAdmin />} />
+            <Route path="/admin/notifications" element={<NotificationsAdminList />} />
+          </Route>
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

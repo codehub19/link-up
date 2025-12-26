@@ -167,25 +167,26 @@ export default function PhoneVerification({ onVerified }: Props) {
     return (
         <div style={{ marginTop: 12 }}>
             {step === 'phone' ? (
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '2fr 1fr' }}>
                     <input
                         className="field-input"
                         placeholder="Enter mobile number"
                         value={phone}
                         onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                        maxLength={10}
                         disabled={loading}
                     />
                     <button
                         className="btn btn-primary"
                         onClick={sendOtp}
                         disabled={loading || phone.length < 10}
-                        style={{ minWidth: 100, whiteSpace: 'nowrap' }}
+                        style={{ minWidth: 80, whiteSpace: 'nowrap' }}
                     >
                         {loading ? <LoadingSpinner size={16} color="#fff" /> : 'Send OTP'}
                     </button>
                 </div>
             ) : (
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '2fr 1fr' }}>
                     <input
                         className="field-input"
                         placeholder="Enter 6-digit OTP"
@@ -198,7 +199,7 @@ export default function PhoneVerification({ onVerified }: Props) {
                         className="btn btn-primary"
                         onClick={verifyOtp}
                         disabled={loading || otp.length < 6}
-                        style={{ minWidth: 100 }}
+                        style={{ minWidth: 80 }}
                     >
                         {loading ? <LoadingSpinner size={16} color="#fff" /> : 'Verify'}
                     </button>
