@@ -150,7 +150,7 @@ export default function RequestsAdmin() {
                                 {deleteRequests.length === 0 ? (
                                     <p style={{ color: '#666' }}>No pending requests.</p>
                                 ) : (
-                                    <div className="table-responsive">
+                                    <div className="admin-table-wrapper">
                                         <table className="admin-table">
                                             <thead>
                                                 <tr>
@@ -163,23 +163,24 @@ export default function RequestsAdmin() {
                                             <tbody>
                                                 {deleteRequests.map(d => (
                                                     <tr key={d.uid}>
-                                                        <td>{formatDate(d.requestedAt)}</td>
+                                                        <td style={{ whiteSpace: 'nowrap' }}>{formatDate(d.requestedAt)}</td>
                                                         <td>
                                                             <div>{d.email || 'No Email'}</div>
-                                                            <div style={{ fontSize: 11, color: '#888' }}>{d.uid}</div>
+                                                            <div style={{ fontSize: 11, color: '#888', fontFamily: 'monospace' }}>{d.uid.substring(0, 8)}...</div>
                                                         </td>
-                                                        <td>{d.reason}</td>
+                                                        <td style={{ minWidth: 200 }}>{d.reason}</td>
                                                         <td>
-                                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                                                 <button
-                                                                    className="btn-xs danger"
+                                                                    className="btn btn-xs btn-primary"
+                                                                    style={{ background: '#dc2626', borderColor: '#dc2626' }}
                                                                     onClick={() => handleApproveDelete(d)}
                                                                     title="Delete Account"
                                                                 >
                                                                     Approve
                                                                 </button>
                                                                 <button
-                                                                    className="btn-xs secondary"
+                                                                    className="btn btn-xs btn-ghost"
                                                                     onClick={() => handleRejectDelete(d)}
                                                                 >
                                                                     Reject
@@ -202,7 +203,7 @@ export default function RequestsAdmin() {
                                 {reports.length === 0 ? (
                                     <p style={{ color: '#666' }}>No reports found.</p>
                                 ) : (
-                                    <div className="table-responsive">
+                                    <div className="admin-table-wrapper">
                                         <table className="admin-table">
                                             <thead>
                                                 <tr>
@@ -217,32 +218,26 @@ export default function RequestsAdmin() {
                                             <tbody>
                                                 {reports.map(r => (
                                                     <tr key={r.id}>
-                                                        <td>{formatDate(r.createdAt)}</td>
-                                                        <td><span style={{ fontSize: 12, fontFamily: 'monospace' }}>{r.reporterUid}</span></td>
-                                                        <td><span style={{ fontSize: 12, fontFamily: 'monospace' }}>{r.reportedUid}</span></td>
-                                                        <td>{r.reason}</td>
+                                                        <td style={{ whiteSpace: 'nowrap' }}>{formatDate(r.createdAt)}</td>
+                                                        <td><span style={{ fontSize: 12, fontFamily: 'monospace' }}>{r.reporterUid.substring(0, 8)}...</span></td>
+                                                        <td><span style={{ fontSize: 12, fontFamily: 'monospace' }}>{r.reportedUid.substring(0, 8)}...</span></td>
+                                                        <td style={{ minWidth: 200 }}>{r.reason}</td>
                                                         <td>
-                                                            <span style={{
-                                                                padding: '2px 8px',
-                                                                borderRadius: 4,
-                                                                fontSize: 11,
-                                                                background: r.status === 'resolved' ? '#dcfce7' : r.status === 'dismissed' ? '#f3f4f6' : '#fff7ed',
-                                                                color: r.status === 'resolved' ? '#166534' : r.status === 'dismissed' ? '#374151' : '#9a3412'
-                                                            }}>
+                                                            <span className={`badge ${r.status === 'resolved' ? 'badge-success' : r.status === 'dismissed' ? 'badge-neutral' : 'badge-warning'}`}>
                                                                 {r.status || 'Open'}
                                                             </span>
                                                         </td>
                                                         <td>
                                                             {(!r.status || r.status === 'open') && (
-                                                                <div style={{ display: 'flex', gap: 8 }}>
+                                                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                                                     <button
-                                                                        className="btn-xs primary"
+                                                                        className="btn btn-xs btn-primary"
                                                                         onClick={() => handleResolveReport(r)}
                                                                     >
                                                                         Resolve
                                                                     </button>
                                                                     <button
-                                                                        className="btn-xs secondary"
+                                                                        className="btn btn-xs btn-ghost"
                                                                         onClick={() => handleDismissReport(r)}
                                                                     >
                                                                         Dismiss
