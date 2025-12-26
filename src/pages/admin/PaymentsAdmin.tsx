@@ -66,15 +66,15 @@ export default function PaymentsAdmin() {
 
   return (
     <div className="admin-container">
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div className="row stack-mobile" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, gap: 16 }}>
         <h2 style={{ margin: 0 }}>Payments Management</h2>
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: 300 }}>
           <input
             className="input"
             placeholder="Search payments..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ width: 260, paddingLeft: 32 }}
+            style={{ width: '100%', paddingLeft: 32 }}
           />
           <div style={{ position: 'absolute', left: 10, top: 10, opacity: 0.5 }}>🔍</div>
         </div>

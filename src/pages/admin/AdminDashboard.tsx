@@ -101,8 +101,8 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             </div>
-
-            <div className="row" style={{ gap: 24, flexWrap: 'wrap' }}>
+            {/* Recent Activity & Quick Actions */}
+            <div className="row stack-mobile" style={{ gap: 24, flexWrap: 'wrap' }}>
                 <div className="admin-card" style={{ flex: 2 }}>
                     <h3 style={{ marginTop: 0 }}>Recent Activity</h3>
                     <p style={{ color: 'var(--admin-text-muted)' }}>Activity log implementation coming soon...</p>

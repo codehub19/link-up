@@ -111,10 +111,15 @@
     margin-bottom: 24px;
     background: linear-gradient(to right, #fff, #a1a1aa);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 /* Dashboard Cards */
+.curation-list-panel {
+    height: calc(100vh - 120px);
+}
+
 .admin-stat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -316,11 +321,12 @@
         transform: translateX(-100%);
         transition: transform 0.3s ease;
         width: 260px;
+        box-shadow: none;
     }
 
     .admin-sidebar.open {
         transform: translateX(0);
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     }
 
     .admin-main {
@@ -333,8 +339,56 @@
         align-items: center;
         justify-content: space-between;
         padding: 16px;
-        background: white;
+        background: var(--admin-bg);
         border-bottom: 1px solid var(--admin-border);
-        margin: -16px -16px 16px -16px;
+        margin: -16px -16px 24px -16px;
+        position: sticky;
+        top: 0;
+        z-index: 40;
+    }
+
+    .admin-stat-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .stack-mobile {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .grid-mobile-stack {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Make tables scrollable */
+    .admin-table-wrapper {
+        margin: 0 -16px;
+        border-left: none;
+        border-right: none;
+        width: calc(100% + 32px);
+        border-radius: 0;
+    }
+
+    /* Hide the horizontal AdminHeader nav on mobile to avoid clutter/duplication */
+    [data-admin-header] nav {
+        display: none !important;
+    }
+
+    /* Ensure sidebar is above the sticky header */
+    .admin-sidebar {
+        z-index: 100;
+    }
+
+    .curation-list-panel {
+        height: 50vh !important;
+    }
+
+    .grid.cols-2 {
+        grid-template-columns: 1fr !important;
+    }
+
+    .admin-card {
+        padding: 16px;
     }
 }

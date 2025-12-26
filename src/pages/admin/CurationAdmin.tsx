@@ -224,10 +224,10 @@ export default function CurationAdmin() {
 
   return (
     <div className="admin-container">
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div className="row stack-mobile" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, gap: 16 }}>
         <h2 style={{ margin: 0 }}>Round Curation</h2>
         {activeRound && (
-          <div className="row" style={{ gap: 12 }}>
+          <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
             <button
               className="btn btn-primary"
               style={{ background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', border: 'none' }}
@@ -270,10 +270,10 @@ export default function CurationAdmin() {
           <p>No active round found.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr 340px', gap: 24, alignItems: 'start' }}>
+        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '320px 1fr 340px', gap: 24, alignItems: 'start' }}>
 
           {/* Column 1: List (Source) */}
-          <div className="admin-card" style={{ padding: 0, overflow: 'hidden', height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+          <div className="admin-card curation-list-panel" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: 16, borderBottom: '1px solid var(--admin-border)' }}>
               <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontWeight: 600 }}>{phase === 'boys' ? 'Boys' : 'Girls'}</div>
@@ -323,15 +323,15 @@ export default function CurationAdmin() {
                   <div className="avatar" style={{ width: 80, height: 80, borderRadius: 999, overflow: 'hidden', background: '#333', flexShrink: 0 }}>
                     {selectedUser.photoUrl ? <img src={selectedUser.photoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ margin: '0 0 4px 0', color: 'var(--admin-text-main)' }}>{selectedUser.name}</h3>
-                    <div className="row" style={{ gap: 8, color: 'var(--admin-text-muted)', fontSize: 14 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ margin: '0 0 4px 0', color: 'var(--admin-text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedUser.name}</h3>
+                    <div className="row" style={{ gap: 8, color: 'var(--admin-text-muted)', fontSize: 14, flexWrap: 'wrap' }}>
                       <span>@{selectedUser.instagramId}</span>
                       <span>•</span>
                       <span>{selectedUser.gender}</span>
                       {selectedUser.college && <><span>•</span><span>{selectedUser.college}</span></>}
                     </div>
-                    <div style={{ marginTop: 8, fontSize: 13, display: 'flex', gap: 6 }}>
+                    <div style={{ marginTop: 8, fontSize: 13, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {selectedUser.userType === 'general'
                         ? <span className="badge badge-neutral">General User</span>
                         : <span className="badge badge-info">Student</span>

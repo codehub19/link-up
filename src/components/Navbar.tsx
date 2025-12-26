@@ -109,7 +109,14 @@ export default function Navbar() {
                   Complete Setup
                 </Link>
               ) : (
-                <button onClick={login} className="nav-btn nav-btn-primary">
+                <button
+                  onClick={async () => {
+                    const isNew = await login();
+                    if (isNew) navigate("/setup/profile");
+                    else navigate("/dashboard");
+                  }}
+                  className="nav-btn nav-btn-primary"
+                >
                   Login
                 </button>
               )}

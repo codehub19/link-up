@@ -110,7 +110,7 @@ export default function RequestsAdmin() {
             <div className="admin-content">
 
                 {/* Tabs */}
-                <div style={{ display: 'flex', gap: 20, marginBottom: 24, borderBottom: '1px solid #eee' }}>
+                <div style={{ display: 'flex', gap: 20, marginBottom: 24, borderBottom: '1px solid #eee', flexWrap: 'wrap' }}>
                     <button
                         className={`tab-btn ${activeTab === 'delete' ? 'active' : ''}`}
                         onClick={() => setActiveTab('delete')}

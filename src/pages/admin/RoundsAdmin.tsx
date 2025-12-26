@@ -82,9 +82,9 @@ export default function RoundsAdmin() {
 
   return (
     <div className="admin-container">
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div className="row stack-mobile" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, gap: 16 }}>
         <h2 style={{ margin: 0 }}>Matching Rounds</h2>
-        <div className="row" style={{ gap: 12, alignItems: 'center' }}>
+        <div className="row stack-mobile" style={{ gap: 12, alignItems: 'center' }}>
           {/* Smart Launch Button */}
           <button
             className="btn btn-primary"

@@ -1,10 +1,11 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../state/AuthContext";
 import "./Hero.styles.css";
 
 export default function Hero() {
   const { user, login } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <section className="hero-modern">
@@ -24,7 +25,16 @@ export default function Hero() {
 
           <div className="hero-actions">
             {!user ? (
-              <button onClick={login} className="btn-modern btn-glow">
+              <button
+                onClick={async () => {
+                  const isNew = await login();
+                  if (typeof isNew === 'boolean') {
+                    if (isNew) navigate("/setup/profile");
+                    else navigate("/dashboard");
+                  }
+                }}
+                className="btn-modern btn-glow"
+              >
                 Start Matching
               </button>
             ) : (

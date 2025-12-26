@@ -15,7 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <span className="admin-brand">Admin</span>
                     <button
                         onClick={() => setMobileOpen(!mobileOpen)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'white' }}
                     >
                         <Menu size={24} />
                     </button>

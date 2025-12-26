@@ -6,9 +6,16 @@ import "./FinalCTA.styles.css";
 export default function FinalCTA() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
-  const go = () => {
-    if (user) navigate("/dashboard");
-    else login();
+  const go = async () => {
+    if (user) {
+      navigate("/dashboard");
+    } else {
+      const isNew = await login();
+      if (typeof isNew === 'boolean') {
+        if (isNew) navigate("/setup/profile");
+        else navigate("/dashboard");
+      }
+    }
   };
 
   return (
