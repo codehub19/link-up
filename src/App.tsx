@@ -50,6 +50,7 @@ const CollegeIdVerification = lazy(() => import('./pages/admin/CollegeIdVerifica
 const RequestsAdmin = lazy(() => import('./pages/admin/RequestsAdmin'))
 const EditProfile = lazy(() => import('./pages/dashboard/EditProfile'))
 const SettingsPage = lazy(() => import('./pages/dashboard/Settings'))
+const SupportHistory = lazy(() => import('./pages/dashboard/SupportHistory'))
 
 import AnimatedRoutesLayout from './components/layout/AnimatedRoutesLayout'
 
@@ -203,6 +204,15 @@ export default function App() {
             element={
               <Protected>
                 <SettingsPage />
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/dashboard/support-history"
+            element={
+              <Protected>
+                <SupportHistory />
               </Protected>
             }
           />

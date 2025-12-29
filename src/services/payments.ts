@@ -1,5 +1,6 @@
 import { listUserPayments } from './razorpay'
 export * from './razorpay'
+import { sendNotification } from './notifications'
 
 // For backward compatibility if other modules import functions like listUserPayments.
 export { listUserPayments }
@@ -81,10 +82,29 @@ export async function approvePayment(paymentId: string) {
     if (active?.id) await join({ roundId: active.id })
   } catch {
     // ignore
+    // Send Notification
+    await sendNotification({
+      userUid: data.uid,
+      title: 'Payment Approved ✅',
+      body: 'Your payment has been approved! You can now participate in matching rounds.'
+    })
   }
 }
 
 export async function rejectPayment(paymentId: string, reason?: string) {
   const refp = doc(db, 'payments', paymentId)
   await updateDoc(refp, { status: 'rejected', reason: reason || null, updatedAt: serverTimestamp() })
+
+  // Send Notification
+  const refSnap = await getDoc(refp)
+  if (refSnap.exists()) {
+    const data = refSnap.data() as Payment
+    await sendNotification({
+      userUid: data.uid,
+      title: 'Payment Rejected ❌',
+      body: reason
+        ? `Your payment was rejected. Reason: ${reason}`
+        : 'Your payment was rejected. Please contact support for details.'
+    })
+  }
 }

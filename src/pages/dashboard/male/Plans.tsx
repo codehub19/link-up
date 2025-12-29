@@ -10,6 +10,7 @@ import { listActivePlans, getActiveSubscription, type ActiveSubscription } from 
 import { addMaleToActiveRound } from '../../../services/rounds'
 import './Plans.styles.css'
 import HomeBackground from '../../../components/home/HomeBackground'
+import { createSupportQuery, SUPPORT_CATEGORIES } from '../../../services/support'
 
 type Payment = {
   id: string
@@ -50,6 +51,13 @@ export default function MalePlans() {
   // Subscriptions view:
   const [activeByPlan, setActiveByPlan] = useState<Record<string, boolean>>({})
   const [expiredByPlan, setExpiredByPlan] = useState<Record<string, boolean>>({})
+
+  // Support Modal State
+  const [showSupport, setShowSupport] = useState(false)
+  const [supportPlan, setSupportPlan] = useState<string | null>(null)
+  const [supportCategory, setSupportCategory] = useState(SUPPORT_CATEGORIES[0])
+  const [supportMessage, setSupportMessage] = useState('')
+  const [submittingSupport, setSubmittingSupport] = useState(false)
 
   useEffect(() => {
     const run = async () => {
@@ -155,10 +163,115 @@ export default function MalePlans() {
     return null
   }
 
+  const handleSupport = (planId: string) => {
+    setSupportPlan(planId)
+    setSupportCategory('Other')
+    setSupportMessage('')
+    setShowSupport(true)
+  }
+
+  const wordCount = supportMessage.trim().split(/\s+/).filter(Boolean).length
+  const isOverLimit = wordCount > 30
+
+  const submitSupport = async () => {
+    if (!user || !supportPlan || !supportMessage.trim() || isOverLimit) return
+    setSubmittingSupport(true)
+    try {
+      await createSupportQuery({
+        uid: user.uid,
+        planId: supportPlan,
+        category: supportCategory,
+        message: supportMessage
+      })
+      toast.success('Query sent! Check your profile for updates.')
+      setShowSupport(false)
+    } catch (e) {
+      console.error(e)
+      toast.error('Failed to send query')
+    } finally {
+      setSubmittingSupport(false)
+    }
+  }
+
   return (
     <>
       <HomeBackground />
       <Navbar />
+
+      {/* Support Modal */}
+      {showSupport && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.7)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)'
+        }} onClick={() => setShowSupport(false)}>
+          <div className="modal-content" style={{
+            background: '#1a1a1a', border: '1px solid #333', borderRadius: 16,
+            padding: 24, width: '90%', maxWidth: 400, color: 'white'
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0 }}>Premium Support</h3>
+            <p style={{ fontSize: 14, color: '#aaa', marginBottom: 16 }}>
+              Have an issue with your active plan? Let us know.
+            </p>
+
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>Issue Type</label>
+            <select
+              value={supportCategory}
+              onChange={e => setSupportCategory(e.target.value)}
+              style={{
+                width: '100%', padding: '10px', borderRadius: 8,
+                background: '#262626', border: '1px solid #444', color: 'white',
+                marginBottom: 16, outline: 'none'
+              }}
+            >
+              {SUPPORT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>Message</label>
+            <textarea
+              rows={4}
+              value={supportMessage}
+              onChange={e => setSupportMessage(e.target.value)}
+              placeholder="Describe your issue (max 30 words)..."
+              style={{
+                width: '100%', padding: '10px', borderRadius: 8,
+                background: '#262626', border: `1px solid ${isOverLimit ? '#ef4444' : '#444'}`,
+                color: 'white',
+                marginBottom: 8, outline: 'none', resize: 'vertical'
+              }}
+            />
+            <div style={{ textAlign: 'right', fontSize: 12, color: isOverLimit ? '#ef4444' : '#666', marginBottom: 24 }}>
+              {wordCount}/30 words
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowSupport(false)}
+                style={{
+                  background: 'transparent', border: 'none', color: '#aaa',
+                  cursor: 'pointer', padding: '8px 16px'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={submittingSupport || isOverLimit || wordCount === 0}
+                onClick={submitSupport}
+                style={{
+                  background: 'white', color: 'black', border: 'none',
+                  borderRadius: 20, padding: '8px 20px', fontWeight: 600,
+                  cursor: (submittingSupport || isOverLimit || wordCount === 0) ? 'not-allowed' : 'pointer',
+                  opacity: (submittingSupport || isOverLimit || wordCount === 0) ? 0.5 : 1
+                }}
+              >
+                {submittingSupport ? 'Sending...' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="dashboard-container">
         <MaleTabs />
 
@@ -205,6 +318,9 @@ export default function MalePlans() {
               const isActive = activeByPlan[key] === true
               const isPending = paymentStatusByPlan[key] === 'pending'
               const isExpired = expiredByPlan[key] === true
+
+              const hasAnyActive = Object.values(activeByPlan).some(v => v === true)
+              const isBlocked = hasAnyActive && !isActive
 
               const matchCount = (p.matchQuota ?? p.quota ?? 1)
               const roundsAllowed = (p.roundsAllowed ?? 1)
@@ -277,11 +393,27 @@ export default function MalePlans() {
                   <div className="plan-actions">
                     <button
                       className={`plan-btn ${isActive ? 'plan-btn-outline' : 'plan-btn-primary'}`}
-                      onClick={btnAction}
+                      style={isBlocked ? { opacity: 0.5, cursor: 'not-allowed', background: '#333', borderColor: '#444', color: '#aaa' } : {}}
+                      onClick={() => {
+                        if (isBlocked) {
+                          toast.error("You can't purchase a new plan if a plan is active")
+                          return
+                        }
+                        btnAction()
+                      }}
                       disabled={isPending}
                     >
                       {btnLabel}
                     </button>
+                    {isActive && p.supportAvailable && (
+                      <button
+                        className="plan-btn"
+                        style={{ marginTop: 8, background: 'rgba(255,255,255,0.05)', color: '#aaa', border: '1px solid rgba(255,255,255,0.1)' }}
+                        onClick={() => handleSupport(p.id)}
+                      >
+                        Get Support / Help
+                      </button>
+                    )}
                   </div>
                 </div>
               )

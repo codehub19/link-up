@@ -225,6 +225,18 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
+            {/* Support History Link */}
+            <div className="profile-section-card" style={{ padding: 24, textAlign: 'center' }}>
+              <button
+                onClick={() => nav('/dashboard/support-history')}
+                style={{
+                  background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)',
+                  padding: '12px 24px', borderRadius: 12, cursor: 'pointer', fontSize: 15, fontWeight: 500
+                }}
+              >
+                View Support History &rarr;
+              </button>
+            </div>
 
           </div>
         </div>
