@@ -72,6 +72,7 @@ const DEFAULT_NAV: AdminHeaderNavItem[] = [
   { slug: 'curation', label: 'Curation', href: '/admin/curation' },
   { slug: 'rounds', label: 'Rounds', href: '/admin/rounds' }, // <-- Added here
   { slug: 'requests', label: 'Requests', href: '/admin/requests' },
+  { slug: 'referrals', label: 'Referrals', href: '/admin/referrals' },
   { slug: 'college-id-verification', label: 'College ID Verification', href: '/admin/college-id-verification' }, // <-- Added here
 ]
 

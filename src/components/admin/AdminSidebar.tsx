@@ -15,6 +15,7 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }: { mobileOpen
         { label: 'Plans', href: '/admin/plans', icon: Shield },
         { label: 'ID Verification', href: '/admin/college-id-verification', icon: Key },
         { label: 'Notifications', href: '/admin/notifications', icon: Bell },
+        { label: 'Referrals', href: '/admin/referrals', icon: Users },
         { label: 'Send Notification', href: '/admin/send-notification', icon: Send }, // <-- Added
     ]
 

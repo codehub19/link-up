@@ -42,6 +42,7 @@ const CurationAdmin = lazy(() => import('./pages/admin/CurationAdmin'))
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 const PlansAdmin = lazy(() => import('./pages/admin/PlansAdmin'))
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'))
+const ReferralsAdmin = lazy(() => import('./pages/admin/ReferralsAdmin'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AdminHome = lazy(() => import('./pages/admin/AdminHome'))
 import { Outlet } from 'react-router-dom'
@@ -56,6 +57,16 @@ import AnimatedRoutesLayout from './components/layout/AnimatedRoutesLayout'
 
 export default function App() {
   const { loading, profile } = useAuth();
+
+  // Capture referral code from URL
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get('ref')
+    if (ref) {
+      sessionStorage.setItem('referralCode', ref.toUpperCase())
+    }
+  }, [])
+
   if (loading) return <div className="loading-page-wrapper">
     <LoadingHeart size={72} />
   </div>;
@@ -245,6 +256,7 @@ export default function App() {
             <Route path="/admin/college-id-verification" element={<CollegeIdVerification />} />
             <Route path="/admin/send-notification" element={<SendNotificationAdmin />} />
             <Route path="/admin/notifications" element={<NotificationsAdminList />} />
+            <Route path="/admin/referrals" element={<ReferralsAdmin />} />
           </Route>
 
           {/* Fallback */}

@@ -3,7 +3,7 @@ import MaleTabs from '../../../components/MaleTabs'
 import { useAuth } from '../../../state/AuthContext'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { collection, onSnapshot, query, where } from 'firebase/firestore'
+import { collection, onSnapshot, query, where, doc } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { toast } from 'sonner'
 import { listActivePlans, getActiveSubscription, type ActiveSubscription } from '../../../services/subscriptions'
@@ -11,6 +11,7 @@ import { addMaleToActiveRound } from '../../../services/rounds'
 import './Plans.styles.css'
 import HomeBackground from '../../../components/home/HomeBackground'
 import { createSupportQuery, SUPPORT_CATEGORIES } from '../../../services/support'
+import { getReferralStats, assignReferralCode } from '../../../services/referrals'
 
 type Payment = {
   id: string
@@ -39,7 +40,7 @@ function slug(s: string) {
 }
 
 export default function MalePlans() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const nav = useNavigate()
   const [plans, setPlans] = useState<any[]>([])
   const [sub, setSub] = useState<ActiveSubscription | null>(null)
@@ -58,6 +59,60 @@ export default function MalePlans() {
   const [supportCategory, setSupportCategory] = useState(SUPPORT_CATEGORIES[0])
   const [supportMessage, setSupportMessage] = useState('')
   const [submittingSupport, setSubmittingSupport] = useState(false)
+
+  // Referral State
+  const [referralCount, setReferralCount] = useState(0)
+  const [applyReferral, setApplyReferral] = useState(false)
+  const [referralStatsLoaded, setReferralStatsLoaded] = useState(false)
+  // Local real-time referral used state to handle stale profile context
+  const [isReferralUsed, setIsReferralUsed] = useState(false)
+  const [isReferralPending, setIsReferralPending] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('redeem') === 'true') {
+      setApplyReferral(true)
+    }
+  }, [])
+
+  // Update real-time referral used status
+  useEffect(() => {
+    if (!user?.uid) return
+    // Initialize with profile value if available
+    if ((profile as any)?.referralDiscountUsed) {
+      setIsReferralUsed(true)
+    }
+
+    const unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data()
+        setIsReferralUsed(!!data.referralDiscountUsed)
+      }
+    })
+    return () => unsub()
+  }, [user?.uid, profile])
+
+  const referralDiscount = (profile as any)?.referralDiscountUsed ? 0 : Math.min(referralCount * 5, 100)
+
+  useEffect(() => {
+    if (user?.uid) {
+      // 1. Fetch Stats
+      getReferralStats(user.uid).then(stats => {
+        setReferralCount(stats.totalReferrals)
+        setReferralStatsLoaded(true)
+      })
+
+      // 2. Ensure Code Exists
+      // Check on profile instead of user
+      if (profile && !profile.referralCode) {
+        assignReferralCode(user.uid, profile.name || 'User')
+          .then(() => {
+            // success
+          })
+          .catch(console.error)
+      }
+    }
+  }, [user?.uid, profile])
 
   useEffect(() => {
     const run = async () => {
@@ -84,9 +139,17 @@ export default function MalePlans() {
     const qy = query(collection(db, 'payments'), where('uid', '==', user.uid))
     const un = onSnapshot(qy, (snap) => {
       const latestByPlan: Record<string, { status: Payment['status']; ts: number }> = {}
+      let hasPendingReferral = false
+
       snap.forEach((doc) => {
         const d = doc.data() as any
         const rawId = (d.planId || '') as string
+
+        // CHECK PENDING REFERRAL
+        if (d.referralDiscountApplied === true && d.status !== 'rejected' && d.status !== 'failed') {
+          hasPendingReferral = true
+        }
+
         if (!rawId) return
         const key = slug(rawId)
         const status = (d.status ?? 'pending') as Payment['status']
@@ -95,9 +158,11 @@ export default function MalePlans() {
           latestByPlan[key] = { status, ts }
         }
       })
+
       const out: Record<string, Payment['status']> = {}
       Object.keys(latestByPlan).forEach((k) => (out[k] = latestByPlan[k].status))
       setPaymentStatusByPlan(out)
+      setIsReferralPending(hasPendingReferral)
     })
     return () => un()
   }, [user])
@@ -143,10 +208,29 @@ export default function MalePlans() {
   const choose = (p: any) => {
     // Calculate potential discount
     const original = Number(p.price || p.amount || 0)
-    const discount = Number(p.discountPercent || 0)
-    const finalPrice = discount > 0 ? Math.round(original * (1 - discount / 100)) : original
+    const planDiscount = Number(p.discountPercent || 0)
+    let finalPrice = planDiscount > 0 ? Math.round(original * (1 - planDiscount / 100)) : original
 
-    nav(`/pay?planId=${encodeURIComponent(p.id)}&amount=${finalPrice}`)
+    // Apply Referral Discount
+    if (applyReferral && referralDiscount > 0) {
+      const discountAmount = Math.round(finalPrice * (referralDiscount / 100))
+      finalPrice = Math.max(0, finalPrice - discountAmount)
+    }
+
+    nav(`/pay?planId=${encodeURIComponent(p.id)}&amount=${finalPrice}${applyReferral && referralDiscount > 0 ? '&referral=true' : ''}`)
+  }
+
+  const handleCopyCode = () => {
+    if (!profile || !(profile as any).referralCode) return
+    navigator.clipboard.writeText((profile as any).referralCode)
+    toast.success('Code copied to clipboard')
+  }
+
+  const handleCopyLink = () => {
+    if (!profile || !(profile as any).referralCode) return
+    const link = `${window.location.origin}/?ref=${(profile as any).referralCode}`
+    navigator.clipboard.writeText(link)
+    toast.success('Referral link copied to clipboard')
   }
 
   const getStatusBadge = (planId: string) => {
@@ -278,6 +362,26 @@ export default function MalePlans() {
         <div className="plans-hero">
           <h1 className="plans-title text-gradient">Choose Your Plan</h1>
           <p className="plans-subtitle">Unlock exclusive rounds and verified matches.</p>
+
+          {isReferralUsed || isReferralPending ? (
+            <div style={{ marginTop: 16, display: 'inline-block', background: 'rgba(234, 179, 8, 0.1)', padding: '8px 16px', borderRadius: 20, border: '1px solid rgba(234, 179, 8, 0.2)' }}>
+              <span style={{ color: '#facc15', fontSize: 14, fontWeight: 600 }}>
+                You have used your refer and earn reward
+              </span>
+            </div>
+          ) : referralDiscount > 0 && (
+            <div style={{ marginTop: 16, display: 'inline-block', background: 'rgba(16, 185, 129, 0.1)', padding: '8px 16px', borderRadius: 20, border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: '#34d399', fontSize: 14, fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  checked={applyReferral}
+                  onChange={e => setApplyReferral(e.target.checked)}
+                  style={{ accentColor: '#34d399', width: 16, height: 16 }}
+                />
+                Apply {referralDiscount}% Referral Discount
+              </label>
+            </div>
+          )}
         </div>
 
         {sub && (
@@ -306,6 +410,10 @@ export default function MalePlans() {
             </div>
           </div>
         )}
+
+
+
+
 
         {loading ? (
           <div className="loading-state">Loading plans...</div>
@@ -345,26 +453,57 @@ export default function MalePlans() {
                   </div>
 
                   <div className="plan-price-block">
-                    {p.discountPercent > 0 ? (
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                        <span className="plan-price">₹{Math.round(p.price * (1 - p.discountPercent / 100))}</span>
-                        <span style={{ textDecoration: 'line-through', color: 'rgba(255,255,255,0.4)', fontSize: '1.1rem' }}>₹{p.price}</span>
-                        <span style={{
-                          fontSize: '0.75rem',
-                          background: 'rgba(16, 185, 129, 0.2)',
-                          color: '#34d399',
-                          padding: '2px 8px',
-                          borderRadius: '12px',
-                          fontWeight: 'bold',
-                          transform: 'translateY(-4px)'
-                        }}>
-                          {p.discountPercent}% OFF
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="plan-price">₹{p.price ?? p.amount}</span>
-                    )}
-                    {/* <span className="plan-period">/ month</span> (optional if recurring) */}
+                    {(() => {
+                      const originalPrice = Number(p.price || p.amount || 0)
+                      const planDiscount = Number(p.discountPercent || 0)
+                      const priceAfterPlanDiscount = planDiscount > 0 ? Math.round(originalPrice * (1 - planDiscount / 100)) : originalPrice
+
+                      let extraDiscountAmount = 0
+                      if (applyReferral && referralDiscount > 0) {
+                        extraDiscountAmount = Math.round(priceAfterPlanDiscount * (referralDiscount / 100))
+                      }
+                      const finalPrice = Math.max(0, priceAfterPlanDiscount - extraDiscountAmount)
+
+                      return (
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                            <span className="plan-price">₹{finalPrice}</span>
+                            {(planDiscount > 0 || extraDiscountAmount > 0) && (
+                              <span style={{ textDecoration: 'line-through', color: 'rgba(255,255,255,0.4)', fontSize: '1.1rem' }}>
+                                ₹{originalPrice}
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                            {planDiscount > 0 && (
+                              <span style={{
+                                fontSize: '0.75rem',
+                                background: 'rgba(16, 185, 129, 0.2)',
+                                color: '#34d399',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                fontWeight: 'bold'
+                              }}>
+                                {planDiscount}% OFF
+                              </span>
+                            )}
+                            {extraDiscountAmount > 0 && (
+                              <span style={{
+                                fontSize: '0.75rem',
+                                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                                color: '#000',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                fontWeight: 'bold'
+                              }}>
+                                +{referralDiscount}% Referral Bonus
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   <ul className="plan-features">

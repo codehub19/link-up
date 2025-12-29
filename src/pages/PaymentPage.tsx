@@ -35,6 +35,7 @@ export default function PaymentPage() {
 
   const planId = sp.get('plan') || sp.get('planId') || 'pro'
   const amountOverride = sp.get('amount')
+  const isReferral = sp.get('referral') === 'true'
 
   const [resolvedPlan, setResolvedPlan] = useState<PlanLike | null>(null)
   const [proof, setProof] = useState<File | null>(null)
@@ -109,15 +110,16 @@ export default function PaymentPage() {
   async function onConfirmPaid() {
     if (!user) { await showAlert('Please login first'); return }
     if (!resolvedPlan) { await showAlert('Plan not loaded yet'); return }
-    if (!proof) { await showAlert('Please attach a payment screenshot'); return }
+    if (amount > 0 && !proof) { await showAlert('Please attach a payment screenshot'); return }
 
     setSubmitting(true)
     try {
       await createPayment({
         uid: user.uid,
         planId: resolvedPlan.id,
-        amount: amountOverride ? Number(amountOverride) : resolvedPlan.amount,
-        upiId: UPI_ID,
+        amount: amount,
+        upiId: amount > 0 ? UPI_ID : 'REFERRAL',
+        referralDiscountApplied: isReferral
       }, proof || undefined)
       await showAlert('Payment submitted! We will verify and activate your plan shortly.')
       navigate('/dashboard/plans')
@@ -211,58 +213,67 @@ export default function PaymentPage() {
                 </div>
               </div>
 
-              {/* Mobile Options (Conditional) */}
-              {isMobile && (
-                <div className="upi-box">
-                  <label className="input-label">Quick Pay</label>
-                  <div className="mobile-pay-options">
-                    <a
-                      href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
-                      className="btn-upi-intent"
-                      style={{ background: '#4285F4' }}
-                    >
-                      GPay
-                    </a>
-                    <a
-                      href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
-                      className="btn-upi-intent"
-                      style={{ background: '#5D3FD3' }}
-                    >
-                      PhonePe
-                    </a>
-                    <a
-                      href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
-                      className="btn-upi-intent"
-                      style={{ background: '#02b1ff' }}
-                    >
-                      Paytm
-                    </a>
+              {/* Upload Proof - Only if Amount > 0 */}
+              {amount > 0 ? (
+                <>
+                  {/* Mobile Options (Conditional) */}
+                  <div className="upi-box">
+                    <label className="input-label">Quick Pay</label>
+                    <div className="mobile-pay-options">
+                      <a
+                        href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
+                        className="btn-upi-intent"
+                        style={{ background: '#4285F4' }}
+                      >
+                        GPay
+                      </a>
+                      <a
+                        href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
+                        className="btn-upi-intent"
+                        style={{ background: '#5D3FD3' }}
+                      >
+                        PhonePe
+                      </a>
+                      <a
+                        href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
+                        className="btn-upi-intent"
+                        style={{ background: '#02b1ff' }}
+                      >
+                        Paytm
+                      </a>
+                    </div>
                   </div>
+
+                  <div className="upload-box">
+                    <label className="input-label">Payment Screenshot</label>
+                    <div
+                      className={`file-input-wrapper ${proof ? 'has-file' : ''}`}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setProof(e.target.files?.[0] || null)}
+                      />
+                      {proof ? (
+                        <span className="upload-success">
+                          ✓ Screenshot Attached: {proof.name.slice(0, 20)}...
+                        </span>
+                      ) : (
+                        <span className="upload-placeholder">
+                          Click to upload screenshot
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={{ padding: 20, background: 'rgba(16, 185, 129, 0.1)', borderRadius: 12, border: '1px solid #10b981', textAlign: 'center', marginBottom: 24, marginTop: 24 }}>
+                  <h3 style={{ margin: 0, color: '#34d399', fontSize: 18 }}>100% Discount Applied!</h3>
+                  <p style={{ margin: '8px 0 0', color: '#d1fae5', fontSize: 14 }}>
+                    You can activate this plan for free using your referral rewards.
+                  </p>
                 </div>
               )}
-
-              {/* Upload Proof */}
-              <div className="upload-box">
-                <label className="input-label">Payment Screenshot</label>
-                <div
-                  className={`file-input-wrapper ${proof ? 'has-file' : ''}`}
-                >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setProof(e.target.files?.[0] || null)}
-                  />
-                  {proof ? (
-                    <span className="upload-success">
-                      ✓ Screenshot Attached: {proof.name.slice(0, 20)}...
-                    </span>
-                  ) : (
-                    <span className="upload-placeholder">
-                      Click to upload screenshot
-                    </span>
-                  )}
-                </div>
-              </div>
 
               {/* Submit Action */}
               <button
@@ -270,7 +281,7 @@ export default function PaymentPage() {
                 onClick={onConfirmPaid}
                 disabled={submitting}
               >
-                {submitting ? 'Verifying...' : 'Submit Payment'}
+                {submitting ? 'Processing...' : amount > 0 ? 'Submit Payment' : 'Activate Plan'}
               </button>
 
             </div>

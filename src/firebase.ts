@@ -159,6 +159,13 @@ export type UserProfile = {
   emailUpdates?: boolean
   readReceipts?: boolean
 
+  // Referral / Matching
+  referralCode?: string
+  referredBy?: string
+  hasMatched?: boolean
+  referralEarningsPaid?: number
+  upiId?: string
+
   [k: string]: any
 }
 

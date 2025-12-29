@@ -206,7 +206,14 @@ export default function PaymentsAdmin() {
                           <div style={{ fontWeight: 600 }}>{p.userName || 'User'} <br /><span style={{ fontSize: 12, color: '#666' }}>{p.uid.substring(0, 8)}...</span></div>
                         </td>
                         <td>{p.planId}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₹{p.amount}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                          ₹{p.amount}
+                          {p.referralDiscountApplied && (
+                            <div style={{ fontSize: 10, color: '#facc15', marginTop: 2 }}>
+                              Referral Used
+                            </div>
+                          )}
+                        </td>
                         <td style={{ fontFamily: 'monospace' }}>{p.upiId || '-'}</td>
                         <td>{p.createdAt?.toDate?.().toLocaleString?.() || '-'}</td>
                         <td>
@@ -275,7 +282,10 @@ export default function PaymentsAdmin() {
                         </td>
                         <td>
                           <div>Plan: <b>{p.planId}</b></div>
-                          <div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>₹{p.amount} • {p.createdAt?.toDate ? p.createdAt.toDate().toLocaleDateString() : 'N/A'}</div>
+                          <div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>
+                            ₹{p.amount} • {p.createdAt?.toDate ? p.createdAt.toDate().toLocaleDateString() : 'N/A'}
+                            {p.referralDiscountApplied && <span style={{ color: '#facc15', marginLeft: 6, fontSize: 10, border: '1px solid #facc15', padding: '0 4px', borderRadius: 4 }}>Referral</span>}
+                          </div>
                         </td>
                         <td>
                           <span className={`badge badge - ${p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} `}>

@@ -16,4 +16,12 @@ export async function createMatch(roundId: string, maleUid: string, femaleUid: s
     },
     { merge: true }
   )
+
+  // Mark users as matched for referral tracking
+  // We strictly update the 'referrals' collection now, not the user profile 'hasMatched' (as per new requirements)
+  const { updateReferralMatchStatus } = await import('./referrals')
+  await updateReferralMatchStatus(maleUid)
+  await updateReferralMatchStatus(femaleUid)
+
+  return id
 }

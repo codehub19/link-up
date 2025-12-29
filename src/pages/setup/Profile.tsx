@@ -8,6 +8,7 @@ import './setup.styles.css'
 import Terms from './Terms'
 import Gender from './Gender'
 import Details from './Details'
+import Referral from './Referral'
 import Interests from './Interests'
 import Preferences from './Preferences'
 import Questions1 from './Questions1'
@@ -21,12 +22,12 @@ import LookingFor from './LookingFor'
 import Height from './Height'
 
 type StepId =
-  | 'terms' | 'gender' | 'details' | 'looking-for' | 'height' | 'interests' | 'preferences'
+  | 'terms' | 'gender' | 'details' | 'referral' | 'looking-for' | 'height' | 'interests' | 'preferences'
   | 'relationship-goals' | 'deal-breakers'
   | 'q1' | 'q2' | 'bio' | 'photos' | 'done'
 
 const ORDER: StepId[] = [
-  'terms', 'gender', 'details', 'looking-for', 'height', 'interests', 'preferences',
+  'terms', 'gender', 'details', 'referral', 'looking-for', 'height', 'interests', 'preferences',
   'relationship-goals', 'deal-breakers',
   'q1', 'q2', 'bio', 'photos', 'done'
 ]
@@ -39,6 +40,7 @@ function derive(raw: any | null): StepId {
   if (!p.gender || !s.gender) return 'gender'
   const isCollege = !p.userType || p.userType === 'college'
   if (!p.name || (isCollege && !p.college) || !p.dob || !s.profile) return 'details'
+  if (!s.referral) return 'referral'
 
   // New Steps
   if (!p.datingPreference || !s.lookingFor) return 'looking-for'
@@ -95,6 +97,7 @@ export default function ProfileWizard() {
     case 'terms': body = <Terms {...shared} />; break
     case 'gender': body = <Gender {...shared} />; break
     case 'details': body = <Details {...shared} />; break
+    case 'referral': body = <Referral {...shared} />; break
     case 'looking-for': body = <LookingFor {...shared} />; break
     case 'height': body = <Height {...shared} />; break
     case 'interests': body = <Interests {...shared} />; break

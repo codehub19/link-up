@@ -153,6 +153,26 @@ export default function MatchingRound() {
     if (confirmedBoyUids.has(boyUid)) return
     try {
       await callConfirmMatchByGirl({ roundId, boyUid })
+
+      // Update hasMatched locally for both users as fallback/immediate effect
+      // Update hasMatched locally for SELF only (security rules prevent updating others)
+      try {
+        const updates = []
+        if (user) {
+          // Update Own Referral Record ONLY (as requested)
+          const { updateReferralMatchStatus } = await import('../../../services/referrals')
+          updates.push(updateReferralMatchStatus(user.uid))
+        }
+
+        // We do NOT update the boy's profile
+        // The Cloud Function callConfirmMatchByGirl must handle backend logic.
+
+        await Promise.allSettled(updates)
+
+      } catch (e) {
+        console.error("Failed to update matching status locally", e)
+      }
+
       const next = new Set(confirmedBoyUids)
       next.add(boyUid)
       setConfirmedBoyUids(next)

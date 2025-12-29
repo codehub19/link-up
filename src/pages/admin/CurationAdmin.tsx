@@ -155,6 +155,18 @@ export default function CurationAdmin() {
   async function promoteLike(boyUid: string) {
     if (!roundId || !selectedUser) return
     await callAdminPromoteMatch({ roundId, boyUid, girlUid: selectedUser.uid })
+
+    // Manually update hasMatched for referral tracking (since Cloud Fn might not do it)
+    try {
+      // We strictly update the 'referrals' collection now, not the user profile 'hasMatched'
+      const { updateReferralMatchStatus } = await import('../../services/referrals')
+      await updateReferralMatchStatus(boyUid)
+      await updateReferralMatchStatus(selectedUser.uid)
+
+    } catch (e) {
+      console.error("Failed to update matching status locally", e)
+    }
+
     alert('Match created')
   }
 

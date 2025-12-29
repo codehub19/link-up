@@ -223,5 +223,34 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Referrals
+    match /referrals/{referralId} {
+      // Create: Authenticated user creating their own referral record during setup
+      allow create: if request.auth != null; 
+      // Read: Referrer can see who they referred, Referee can see their own record
+      allow read: if request.auth != null && (
+        resource.data.referrerUid == request.auth.uid || 
+        resource.data.refereeUid == request.auth.uid || 
+        isAdmin()
+      );
+      // Update: System updates status. User updates match status (girl confirming match).
+      // We allow updates if user is the referee (confirming match) or admin.
+      allow update: if request.auth != null && (
+         resource.data.refereeUid == request.auth.uid || 
+         isAdmin()
+      ); 
+    }
+
+    // Referral Claims
+    match /referral_claims/{claimId} {
+      // Create: Authenticated user can create their own claim
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      // Read: Users read own claims, admins read all
+      allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isAdmin());
+      // Update: Admin approves/rejects
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
   }
 }

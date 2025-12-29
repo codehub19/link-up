@@ -33,6 +33,7 @@ export type Payment = {
   reason?: string
   createdAt?: any
   updatedAt?: any
+  referralDiscountApplied?: boolean
 }
 
 export async function createPayment(
@@ -74,7 +75,7 @@ export async function approvePayment(paymentId: string) {
 
   await updateDoc(refp, { status: 'approved', updatedAt: serverTimestamp() })
 
-  // Optional: join active round (best-effort)
+  // Join round logic...
   try {
     const fns = getFunctions()
     const join = httpsCallable(fns, 'joinMatchingRound')
@@ -82,13 +83,22 @@ export async function approvePayment(paymentId: string) {
     if (active?.id) await join({ roundId: active.id })
   } catch {
     // ignore
-    // Send Notification
-    await sendNotification({
-      userUid: data.uid,
-      title: 'Payment Approved ✅',
-      body: 'Your payment has been approved! You can now participate in matching rounds.'
+  }
+
+  // Mark referral discount as used if applicable
+  if (data.referralDiscountApplied) {
+    await updateDoc(doc(db, 'users', data.uid), {
+      referralDiscountUsed: true,
+      referralDiscountUsedAt: serverTimestamp()
     })
   }
+
+  // Send Notification
+  await sendNotification({
+    userUid: data.uid,
+    title: 'Payment Approved ✅',
+    body: 'Your payment has been approved! You can now participate in matching rounds.'
+  })
 }
 
 export async function rejectPayment(paymentId: string, reason?: string) {

@@ -3,6 +3,7 @@ import Navbar from '../../components/Navbar'
 import { useAuth } from '../../state/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { updateProfileAndStatus, nextSetupRoute } from '../../firebase'
+import { generateReferralCode } from '../../services/referrals'
 import CollegeSelect from '../../components/CollegeSelect'
 import PhoneVerification from '../../components/PhoneVerification'
 import './setup.styles.css'
@@ -59,6 +60,7 @@ export default function Details({ embedded, onComplete }: Props) {
         dob,
         userType,
         datingPreference: finalPreference,
+        referralCode: profile?.referralCode || generateReferralCode(name.trim())
       }, { profile: true })
 
       await refreshProfile()
