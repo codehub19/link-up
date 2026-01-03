@@ -40,7 +40,7 @@ function slug(s: string) {
 }
 
 export default function MalePlans() {
-  const { user, profile } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const nav = useNavigate()
   const [plans, setPlans] = useState<any[]>([])
   const [sub, setSub] = useState<ActiveSubscription | null>(null)
@@ -107,7 +107,7 @@ export default function MalePlans() {
       if (profile && !profile.referralCode) {
         assignReferralCode(user.uid, profile.name || 'User')
           .then(() => {
-            // success
+            refreshProfile()
           })
           .catch(console.error)
       }

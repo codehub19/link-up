@@ -35,6 +35,7 @@ type UserDoc = {
   verified?: boolean
   userType?: 'college' | 'general'
   datingPreference?: 'college_only' | 'open_to_all'
+  height?: string
 }
 
 type SubscriptionDoc = {
@@ -280,6 +281,7 @@ export default function MatchingRounds() {
                         expanded={expandedIdx === idx}
                         onExpand={() => setExpandedIdx(idx)}
                         onCollapse={() => setExpandedIdx(null)}
+                        maskPrivateDetails={true}
                         footer={
                           <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 8 }}>
                             {/* Badges */}

@@ -256,13 +256,16 @@ import { db } from '../../../firebase'
 function ReferralCard({ user }: { user: any }) {
   const [stats, setStats] = React.useState<any>(null)
   const [isReferralPending, setIsReferralPending] = React.useState(false)
+  const { refreshProfile } = useAuth()
   const nav = useNavigate()
 
   React.useEffect(() => {
     if (user?.uid) {
       getReferralStats(user.uid).then(setStats)
       if (!user.referralCode) {
-        assignReferralCode(user.uid, user.name || 'User').catch(console.error)
+        assignReferralCode(user.uid, user.name || 'User')
+          .then(() => refreshProfile())
+          .catch(console.error)
       }
 
       // Listen for pending referral usage

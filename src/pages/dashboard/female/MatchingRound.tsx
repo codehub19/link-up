@@ -35,6 +35,7 @@ type UserDoc = {
   verified?: boolean
   userType?: 'college' | 'general'
   datingPreference?: 'college_only' | 'open_to_all'
+  height?: string
 }
 
 // Helper to get live status of a round
@@ -252,6 +253,7 @@ export default function MatchingRound() {
                   expanded={expandedIdx === idx}
                   onExpand={() => setExpandedIdx(idx)}
                   onCollapse={() => setExpandedIdx(null)}
+                  maskPrivateDetails={!confirmedBoyUids.has(b.uid)}
                   footer={
                     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 8 }}>
                       {/* Badges */}
@@ -259,7 +261,6 @@ export default function MatchingRound() {
                         {b.userType === 'general' && <span className="tag-general">General User</span>}
                         {b.datingPreference === 'college_only' && <span className="tag-college-only">College Only</span>}
                       </div>
-
                       {confirmedBoyUids.has(b.uid) ? (
                         <button
                           className="btn ghost"

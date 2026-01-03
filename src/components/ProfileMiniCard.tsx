@@ -20,6 +20,8 @@ type UserStructure = {
   sundayStyle?: string
   communicationImportance?: string
   conflictApproach?: string
+  height?: string
+  gender?: string
 }
 
 function calculateAge(dob?: string) {
@@ -31,10 +33,6 @@ function calculateAge(dob?: string) {
   )
 }
 
-function isRevealed() {
-  return false
-}
-
 const AUTO_SLIDE_INTERVAL = 4000 // ms
 
 export default function ProfileMiniCard({
@@ -42,8 +40,16 @@ export default function ProfileMiniCard({
   footer,
   expanded,
   onExpand,
-  onCollapse
-}: { user?: UserStructure; footer?: React.ReactNode; expanded?: boolean; onExpand?: () => void; onCollapse?: () => void }) {
+  onCollapse,
+  maskPrivateDetails = false
+}: {
+  user?: UserStructure;
+  footer?: React.ReactNode;
+  expanded?: boolean;
+  onExpand?: () => void;
+  onCollapse?: () => void;
+  maskPrivateDetails?: boolean;
+}) {
   const [imgIdx, setImgIdx] = useState(0)
   const [progress, setProgress] = useState(0)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -60,6 +66,10 @@ export default function ProfileMiniCard({
       : "/placeholder.jpg"
 
   const age = user?.dob ? calculateAge(user.dob) : user?.age || ""
+
+  // Name Logic with Masking
+  const rawName = user?.name ?? "Student"
+  const displayName = maskPrivateDetails ? `${rawName.charAt(0)}.` : rawName
 
   // Auto-slide logic
   useEffect(() => {
@@ -145,7 +155,7 @@ export default function ProfileMiniCard({
 
         <div className="pm-card-info-overlay">
           <div className="pm-card-title-row">
-            <span className="pm-card-name">{user?.name ?? "Student"}</span>
+            <span className="pm-card-name">{displayName}</span>
             {age && <span className="pm-card-age">, {age}</span>}
             {renderVerifiedBadge()}
           </div>
@@ -250,7 +260,7 @@ export default function ProfileMiniCard({
           <div className="pm-expanded-header">
             <div className="pm-expanded-title">
               <h2>
-                {user?.name ?? "Student"}
+                {displayName}
                 {age && <span style={{ fontWeight: 400, opacity: 0.7 }}>, {age}</span>}
               </h2>
               {renderVerifiedBadge()}
@@ -279,7 +289,31 @@ export default function ProfileMiniCard({
               </div>
             )}
 
-            {/* 2. The Vibe (Personality) */}
+            {/* 2. The Basics (Height/Gender) */}
+            {(user?.height || user?.gender) && (
+              <div className="pm-section-card">
+                <div className="pm-section-title">The Basics</div>
+                <div className="pm-attributes-grid">
+                  {user?.height && (
+                    <div className="pm-attr-item">
+                      <span className="pm-attr-label">📏 Height</span>
+                      <span className="pm-attr-value">{user.height}</span>
+                    </div>
+                  )}
+                  {user?.gender && (
+                    <div className="pm-attr-item">
+                      <span className="pm-attr-label">⚧ Gender</span>
+                      <span className="pm-attr-value" style={{ textTransform: 'capitalize' }}>
+                        {user.gender}
+                      </span>
+                    </div>
+                  )}
+                  {/* Add more basics here if available */}
+                </div>
+              </div>
+            )}
+
+            {/* 3. The Vibe (Personality) */}
             {(user?.loveLanguage || user?.sundayStyle || user?.travelPreference || user?.communicationImportance || user?.conflictApproach) && (
               <div className="pm-section-card">
                 <div className="pm-section-title">The Vibe</div>
@@ -318,8 +352,8 @@ export default function ProfileMiniCard({
               </div>
             )}
 
-            {/* 3. Basics / Social */}
-            {(user?.instagramId) && (
+            {/* 3. Basics / Social -- HIDDEN if maskPrivateDetails is true */}
+            {(!maskPrivateDetails && user?.instagramId) && (
               <div className="pm-section-card">
                 <div className="pm-section-title">Connect</div>
                 <div className="pm-attributes-grid">

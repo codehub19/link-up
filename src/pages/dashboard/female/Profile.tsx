@@ -248,6 +248,7 @@ function ReferralCard({ user }: { user: any }) {
   const [isActivated, setIsActivated] = React.useState(!!user?.upiId)
   const [loading, setLoading] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
+  const { refreshProfile } = useAuth()
 
   const refreshData = () => {
     if (user?.uid) {
@@ -260,7 +261,9 @@ function ReferralCard({ user }: { user: any }) {
       })
 
       if (!user.referralCode) {
-        assignReferralCode(user.uid, user.name || 'User').catch(console.error)
+        assignReferralCode(user.uid, user.name || 'User')
+          .then(() => refreshProfile())
+          .catch(console.error)
       }
     }
   }
