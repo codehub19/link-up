@@ -252,5 +252,18 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+
+    // Job Applications
+    match /job_applications/{appId} {
+      allow create: if true; // Public submission
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Certificates
+    match /certificates/{certId} {
+      allow read: if true; // Public verification
+      allow write: if isAdmin();
+    }
+
   }
 }

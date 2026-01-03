@@ -9,15 +9,15 @@ export default function RoundsPage() {
         <>
             <HomeBackground />
             <Navbar />
-            <main className="relative z-10 pt-32 pb-20">
+            <main className="relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px' }}>
                 <div className="container max-w-4xl mx-auto px-6 text-center">
                     <span className="inline-block py-1 px-3 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm font-medium mb-6">
                         How It Works
                     </span>
-                    <h1 className="text-5xl md:text-7xl font-bold mb-8 text-white tracking-tight">
+                    <h1 className="font-bold mb-8 text-white tracking-tight" style={{ fontSize: '3.75rem' }}>
                         The Magic of <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-violet-400">Rounds</span>
                     </h1>
-                    <p className="text-xl text-gray-300 max-w-2xl mx-auto mb-12 leading-relaxed">
+                    <p className="text-gray-300 max-w-2xl mx-auto mb-12" style={{ fontSize: '1.25rem', lineHeight: '1.75' }}>
                         Stop swiping endlessly. DateU matches happen in "Rounds"—scheduled events where everyone is online at once.
                     </p>
                 </div>
@@ -26,7 +26,7 @@ export default function RoundsPage() {
                     <div className="grid md:grid-cols-3 gap-8">
                         <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 relative overflow-hidden group hover:border-rose-500/30 transition-colors">
                             <div className="absolute top-0 right-0 p-4 opacity-10 font-bold text-6xl">1</div>
-                            <h3 className="text-2xl font-bold mb-4 text-white">Join the Queue</h3>
+                            <h3 className="font-bold text-white" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Join the Queue</h3>
                             <p className="text-gray-400">Sign up for the next round. You'll get notified when it starts. No more ghost towns.</p>
                         </div>
                         <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 relative overflow-hidden group hover:border-violet-500/30 transition-colors">

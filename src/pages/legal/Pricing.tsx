@@ -10,13 +10,19 @@ export default function Pricing() {
 
       <div className="grid gap-6">
         <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-rose-400 mb-2">For Women: Completely Free Access</h3>
-          <p className="text-gray-300 text-sm leading-relaxed">We believe in creating a welcoming environment for everyone. For all female users, DateU is <strong>completely free to use</strong>. This includes unlimited access to all features, including profile creation, browsing, and messaging. There are no hidden costs or subscriptions for women.</p>
+          <h3 className="text-xl font-bold text-rose-400 mb-2">For Women: Completely Free</h3>
+          <p className="text-gray-300 text-sm leading-relaxed">
+            We believe in creating a welcoming environment for everyone. For all female users, DateU is <strong>completely free to use</strong>. enjoy unlimited access to matches, rounds, and chat features without any cost.
+          </p>
         </div>
 
         <div className="bg-violet-500/10 border border-violet-500/30 rounded-xl p-6">
-          <h3 className="text-xl font-bold text-violet-400 mb-2">For Men: A Small One-Time Fee</h3>
-          <p className="text-gray-300 text-sm leading-relaxed">To help ensure a community of genuine and serious users, we require male users to pay a minimal, one-time entry fee. This helps us reduce spam and foster higher-quality connections for everyone. This is not a recurring subscription. Once the one-time fee is paid, you have full access to all core features.</p>
+          <h3 className="text-xl font-bold text-violet-400 mb-2">For Men: Flexible Plans</h3>
+          <p className="text-gray-300 text-sm leading-relaxed">
+            To ensure a community of serious daters, male users select a plan that fits their goals. Each plan includes a specific number of <strong>Matches</strong> and <strong>Rounds</strong>.
+            <br /><br />
+            <strong>How it works:</strong> Your plan expires when you either reach your match limit OR complete your allotted rounds—whichever comes first. No monthly subscriptions; just pay for what you use.
+          </p>
         </div>
       </div>
 

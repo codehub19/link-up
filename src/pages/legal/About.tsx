@@ -5,21 +5,21 @@ export default function About() {
   return (
     <PageWrapper title="About Us">
       <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-        Welcome to DateU, a place where new connections begin.
+        DateU is proudly built by a team of students from <strong>IIT Delhi</strong> who got tired of the same old dating apps. We wanted to change the game.
       </p>
 
       <div className="space-y-12">
         <section>
           <h3 className="text-2xl font-bold text-white mb-4">Our Mission</h3>
           <p className="text-gray-400 leading-relaxed">
-            Our mission is simple: to create a safe, welcoming, and user-friendly platform that helps people find meaningful relationships, whether it's friendship, companionship, or love. We believe dating should be about quality, not quantity.
+            Our mission is simple: to create a safe, welcoming, and user-friendly platform that helps people find meaningful relationships. We believe dating should be about quality connections, not just endless swiping.
           </p>
         </section>
 
         <section>
           <h3 className="text-2xl font-bold text-white mb-4">Our Story</h3>
           <p className="text-gray-400 leading-relaxed">
-            DateU started as a project to solve a simple problem: the burnout of endless swiping. We wanted to build a space where intention matters. Driven by passion and the feedback of our student community, we're building the future of dating.
+            It started in the dorms of IIT Delhi. We were bored of the typical dating app experience—ghosting, endless swiping, and superficial matches. We wanted to do something different. We wanted to build a platform that fosters real connections, designed by students, for students.
           </p>
         </section>
 

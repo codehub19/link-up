@@ -8,9 +8,9 @@ export default function Security() {
         <>
             <HomeBackground />
             <Navbar />
-            <main className="relative z-10 pt-32 pb-20">
+            <main className="relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px' }}>
                 <div className="container max-w-4xl mx-auto px-6">
-                    <h1 className="text-4xl md:text-5xl font-bold mb-8 text-white">Security at DateU</h1>
+                    <h1 className="text-white mb-8" style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>Security at DateU</h1>
 
                     <div className="prose prose-invert max-w-none">
                         <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 mb-8">

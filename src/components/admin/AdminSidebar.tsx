@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Users, CreditCard, Layers, Zap, Shield, Key, Bell, Send, Inbox } from 'lucide-react'
+import { Home, Users, CreditCard, Layers, Zap, Shield, Key, Bell, Send, Inbox, Briefcase } from 'lucide-react'
 
 export default function AdminSidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMobileOpen: (o: boolean) => void }) {
     const location = useLocation()
@@ -8,15 +8,16 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }: { mobileOpen
 
     const navItems = [
         { label: 'Dashboard', href: '/admin/home', icon: Home },
+        { label: 'Applications', href: '/admin/applications', icon: Briefcase }, // <-- Added
         { label: 'Rounds', href: '/admin/rounds', icon: Layers },
-        { label: 'Requests', href: '/admin/requests', icon: Inbox }, // <-- Added
+        { label: 'Requests', href: '/admin/requests', icon: Inbox },
         { label: 'Curation', href: '/admin/curation', icon: Zap },
         { label: 'Payments', href: '/admin/payments', icon: CreditCard },
         { label: 'Plans', href: '/admin/plans', icon: Shield },
         { label: 'ID Verification', href: '/admin/college-id-verification', icon: Key },
         { label: 'Notifications', href: '/admin/notifications', icon: Bell },
         { label: 'Referrals', href: '/admin/referrals', icon: Users },
-        { label: 'Send Notification', href: '/admin/send-notification', icon: Send }, // <-- Added
+        { label: 'Send Notification', href: '/admin/send-notification', icon: Send },
     ]
 
     const sidebarClass = mobileOpen ? 'admin-sidebar open' : 'admin-sidebar'

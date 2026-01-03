@@ -8,12 +8,12 @@ export default function SuccessStoriesPage() {
         <>
             <HomeBackground />
             <Navbar />
-            <main className="relative z-10 pt-32 pb-20">
+            <main className="relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px' }}>
                 <div className="container max-w-4xl mx-auto px-6 text-center">
-                    <h1 className="text-4xl md:text-6xl font-bold mb-8 text-white">
+                    <h1 className="font-bold mb-8 text-white" style={{ fontSize: '3.75rem' }}>
                         Love on <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-violet-400">DateU</span>
                     </h1>
-                    <p className="text-xl text-gray-300 max-w-2xl mx-auto mb-16">
+                    <p className="text-gray-300 max-w-2xl mx-auto mb-16" style={{ fontSize: '1.25rem' }}>
                         Real stories from real students who found their person (or just a really great date).
                     </p>
                 </div>

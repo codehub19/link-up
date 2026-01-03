@@ -8,9 +8,9 @@ export default function ContactPage() {
         <>
             <HomeBackground />
             <Navbar />
-            <main className="relative z-10 pt-32 pb-20">
+            <main className="relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px' }}>
                 <div className="container max-w-4xl mx-auto px-6">
-                    <h1 className="text-5xl font-bold mb-8 text-white text-center">Contact Us</h1>
+                    <h1 className="font-bold mb-8 text-white text-center" style={{ fontSize: '3rem' }}>Contact Us</h1>
 
                     <div className="grid md:grid-cols-2 gap-12 mt-12">
                         <div>

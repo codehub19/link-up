@@ -18,9 +18,9 @@ export default function Footer() {
               REAL connections, verified students.
             </p>
             <div className="footer-socials">
-              <a href="#" className="social-link">𝕏</a>
-              <a href="https://www.instagram.com/dateu_official_/" className="social-link">Instagram</a>
-              <a href="https://www.linkedin.com/company/dateu/" className="social-link">LinkedIn</a>
+              <a href="#" className="social-link" target="_blank" rel="noopener noreferrer">𝕏</a>
+              <a href="https://www.instagram.com/dateu_official_/" className="social-link" target="_blank" rel="noopener noreferrer">Instagram</a>
+              <a href="https://www.linkedin.com/company/dateu/" className="social-link" target="_blank" rel="noopener noreferrer">LinkedIn</a>
             </div>
           </div>
 

@@ -17,6 +17,8 @@ import RoundsPage from './pages/marketing/RoundsPage'
 import SuccessStoriesPage from './pages/marketing/SuccessStoriesPage'
 import DownloadPage from './pages/marketing/DownloadPage'
 import CareersPage from './pages/marketing/CareersPage'
+import JobApplicationPage from './pages/marketing/JobApplicationPage'
+import CertificatePage from './pages/marketing/CertificatePage'
 import BlogPage from './pages/marketing/BlogPage'
 import ContactPage from './pages/marketing/ContactPage'
 import MaleRound from './pages/dashboard/male/MatchingRounds'
@@ -52,6 +54,7 @@ const RequestsAdmin = lazy(() => import('./pages/admin/RequestsAdmin'))
 const EditProfile = lazy(() => import('./pages/dashboard/EditProfile'))
 const SettingsPage = lazy(() => import('./pages/dashboard/Settings'))
 const SupportHistory = lazy(() => import('./pages/dashboard/SupportHistory'))
+const JobApplications = lazy(() => import('./pages/admin/JobApplications'))
 
 import AnimatedRoutesLayout from './components/layout/AnimatedRoutesLayout'
 
@@ -91,6 +94,8 @@ export default function App() {
           <Route path="/success-stories" element={<SuccessStoriesPage />} />
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/careers" element={<CareersPage />} />
+          <Route path="/careers/apply" element={<JobApplicationPage />} />
+          <Route path="/certificate/:id" element={<CertificatePage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/contact" element={<ContactPage />} />
 
@@ -257,6 +262,7 @@ export default function App() {
             <Route path="/admin/send-notification" element={<SendNotificationAdmin />} />
             <Route path="/admin/notifications" element={<NotificationsAdminList />} />
             <Route path="/admin/referrals" element={<ReferralsAdmin />} />
+            <Route path="/admin/applications" element={<JobApplications />} />
           </Route>
 
           {/* Fallback */}

@@ -10,6 +10,10 @@ export default function AnimatedRoutesLayout() {
     // We can also use location.key but pathname checks for actual page changes
     const key = location.pathname
 
+    React.useEffect(() => {
+        window.scrollTo(0, 0)
+    }, [key])
+
     return (
         <AnimatePresence mode="wait" initial={false}>
             <PageTransition key={key}>

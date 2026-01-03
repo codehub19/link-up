@@ -11,54 +11,64 @@ export default function TermsOfService() {
 
             <div className="space-y-10">
                 <section>
-                    <h3 className="text-xl font-bold text-white mb-4">1. Accounts</h3>
-                    <p className="text-gray-400 leading-relaxed mb-4">
-                        When you create an account with us, you must provide us information that is accurate, complete, and current at all times. Failure to do so constitutes a breach of the Terms.
+                    <h3 className="text-xl font-bold text-white mb-4">1. Acceptance of Terms</h3>
+                    <p className="text-gray-400 leading-relaxed">
+                        By creating an account, accessing, or using the DateU application ("Service"), you agree to be bound by these Terms. If you do not agree, you must not use the Service. <strong>These Terms constitute a legally binding agreement between you and DateU.</strong>
                     </p>
-                    <ul className="list-disc pl-5 space-y-2 text-gray-400">
-                        <li>You are responsible for safeguarding the password that you use to access the Service.</li>
-                        <li>You agree not to disclose your password to any third party.</li>
-                        <li>You must notify us immediately upon becoming aware of any breach of security or unauthorized use of your account.</li>
+                </section>
+
+                <section>
+                    <h3 className="text-xl font-bold text-white mb-4">2. Status as Intermediary</h3>
+                    <p className="text-gray-400 leading-relaxed">
+                        DateU acts solely as an "Intermediary" as defined under the Information Technology Act, 2000, and rules thereunder. We provide a platform for users to connect but do not create, publish, or endorse user-generated content. We are not responsible for the conduct of any user or the content they post.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="text-xl font-bold text-white mb-4">3. Disclaimers & No Warranties</h3>
+                    <p className="text-gray-400 leading-relaxed mb-4">
+                        THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS. DATEU EXPLICITLY DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+                    </p>
+                    <p className="text-gray-400 leading-relaxed">
+                        WE DO NOT GUARANTEE THAT:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 text-gray-400 mt-2">
+                        <li>You will find a match or partner.</li>
+                        <li>The Service will be secure, error-free, or uninterrupted.</li>
+                        <li>Any verification implies a guarantee of a user's identity or good conduct.</li>
                     </ul>
                 </section>
 
                 <section>
-                    <h3 className="text-xl font-bold text-white mb-4">2. Intellectual Property</h3>
-                    <p className="text-gray-400 leading-relaxed">
-                        The Service and its original content, features, and functionality are and will remain the exclusive property of DateU and its licensors.
+                    <h3 className="text-xl font-bold text-white mb-4">4. Limitation of Liability</h3>
+                    <p className="text-gray-400 leading-relaxed uppercase">
+                        TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW (INCLUDING INDIAN LAW), DATEU, ITS AFFILIATES, EMPLOYEES, AND DIRECTORS SHALL NOT BE LIABLE FOR ANY DAMAGES WHATSOEVER, WHETHER DIRECT, INDIRECT, GENERAL, SPECIAL, COMPENSATORY, CONSEQUENTIAL, OR INCIDENTAL, ARISING OUT OF OR RELATING TO THE CONDUCT OF YOU OR ANYONE ELSE IN CONNECTION WITH THE USE OF THE SERVICE, INCLUDING WITHOUT LIMITATION, BODILY INJURY, EMOTIONAL DISTRESS, LOSS OF DATA, OR ANY OTHER DAMAGES RESULTING FROM COMMUNICATIONS OR MEETINGS WITH OTHER USERS.
                     </p>
                 </section>
 
                 <section>
-                    <h3 className="text-xl font-bold text-white mb-4">3. Links To Other Web Sites</h3>
+                    <h3 className="text-xl font-bold text-white mb-4">5. Indemnification</h3>
                     <p className="text-gray-400 leading-relaxed">
-                        Our Service may contain links to third-party web sites or services that are not owned or controlled by DateU. We have no control over, and assume no responsibility for, the content, privacy policies, or practices of any third party web sites or services.
+                        You agree to indemnify, defend, and hold harmless DateU and its officers, directors, and employees from any claims, damages, losses, liabilities, and expenses (including legal fees) arising out of your use of the Service, your violation of these Terms, or your violation of any rights of a third party.
                     </p>
                 </section>
 
                 <section>
-                    <h3 className="text-xl font-bold text-white mb-4">4. Termination</h3>
+                    <h3 className="text-xl font-bold text-white mb-4">6. User Conduct & Safety</h3>
                     <p className="text-gray-400 leading-relaxed">
-                        We may terminate or suspend your account immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.
+                        You are solely responsible for your interactions with other users. DateU conducts limited checks (like college ID verification) but does not conduct criminal background checks. You agree to take all necessary precautions when interacting with others, especially if you decide to meet in person.
                     </p>
                 </section>
 
                 <section>
-                    <h3 className="text-xl font-bold text-white mb-4">5. Governing Law</h3>
+                    <h3 className="text-xl font-bold text-white mb-4">7. Governing Law & Dispute Resolution</h3>
                     <p className="text-gray-400 leading-relaxed">
-                        These Terms shall be governed and construed in accordance with the laws of India, without regard to its conflict of law provisions.
-                    </p>
-                </section>
-
-                <section>
-                    <h3 className="text-xl font-bold text-white mb-4">6. Changes</h3>
-                    <p className="text-gray-400 leading-relaxed">
-                        We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material we will try to provide at least 30 days notice prior to any new terms taking effect.
+                        These Terms shall be governed by the laws of India. Any dispute arising out of or relating to these Terms or the Service shall be subject to the exclusive jurisdiction of the courts located in India.
                     </p>
                 </section>
 
                 <div className="bg-white/5 border border-white/10 rounded-xl p-6 mt-12 text-center text-sm text-gray-500">
-                    By accessing or using the Service you agree to be bound by these Terms. If you disagree with any part of the terms then you may not access the Service.
+                    <strong>LEGAL ACKNOWLEDGEMENT:</strong> BY USING THE SERVICE, YOU ACKNOWLEDGE THAT YOU HAVE READ THESE TERMS, UNDERSTAND THEM, AND AGREE TO BE BOUND BY THEM. YOU HEREBY WAIVE ANY RIGHT TO CLAIM THAT YOU DID NOT READ THESE TERMS.
                 </div>
             </div>
         </PageWrapper>

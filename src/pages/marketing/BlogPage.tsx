@@ -8,12 +8,12 @@ export default function BlogPage() {
         <>
             <HomeBackground />
             <Navbar />
-            <main className="relative z-10 pt-32 pb-20">
+            <main className="relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px' }}>
                 <div className="container max-w-4xl mx-auto px-6 text-center mb-16">
-                    <h1 className="text-5xl font-bold mb-6 text-white">
+                    <h1 className="font-bold mb-6 text-white" style={{ fontSize: '3rem' }}>
                         The DateU Blog
                     </h1>
-                    <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+                    <p className="text-gray-300 max-w-2xl mx-auto" style={{ fontSize: '1.25rem' }}>
                         Tips, trends, and stories from the world of modern dating.
                     </p>
                 </div>
