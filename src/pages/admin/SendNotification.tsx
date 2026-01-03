@@ -67,7 +67,8 @@ export default function SendNotificationAdmin() {
       body,
       userUid: userUid === "" ? null : userUid, // Ensure null for group notifications
       createdAt: Timestamp.now(), // Use Firestore Timestamp
-      targetType
+      targetType,
+      seen: false
     });
 
     // Push notification

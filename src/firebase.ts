@@ -37,7 +37,7 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  databaseURL: 'https://linkup-dc86a-default-rtdb.firebaseio.com/',
+  databaseURL: 'https://linkup-dc86a-default-rtdb.asia-southeast1.firebasedatabase.app/',
 }
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp()
@@ -312,6 +312,21 @@ export async function updateProfileAndStatus(
       'setupStatus.completedAt': serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
+
+    // Send Welcome Notification
+    try {
+      const { addDoc, collection } = await import('firebase/firestore')
+      await addDoc(collection(db, 'notifications'), {
+        title: "Welcome to DateU!",
+        body: "Please allow notifications and install the app for the best experience. 🔔",
+        userUid: uid,
+        createdAt: serverTimestamp(),
+        targetType: 'personal',
+        seen: false
+      })
+    } catch (e) {
+      console.error("Failed to send welcome notification", e)
+    }
   }
   return prof
 }
@@ -378,6 +393,21 @@ export async function finalizeIfComplete(uid: string) {
       'setupStatus.completedAt': serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
+
+    // Send Welcome Notification
+    try {
+      const { addDoc, collection } = await import('firebase/firestore')
+      await addDoc(collection(db, 'notifications'), {
+        title: "Welcome to DateU!",
+        body: "Please allow notifications and install the app for the best experience. 🔔",
+        userUid: uid,
+        createdAt: serverTimestamp(),
+        targetType: 'personal',
+        seen: false
+      })
+    } catch (e) {
+      console.error("Failed to send welcome notification", e)
+    }
   }
 }
 

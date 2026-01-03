@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "../firebase";
 import InstallPWAButton from "./InstallPWAButton";
 import MobileNavbar from "./MobileNavbar";
 import "./Navbar.styles.css";
@@ -42,12 +44,24 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Notification listener
+  // Persistent Notification listener
   useEffect(() => {
-    const handler = () => setHasUnread(true);
-    window.addEventListener("new-notification", handler);
-    return () => window.removeEventListener("new-notification", handler);
-  }, []);
+    if (!user?.uid) {
+      setHasUnread(false);
+      return;
+    }
+    const q = query(
+      collection(db, "notifications"),
+      where("userUid", "==", user.uid),
+      where("seen", "==", false)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      // For personal notifications, we don't need to filter by date.
+      // If it exists in this query (uid match + seen false), it counts.
+      setHasUnread(!snap.empty);
+    });
+    return () => unsub();
+  }, [user?.uid]);
 
   // Clear notification badge
   const notificationsActive = loc.pathname === "/dashboard/notifications";

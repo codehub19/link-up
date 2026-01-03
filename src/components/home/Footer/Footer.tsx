@@ -19,8 +19,8 @@ export default function Footer() {
             </p>
             <div className="footer-socials">
               <a href="#" className="social-link">𝕏</a>
-              <a href="#" className="social-link">Instagram</a>
-              <a href="#" className="social-link">LinkedIn</a>
+              <a href="https://www.instagram.com/dateu_official_/" className="social-link">Instagram</a>
+              <a href="https://www.linkedin.com/company/dateu/" className="social-link">LinkedIn</a>
             </div>
           </div>
 

@@ -95,13 +95,24 @@ export default function NotificationsPage() {
         } as Notification)),
       ];
 
-      notificationsData.sort((a, b) => {
+      // Filter out notifications before user joined
+      // Use user.metadata.creationTime if profile.createdAt is not available or reliable
+      const joinTime = user.metadata.creationTime ? new Date(user.metadata.creationTime).getTime() : 0;
+
+      const filtered = notificationsData.filter(n => {
+        if (!n.createdAt?.seconds) return true;
+        // Buffer of 60 seconds to allow for slight server/client clock diff on creation
+        const notifTime = n.createdAt.seconds * 1000;
+        return notifTime >= (joinTime - 60000);
+      });
+
+      filtered.sort((a, b) => {
         const aTime = a?.createdAt?.seconds || 0;
         const bTime = b?.createdAt?.seconds || 0;
         return bTime - aTime;
       });
 
-      setNotifications(notificationsData);
+      setNotifications(filtered);
       setLoading(false);
     };
     fetchNotifications();
