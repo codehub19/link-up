@@ -28,6 +28,14 @@ function GridIcon({ className }: { className?: string }) {
   );
 }
 
+function CrownIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 8l4 4 6-7 6 7 4-4-2 11H4z" />
+    </svg>
+  );
+}
+
 export default function Navbar() {
   const { user, profile, login } = useAuth();
   const loc = useLocation();
@@ -93,6 +101,15 @@ export default function Navbar() {
                   title="Dashboard"
                 >
                   <GridIcon />
+                </Link>
+
+                <Link
+                  to={profile?.gender === "male" ? "/dashboard/plans" : "/dashboard/premium"}
+                  className={`nav-icon-btn ${loc.pathname === "/dashboard/plans" || loc.pathname === "/dashboard/premium" ? "active" : ""}`}
+                  title="Premium"
+                  aria-label="Premium"
+                >
+                  <CrownIcon />
                 </Link>
 
                 <button

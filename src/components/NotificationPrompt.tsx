@@ -1,52 +1,63 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../state/AuthContext";
-import { requestForToken, updateProfileAndStatus as updateProfile } from "../firebase"; // reusing updateProfileAndStatus as updateProfile for convenience or import correct one
+import { requestForToken, updatePrivateProfile } from "../firebase";
+import "./NotificationPrompt.css";
 
+const DISMISS_KEY = "dateu.notifPromptDismissedAt";
+const DISMISS_FOR_MS = 3 * 24 * 3600 * 1000; // ask again after 3 days
+
+function recentlyDismissed() {
+  try {
+    const at = Number(localStorage.getItem(DISMISS_KEY) || 0);
+    return Date.now() - at < DISMISS_FOR_MS;
+  } catch {
+    return false;
+  }
+}
+
+/** Asks signed-in users to allow push notifications (matches, calls, messages). */
 export function NotificationPrompt() {
-  const [showPrompt, setShowPrompt] = useState(false);
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
-    if ("Notification" in window && Notification.permission !== "granted") {
-      setShowPrompt(true);
-    }
-  }, []);
+    // Only ask when the browser can still show the permission dialog
+    setShow(!!user && "Notification" in window && Notification.permission === "default" && !recentlyDismissed());
+  }, [user]);
 
-  const requestPermission = async () => {
-    if ("Notification" in window) {
-      await Notification.requestPermission();
-      setShowPrompt(false);
+  if (!show) return null;
+
+  const enable = async () => {
+    setBusy(true);
+    try {
+      const result = await Notification.requestPermission();
+      if (result === "granted" && user) {
+        const token = await requestForToken();
+        if (token) await updatePrivateProfile(user.uid, { fcmToken: token });
+      }
+    } finally {
+      setBusy(false);
+      setShow(false);
     }
   };
 
-  if (!showPrompt) return null;
+  const dismiss = () => {
+    try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch { /* private mode */ }
+    setShow(false);
+  };
+
   return (
-    <div style={{
-      padding: "12px 24px",
-      background: "#232a38",
-      color: "#fff",
-      position: "fixed",
-      bottom: 16,
-      left: "50%",
-      transform: "translateX(-50%)",
-      borderRadius: 8,
-      boxShadow: "0 2px 8px #0005",
-      zIndex: 1000
-    }}>
-      <span>Enable browser notifications to get updates instantly! </span>
-      <button style={{
-        background: "#ff5d7c", color: "#fff", border: "none",
-        borderRadius: 4, marginLeft: 12, padding: "4px 12px", cursor: "pointer"
-      }} onClick={() => {
-        requestPermission().then(async () => {
-          if (user) {
-            const token = await requestForToken();
-            if (token) {
-              await updateProfile(user.uid, { fcmToken: token });
-            }
-          }
-        })
-      }}>Enable</button>
+    <div className="notif-prompt" role="dialog" aria-label="Turn on notifications">
+      <div className="notif-prompt-icon" aria-hidden="true">🔔</div>
+      <div className="notif-prompt-text">
+        <strong>Turn on notifications</strong>
+        <span>Know instantly when you get a match, a call or a message.</span>
+      </div>
+      <div className="notif-prompt-actions">
+        <button className="notif-prompt-later" onClick={dismiss}>Later</button>
+        <button className="notif-prompt-allow" onClick={enable} disabled={busy}>{busy ? "…" : "Allow"}</button>
+      </div>
     </div>
   );
 }

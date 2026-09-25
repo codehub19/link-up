@@ -8,6 +8,7 @@ import LoadingHeart from './components/LoadingHeart'
 import AdminGuard from './pages/admin/AdminGuard'
 import IncomingCall from './components/IncomingCall'
 import AppStatus from './components/AppStatus'
+import AppShell from './components/AppShell'
 
 /* Pages are loaded on demand so the landing page downloads less JavaScript */
 const ProfileWizard = lazy(() => import('./pages/setup/Profile'))
@@ -90,6 +91,7 @@ export default function App() {
   return (
     <Suspense fallback={null}>
       <AppStatus>
+      <AppShell>
       {user && <IncomingCall />}
       <Routes>
         <Route element={<AnimatedRoutesLayout />}>
@@ -313,6 +315,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
+      </AppShell>
       </AppStatus>
     </Suspense>
   )

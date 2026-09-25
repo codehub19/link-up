@@ -13,12 +13,12 @@ export default defineConfig({
         name: 'DateU',
         short_name: 'DateU',
         description: 'Meaningful connections, made in college.',
-        start_url: '/',
+        start_url: '/dashboard',
         scope: '/',
         display: 'standalone',           // app-style window (no Chrome UI)
         orientation: 'portrait',
         background_color: '#0f0f14',
-        theme_color: '#ff3366',
+        theme_color: '#0c0c11',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },

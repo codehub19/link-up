@@ -15,6 +15,7 @@ import {
   getPrivateProfile,
   migrateOwnPrivateFields,
   updatePrivateProfile,
+  FCM_VAPID_KEY,
 } from '../firebase'
 import { getToken, onMessage } from 'firebase/messaging'
 import { messaging } from '../firebase'
@@ -76,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Only try if Notification API is available and permission is granted
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        const token = await getToken(messaging, { vapidKey: "BJMro5dKsOYThOeAFmzgqyZ5a5wUzlFQjEMNGChI6KxSqQHPCw_6_NcPNuLt0O-gR04SR-QeCCUhezAIQjC3s_U" })
+        const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY })
         if (token) {
           await updatePrivateProfile(u.uid, { fcmToken: token })
         }

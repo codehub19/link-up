@@ -1,0 +1,235 @@
+/* ==========================================================================
+   App mode: applied to <html> on logged-in app screens (dashboard, setup, pay)
+   so the web app behaves like a native app on phones and tablets.
+   ========================================================================== */
+
+:root {
+    --app-topbar-h: 56px;
+}
+
+html.app-mode,
+html.app-mode body {
+    /* No rubber-band / pull-to-refresh bounce */
+    overscroll-behavior-y: none;
+}
+
+html.app-mode body {
+    /* Safe areas are handled by the top bar and tab bar instead */
+    padding-top: 0;
+    padding-bottom: 0;
+    -webkit-tap-highlight-color: transparent;
+    /* Removes the double-tap zoom delay on taps */
+    touch-action: manipulation;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* UI chrome shouldn't get text-selected on long press */
+html.app-mode button,
+html.app-mode .app-tab,
+html.app-mode .nav-icon-btn,
+html.app-mode .navbar-modern,
+html.app-mode img {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* Pressed feedback like native buttons */
+html.app-mode button:active:not(:disabled),
+html.app-mode a.btn:active,
+html.app-mode .rounds-action-btn:active {
+    transform: scale(0.97);
+}
+
+@media (max-width: 1024px) {
+    /* iOS zooms into inputs under 16px */
+    html.app-mode input,
+    html.app-mode textarea,
+    html.app-mode select {
+        font-size: 16px;
+    }
+
+    /* ---- Top app bar ---- */
+    html.app-mode .navbar-modern {
+        padding-top: env(safe-area-inset-top);
+        background: rgba(12, 12, 17, 0.88);
+        backdrop-filter: blur(20px) saturate(160%);
+        -webkit-backdrop-filter: blur(20px) saturate(160%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    html.app-mode .navbar-container {
+        height: var(--app-topbar-h);
+        padding: 0 12px 0 16px;
+    }
+
+    html.app-mode .nav-brand {
+        font-size: 1.35rem;
+    }
+
+    html.app-mode .navbar-modern .nav-group {
+        gap: 2px;
+    }
+
+    html.app-mode .nav-icon-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+    }
+
+    /* The bottom tab bar replaces the in-page tab pills and the dashboard grid button */
+    html.app-mode .tab-btn-row,
+    html.app-mode .nav-icon-btn[title="Dashboard"] {
+        display: none !important;
+    }
+
+    /* ---- Page content between the bars ---- */
+    html.app-mode .dashboard-container,
+    html.app-mode .edit-profile-wrap {
+        padding-top: calc(var(--app-topbar-h) + env(safe-area-inset-top) + 16px);
+        padding-bottom: calc(var(--app-tabbar-h, 64px) + env(safe-area-inset-bottom) + 24px);
+        padding-left: 16px;
+        padding-right: 16px;
+        min-height: 100dvh;
+        box-sizing: border-box;
+    }
+
+    /* Chat fills the space between the bars instead of the whole screen */
+    html.app-mode .dashboard-container.chat-page {
+        height: 100dvh;
+        max-height: 100dvh;
+        padding-bottom: calc(var(--app-tabbar-h, 64px) + env(safe-area-inset-bottom) + 8px);
+    }
+
+    html.app-mode .setup-wrap {
+        padding-top: calc(var(--app-topbar-h) + env(safe-area-inset-top) + 8px);
+        padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+    }
+
+    /* Native-sized page titles instead of big website heroes */
+    html.app-mode .rounds-title,
+    html.app-mode .plans-title,
+    html.app-mode .chat-title,
+    html.app-mode .matches-title,
+    html.app-mode .dashboard-container > h1,
+    html.app-mode .dashboard-container .page-title {
+        font-size: 1.6rem !important;
+        line-height: 1.2;
+        margin-bottom: 0.25rem;
+    }
+
+    html.app-mode .rounds-hero,
+    html.app-mode .plans-hero,
+    html.app-mode .chat-hero {
+        margin-bottom: 1rem !important;
+        padding-top: 0 !important;
+        text-align: left;
+    }
+
+    html.app-mode .rounds-subtitle,
+    html.app-mode .plans-subtitle {
+        font-size: 0.95rem;
+        margin-left: 0;
+    }
+}
+
+/* ==========================================================================
+   Desktop gate: shown instead of the app on desktop computers
+   ========================================================================== */
+.desktop-gate {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    background:
+        radial-gradient(ellipse 70% 50% at 20% 20%, rgba(244, 63, 94, 0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 80%, rgba(139, 92, 246, 0.12) 0%, transparent 60%),
+        #0f0f14;
+    color: #f4f4fa;
+    font-family: 'Poppins', system-ui, sans-serif;
+}
+
+.desktop-gate-card {
+    display: flex;
+    align-items: center;
+    gap: 56px;
+    max-width: 880px;
+}
+
+.desktop-gate-card h1 {
+    font-size: 2.2rem;
+    margin: 0 0 12px;
+    line-height: 1.2;
+}
+
+.desktop-gate-card p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin: 0 0 20px;
+}
+
+.desktop-gate-card ol {
+    margin: 0 0 24px;
+    padding-left: 20px;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.9;
+}
+
+.desktop-gate-link {
+    color: #fb7185;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.desktop-gate-phone {
+    flex-shrink: 0;
+    width: 220px;
+    height: 440px;
+    border-radius: 36px;
+    border: 3px solid rgba(255, 255, 255, 0.18);
+    background: linear-gradient(160deg, #1b1b24, #111118);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), inset 0 0 0 6px #0b0b0f;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.desktop-gate-notch {
+    position: absolute;
+    top: 14px;
+    width: 72px;
+    height: 20px;
+    border-radius: 12px;
+    background: #0b0b0f;
+}
+
+.desktop-gate-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.desktop-gate-logo {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.desktop-gate-heart {
+    font-size: 2.5rem;
+}
+
+@media (max-width: 760px) {
+    .desktop-gate-card {
+        flex-direction: column;
+        gap: 32px;
+        text-align: left;
+    }
+}

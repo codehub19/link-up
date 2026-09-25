@@ -11,9 +11,12 @@ import {
   linkWithPhoneNumber,
   PhoneAuthProvider,
   updateProfile,
+  connectAuthEmulator,
+  signInWithEmailAndPassword,
 } from 'firebase/auth'
 import {
   getFirestore,
+  connectFirestoreEmulator,
   doc,
   getDoc,
   setDoc,
@@ -24,11 +27,12 @@ import {
 } from 'firebase/firestore'
 import {
   getStorage,
+  connectStorageEmulator,
   ref,
   uploadBytesResumable,
   getDownloadURL,
 } from 'firebase/storage'
-import { getFunctions, httpsCallable } from 'firebase/functions'
+import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'firebase/functions'
 import { getMessaging } from "firebase/messaging";
 
 const firebaseConfig = {
@@ -60,7 +64,7 @@ export async function signOut() {
   await fbSignOut(auth)
 }
 
-import { getDatabase, ref as dbRef, onDisconnect, set, serverTimestamp as rtdbTimestamp, onValue } from 'firebase/database';
+import { getDatabase, ref as dbRef, onDisconnect, set, serverTimestamp as rtdbTimestamp, onValue, connectDatabaseEmulator } from 'firebase/database';
 
 export const messaging = getMessaging(app);
 export const rtdb = getDatabase(app);
@@ -90,9 +94,12 @@ export const setupPresence = (uid: string) => {
 
 import { getToken } from "firebase/messaging";
 
+// Public web-push key (safe to ship in the client)
+export const FCM_VAPID_KEY = 'BJMro5dKsOYThOeAFmzgqyZ5a5wUzlFQjEMNGChI6KxSqQHPCw_6_NcPNuLt0O-gR04SR-QeCCUhezAIQjC3s_U'
+
 export const requestForToken = async () => {
   try {
-    const currentToken = await getToken(messaging, { vapidKey: '...' }); // Pass VAPID key if available, or let it infer from config
+    const currentToken = await getToken(messaging, { vapidKey: FCM_VAPID_KEY });
     if (currentToken) {
       console.log('current token for client: ', currentToken);
       // Save this token to the user document if authenticated
@@ -487,6 +494,19 @@ export async function verifyCollegeId(uid: string) {
 /* Callables (unchanged skeleton) */
 const FUNCTIONS_REGION = 'asia-south2'
 export const functions = getFunctions(app, FUNCTIONS_REGION)
+
+// Local development against the Firebase Emulator Suite (`npm run emulators`).
+// Set VITE_USE_EMULATORS=true in .env.local; never enabled in production builds.
+if (import.meta.env.VITE_USE_EMULATORS === 'true') {
+  const host = '127.0.0.1'
+  connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true })
+  connectFirestoreEmulator(db, host, 8080)
+  connectStorageEmulator(storage, host, 9199)
+  connectFunctionsEmulator(functions, host, 5001)
+  connectDatabaseEmulator(rtdb, host, 9000)
+  // Handy for testing without Google sign-in: window.__devSignIn('a@test.dev', 'password')
+  ;(window as any).__devSignIn = (email: string, password: string) => signInWithEmailAndPassword(auth, email, password)
+}
 
 export async function callJoinMatchingRound(payload: { roundId: string; planId?: string }) {
   const fn = httpsCallable(functions, 'joinMatchingRound'); return fn(payload)
