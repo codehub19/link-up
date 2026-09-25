@@ -10,19 +10,26 @@ import './AppShell.css'
 // legal pages) and the admin panel stay available on desktop.
 const APP_PREFIXES = ['/dashboard', '/setup', '/pay', '/profile']
 
-// Desktop = wide screen with a mouse. iPads (touch) and phones are allowed.
-const DESKTOP_QUERY = '(min-width: 1025px) and (hover: hover) and (pointer: fine)'
+/**
+ * Desktop/laptop = anything that isn't a phone or tablet. Based on the device,
+ * not the window size, so shrinking the browser window or a touchscreen
+ * laptop doesn't get around it. Phones and tablets (including iPads that
+ * report themselves as a Mac) are allowed.
+ */
+export function isDesktopDevice(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent || ''
+  const uaData = (navigator as any).userAgentData
+  if (uaData?.mobile) return false
+  if (/Android|iPhone|iPod|iPad|Mobile|Silk|Kindle|BlackBerry|Opera Mini|IEMobile/i.test(ua)) return false
+  // iPadOS 13+ Safari pretends to be a Mac; real Macs have no multi-touch screen
+  if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return false
+  return true
+}
 
-function useMediaQuery(q: string) {
-  const [matches, setMatches] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches)
-  useEffect(() => {
-    const mql = window.matchMedia(q)
-    const on = () => setMatches(mql.matches)
-    on()
-    mql.addEventListener?.('change', on)
-    return () => mql.removeEventListener?.('change', on)
-  }, [q])
-  return matches
+const ADMIN_PREVIEW_KEY = 'dateu.adminDesktopPreview'
+function adminPreviewOn() {
+  try { return sessionStorage.getItem(ADMIN_PREVIEW_KEY) === '1' } catch { return false }
 }
 
 const VIEWPORT_DEFAULT = 'width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content'
@@ -33,7 +40,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
   const { user, profile, loading } = useAuth()
   const isAppRoute = APP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))
-  const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  const [isDesktop] = useState(isDesktopDevice)
+  const [adminPreview, setAdminPreview] = useState(adminPreviewOn)
   const standalone = isStandalone()
 
   // Global "app mode" styling (compact bars, no rubber-band scroll, safe areas)
@@ -45,8 +53,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => root.classList.remove('app-mode')
   }, [isAppRoute, standalone])
 
-  // Admins can still use the app on desktop to test and support users
-  if (isAppRoute && isDesktop && !profile?.isAdmin) return <DesktopGate />
+  // The app is phone/tablet only. Admins can opt in to a preview for this tab
+  // (to test and support users) but still see the gate first.
+  if (isAppRoute && isDesktop && !(profile?.isAdmin && adminPreview)) {
+    return (
+      <DesktopGate
+        onAdminPreview={profile?.isAdmin ? () => {
+          try { sessionStorage.setItem(ADMIN_PREVIEW_KEY, '1') } catch { }
+          setAdminPreview(true)
+        } : undefined}
+      />
+    )
+  }
 
   // Opened from the home-screen icon: skip the marketing website
   if (standalone && pathname === '/' && !loading) {
@@ -100,7 +118,7 @@ function AppWelcome() {
   )
 }
 
-function DesktopGate() {
+function DesktopGate({ onAdminPreview }: { onAdminPreview?: () => void }) {
   const url = typeof window !== 'undefined' ? window.location.host || 'dateu.in' : 'dateu.in'
   return (
     <div className="desktop-gate">
@@ -122,7 +140,14 @@ function DesktopGate() {
             <li>Sign in with the same Google account</li>
             <li>Tap <strong>Add to Home Screen</strong> (Share menu on iPhone, ⋮ menu on Android) to use it like an app</li>
           </ol>
-          <a className="desktop-gate-link" href="/">← Back to dateu.in</a>
+          <div className="desktop-gate-actions">
+            <a className="desktop-gate-link" href="/">← Back to dateu.in</a>
+            {onAdminPreview && (
+              <button type="button" className="desktop-gate-admin" onClick={onAdminPreview}>
+                Admin: preview on desktop
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

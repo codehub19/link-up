@@ -1,4 +1,4 @@
-/* Native-style bottom tab bar (phones & tablets; hidden on desktop) */
+/* Native-style bottom tab bar (shown on app screens only) */
 :root {
     --app-tabbar-h: 64px;
 }
@@ -7,28 +7,27 @@
     display: none;
 }
 
-@media (max-width: 1024px) {
-    .app-tabbar {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 900;
-        display: flex;
-        justify-content: space-around;
-        align-items: stretch;
-        height: calc(var(--app-tabbar-h) + env(safe-area-inset-bottom));
-        padding-bottom: env(safe-area-inset-bottom);
-        background: rgba(12, 12, 17, 0.88);
-        backdrop-filter: blur(20px) saturate(160%);
-        -webkit-backdrop-filter: blur(20px) saturate(160%);
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-    }
+html.app-mode .app-tabbar {
+    position: fixed;
+    justify-content: center;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    display: flex;
+    align-items: stretch;
+    height: calc(var(--app-tabbar-h) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: rgba(12, 12, 17, 0.88);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .app-tab {
     flex: 1;
     min-width: 0;
+    max-width: 160px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -53,6 +52,21 @@
     height: 28px;
     border-radius: 14px;
     transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.app-tab-icon {
+    position: relative;
+}
+
+.app-tab-dot {
+    position: absolute;
+    top: 1px;
+    right: 9px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ff416c;
+    border: 2px solid #0c0c11;
 }
 
 .app-tab-icon svg {

@@ -1,36 +1,56 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import MessageBubble from './MessageBubble'
 import MessageInput from './MessageInput'
+import { Avatar } from './ChatList'
 
-type M = {
-  id: string;
-  text: string;
-  senderUid: string;
-  createdAt?: any;
-  createdAtMs?: number;
-  audioUrl?: string;
-  audioDuration?: number; // Add duration support
-  type?: 'text' | 'audio';
-  likes?: string[];
-  isEdited?: boolean;
-  editedAt?: any;
-  replyTo?: {
-    id: string
-    text: string
-    senderUid: string
-    type?: 'text' | 'audio'
-  }
+export type ChatMessage = {
+  id: string
+  text: string
+  senderUid: string
+  createdAt?: any
+  createdAtMs?: number
+  audioUrl?: string
+  audioDuration?: number
+  mediaDuration?: number
+  type?: 'text' | 'audio'
+  likes?: string[]
+  isEdited?: boolean
+  pending?: boolean
+  replyTo?: { id: string; text: string; senderUid: string; type?: 'text' | 'audio' }
 }
+
+// Messages can be edited or deleted for 30 minutes after sending
+const MODIFY_WINDOW_MS = 30 * 60 * 1000
+// Messages from the same person within this gap are grouped together
+const GROUP_GAP_MS = 5 * 60 * 1000
+
+const msOf = (m: ChatMessage) =>
+  typeof m.createdAtMs === 'number' ? m.createdAtMs : (m.createdAt?.toMillis ? m.createdAt.toMillis() : 0)
+
+function dayLabel(ms: number) {
+  const d = new Date(ms)
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+  if (d.toDateString() === today.toDateString()) return 'Today'
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
+  const sameYear = d.getFullYear() === today.getFullYear()
+  return d.toLocaleDateString([], { weekday: sameYear ? 'short' : undefined, day: 'numeric', month: 'short', year: sameYear ? undefined : 'numeric' })
+}
+
+const timeLabel = (ms: number) => (ms ? new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : undefined)
 
 export default function ChatWindow({
   currentUid,
   messages,
   onSend,
   disabled,
+  disabledReason,
   peerTyping,
   onTyping,
   peerLastReadMs,
-  peerAvatar, // Add peerAvatar prop
+  peer,
+  intro,
   onLike,
   onReply,
   onDelete,
@@ -39,141 +59,159 @@ export default function ChatWindow({
   onCancelReply,
   editingMessage,
   onEditConfirm,
-  onCancelEdit
+  onCancelEdit,
 }: {
   currentUid: string
-  messages: M[]
-  onSend: (text: string, audio?: { url: string, duration: number }) => Promise<void> | void
+  messages: ChatMessage[]
+  onSend: (text: string, audio?: { url: string; duration: number }) => Promise<void> | void
   disabled?: boolean
+  disabledReason?: string
   peerTyping?: boolean
   onTyping?: (isTyping: boolean) => void
   peerLastReadMs?: number
-  peerAvatar?: string // Add type
+  peer?: { name?: string; photoUrl?: string }
+  /** Shown above the first message, e.g. how you matched */
+  intro?: string
   onLike?: (msgId: string, currentLikes: string[]) => void
-  onReply?: (msg: M) => void
+  onReply?: (msg: ChatMessage) => void
   onDelete?: (msgId: string) => void
-  onEdit?: (msg: M) => void
-  replyTo?: M | null
+  onEdit?: (msg: ChatMessage) => void
+  replyTo?: ChatMessage | null
   onCancelReply?: () => void
-  editingMessage?: { id: string, text: string } | null
+  editingMessage?: { id: string; text: string } | null
   onEditConfirm?: (id: string, newText: string) => void
   onCancelEdit?: () => void
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
-  const [userScrolled, setUserScrolled] = useState(false)
-  const [showScrollBtn, setShowScrollBtn] = useState(false)
-  const isFirstLoad = useRef(true)
+  const atBottomRef = useRef(true)
+  const didInitialScroll = useRef(false)
+  const lastCount = useRef(0)
+  const [showJump, setShowJump] = useState(false)
+  const peerFirst = (peer?.name || '').split(' ')[0] || 'Them'
 
-  // Use layout effect to scroll before paint to avoid visual jump
-  React.useLayoutEffect(() => {
+  const scrollToBottom = (smooth: boolean) => {
     const el = scrollerRef.current
     if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+  }
 
-    // On first load with messages, jump instantly to bottom
-    // if (isFirstLoad.current && messages.length > 0) {
-    //   el.style.scrollBehavior = 'auto'
-    //   el.scrollTop = el.scrollHeight
-    //   isFirstLoad.current = false
-    //   return
-    // }
-
-    if (!userScrolled) {
-      // For new messages, only smooth scroll if we are already at bottom
-      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+  // Open at the latest message instantly; afterwards follow new messages only
+  // if you're already at the bottom (or you sent it).
+  useLayoutEffect(() => {
+    const count = messages.length
+    if (!didInitialScroll.current) {
+      if (count > 0) {
+        scrollToBottom(false)
+        didInitialScroll.current = true
+      }
+    } else if (count > lastCount.current) {
+      const newest = messages[count - 1]
+      if (atBottomRef.current || newest?.senderUid === currentUid) scrollToBottom(true)
     }
-  }, [messages, userScrolled, peerTyping])
+    lastCount.current = count
+  }, [messages, currentUid])
 
-  // Detect user scroll position and show "Go to latest" button
+  useEffect(() => {
+    if (peerTyping && atBottomRef.current) scrollToBottom(true)
+  }, [peerTyping])
+
   useEffect(() => {
     const el = scrollerRef.current
     if (!el) return
     const onScroll = () => {
-      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8
-      setUserScrolled(!isNearBottom)
-      setShowScrollBtn(!isNearBottom)
+      const near = el.scrollHeight - el.scrollTop - el.clientHeight < 60
+      atBottomRef.current = near
+      setShowJump(!near)
     }
-    el.addEventListener('scroll', onScroll)
-    // Initial scroll position
-    onScroll()
-    return () => el.removeEventListener('scroll', onScroll)
+    // Keep the latest message visible when the keyboard opens/closes
+    const ro = new ResizeObserver(() => { if (atBottomRef.current) scrollToBottom(false) })
+    ro.observe(el)
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      el.removeEventListener('scroll', onScroll)
+      ro.disconnect()
+    }
   }, [])
 
-  // Scroll to latest message handler with smooth effect
-  const scrollToLatest = () => {
-    const el = scrollerRef.current
-    if (!el) return
-    // For older browsers, fallback to instant scroll if smooth not supported
-    try {
-      el.scrollTo({
-        top: el.scrollHeight,
-        behavior: 'smooth'
-      })
-    } catch {
-      el.scrollTop = el.scrollHeight
-    }
-    setUserScrolled(false)
-    setShowScrollBtn(false)
-  }
+  const rows = useMemo(() => {
+    const out: React.ReactNode[] = []
+    let prevDay = ''
+    const now = Date.now()
+    messages.forEach((m, i) => {
+      const ms = msOf(m)
+      const day = ms ? new Date(ms).toDateString() : prevDay
+      if (day && day !== prevDay) {
+        out.push(<div key={'d' + day} className="dm-day">{dayLabel(ms)}</div>)
+      }
+      const prev = messages[i - 1]
+      const next = messages[i + 1]
+      const sameAsPrev = prev && prev.senderUid === m.senderUid && day === prevDay && ms - msOf(prev) < GROUP_GAP_MS
+      const nextDay = next ? new Date(msOf(next) || ms).toDateString() : ''
+      const sameAsNext = next && next.senderUid === m.senderUid && nextDay === day && msOf(next) - ms < GROUP_GAP_MS
+      prevDay = day
+
+      const mine = m.senderUid === currentUid
+      const canModify = mine && !m.pending && !!ms && now - ms < MODIFY_WINDOW_MS
+      const isAudio = !!m.audioUrl || m.type === 'audio'
+      out.push(
+        <MessageBubble
+          key={m.id}
+          text={m.text}
+          mine={mine}
+          first={!sameAsPrev}
+          last={!sameAsNext}
+          time={timeLabel(ms)}
+          audioUrl={m.audioUrl}
+          audioDuration={m.mediaDuration ?? m.audioDuration}
+          pending={m.pending}
+          isRead={!!peerLastReadMs && !!ms && ms <= peerLastReadMs}
+          likedByMe={m.likes?.includes(currentUid)}
+          likesCount={m.likes?.length || 0}
+          onLike={onLike && !m.pending ? () => onLike(m.id, m.likes || []) : undefined}
+          replyTo={m.replyTo}
+          replyWho={m.replyTo ? (m.replyTo.senderUid === currentUid ? 'You' : peerFirst) : undefined}
+          onReply={onReply && !m.pending ? () => onReply(m) : undefined}
+          onDelete={onDelete && canModify ? () => onDelete(m.id) : undefined}
+          onEdit={onEdit && canModify && !isAudio && m.text ? () => onEdit(m) : undefined}
+          isEdited={m.isEdited}
+        />,
+      )
+    })
+    return out
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, currentUid, peerLastReadMs, peerFirst, !!onLike, !!onReply, !!onDelete, !!onEdit])
 
   return (
-    <div className="chat-window">
-      <div className="messages" ref={scrollerRef}>
-        {messages.map((m) => {
-          const date =
-            m.createdAt?.toDate ? new Date(m.createdAt.toDate()) :
-              (typeof m.createdAtMs === 'number' ? new Date(m.createdAtMs) : undefined)
-          const time = date ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined
-          return (
-            <MessageBubble
-              key={m.id}
-              text={m.text}
-              mine={m.senderUid === currentUid}
-              time={time}
-              audioUrl={m.audioUrl}
-              audioDuration={m.audioDuration}
-              isRead={peerLastReadMs && m.createdAtMs ? m.createdAtMs <= peerLastReadMs : false}
-              isLiked={m.likes?.includes(currentUid)}
-              onLike={onLike ? () => onLike(m.id, m.likes || []) : undefined}
-              replyTo={m.replyTo}
-              onReply={() => onReply?.(m)}
-              onDelete={onDelete ? () => onDelete(m.id) : undefined}
-              onEdit={onEdit ? (m.text && !m.audioUrl ? () => onEdit(m) : undefined) : undefined}
-              createdAtMs={m.createdAtMs} // Pass creation time for 30min check
-              isEdited={m.isEdited}
-            />
-          )
-        })}
-        {peerTyping && (
-          <div className="msg-row theirs typing-row">
-            {peerAvatar ? (
-              <div className="typing-avatar">
-                <img src={peerAvatar} alt="typing" />
-              </div>
-            ) : null}
-            <div className="bubble typing-bubble">
-              <div className="dot"></div>
-              <div className="dot"></div>
-              <div className="dot"></div>
-            </div>
+    <div className="dm-window">
+      <div className="dm-messages" ref={scrollerRef}>
+        <div className="dm-messages-spacer" />
+        {(
+          <div className="dm-intro">
+            <Avatar name={peer?.name} photoUrl={peer?.photoUrl} />
+            <strong>{peer?.name || 'Chat'}</strong>
+            {intro || 'Say hi and start the conversation 👋'}
           </div>
         )}
-        {showScrollBtn && (
-          <button
-            className="scroll-latest-btn"
-            type="button"
-            onClick={scrollToLatest}
-            onMouseDown={(e) => e.preventDefault()}
-            aria-label="Scroll to latest"
-          >
-            ↓
-          </button>
+        {rows}
+        {peerTyping && (
+          <div className="dm-typing" aria-label={`${peerFirst} is typing`}>
+            <span /><span /><span />
+          </div>
         )}
       </div>
-      <div className="composer-wrap">
+
+      <div className="dm-composer">
+        {showJump && (
+          <button type="button" className="dm-jump" onClick={() => scrollToBottom(true)} aria-label="Jump to latest message">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+          </button>
+        )}
         <MessageInput
           onSend={onSend}
           disabled={disabled}
+          disabledReason={disabledReason}
           currentUid={currentUid}
+          peerName={peerFirst}
           onTyping={onTyping}
           replyTo={replyTo}
           onCancelReply={onCancelReply}
@@ -182,91 +220,6 @@ export default function ChatWindow({
           onCancelEdit={onCancelEdit}
         />
       </div>
-      <style>{`
-          .chat-window {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            min-height: 0;
-            background: #121218;
-            position: relative;
-          }
-          .messages {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-          }
-          .composer-wrap {
-            padding: 0;
-            background: #181821;
-            border-top: 1px solid rgba(255,255,255,0.08);
-          }
-          
-          .scroll-latest-btn {
-            position: absolute;
-            right: 60px;
-            bottom: 90px;
-            z-index: 10;
-            background: #2a2a35;
-            color: #fff;
-            padding: 8px 15px;
-            border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.1);
-            font-size: 1.1rem;
-            font-weight: 600;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            cursor: pointer;
-            transition: all 0.2s;
-          }
-          .scroll-latest-btn:hover {
-            background: #32323f;
-            transform: translateY(-2px);
-          }
-          @media (max-width: 650px) {
-            .scroll-latest-btn {
-              right: 16px;
-              bottom: 80px;
-            }
-          }
-          .typing-row {
-            align-items: flex-end;
-            gap: 8px;
-            padding-left: 16px;
-          }
-          .typing-avatar {
-             width: 28px;
-             height: 28px;
-             border-radius: 50%;
-             overflow: hidden;
-             flex-shrink: 0;
-             margin-bottom: 4px; /* Align with bottom of bubble */
-             background: #2a2a35;
-          }
-          .typing-avatar img { width: 100%; height: 100%; object-fit: cover; }
-
-          .typing-bubble {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 12px 16px;
-            min-height: 40px;
-            border-bottom-left-radius: 4px; /* Chat bubble style */
-          }
-          .dot {
-            width: 6px;
-            height: 6px;
-            background: #a6a7bb;
-            border-radius: 50%;
-            animation: bounce 1.4s infinite ease-in-out both;
-          }
-          .dot:nth-child(1) { animation-delay: -0.32s; }
-          .dot:nth-child(2) { animation-delay: -0.16s; }
-          @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
-          }
-        `}</style>
     </div>
   )
 }

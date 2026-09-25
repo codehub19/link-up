@@ -55,7 +55,3 @@
 /* Outside the app (no tab bar) sit near the bottom edge */
 html:not(.app-mode) .notif-prompt { bottom: calc(env(safe-area-inset-bottom) + 16px); }
 
-/* The app is phone/tablet only; don't nag desktop visitors */
-@media (min-width: 1025px) and (hover: hover) and (pointer: fine) {
-  .notif-prompt { display: none; }
-}

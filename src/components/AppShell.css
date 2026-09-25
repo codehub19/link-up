@@ -41,7 +41,8 @@ html.app-mode .rounds-action-btn:active {
     transform: scale(0.97);
 }
 
-@media (max-width: 1024px) {
+/* Applied on every allowed device: phones and tablets of any size */
+@media all {
     /* iOS zooms into inputs under 16px */
     html.app-mode input,
     html.app-mode textarea,
@@ -78,6 +79,7 @@ html.app-mode .rounds-action-btn:active {
     }
 
     /* The bottom tab bar replaces the in-page tab pills and the dashboard grid button */
+    html.app-mode .navbar-modern .hide-mobile,
     html.app-mode .tab-btn-row,
     html.app-mode .nav-icon-btn[title="Dashboard"] {
         display: none !important;
@@ -195,6 +197,29 @@ html.app-mode .rounds-action-btn:active {
     color: #fb7185;
     text-decoration: none;
     font-weight: 600;
+}
+
+.desktop-gate-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.desktop-gate-admin {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.75);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.desktop-gate-admin:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #fff;
 }
 
 .desktop-gate-phone {

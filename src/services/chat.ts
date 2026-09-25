@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { db } from '../firebase'
 
 export type ChatMessage = {
@@ -33,14 +33,28 @@ export async function ensureThread(currentUid: string, peerUid: string): Promise
   const id = threadIdFor(currentUid, peerUid)
   const ref = doc(db, 'threads', id)
 
+  // Fast path: it usually exists already
   const snap = await getDoc(ref)
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      participants: [currentUid, peerUid],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      lastMessage: null,
+  if (snap.exists()) return id
+
+  // getDoc can wrongly report "missing" while a local write to the thread is
+  // pending (e.g. marking it read). A transaction always reads from the server,
+  // so an existing thread is never overwritten. Throwing aborts the
+  // transaction without sending anything when the thread does exist.
+  const EXISTS = new Error('thread-exists')
+  try {
+    await runTransaction(db, async (tx) => {
+      const s = await tx.get(ref)
+      if (s.exists()) throw EXISTS
+      tx.set(ref, {
+        participants: [currentUid, peerUid],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastMessage: null,
+      })
     })
+  } catch (e) {
+    if (e !== EXISTS) throw e
   }
 
   return id

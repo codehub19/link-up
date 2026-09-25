@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 
 interface HeightSliderProps {
-    value: string // e.g., "5'10"
+    value: string | number // e.g., "5'10"
     onChange: (val: string) => void
 }
 
@@ -11,8 +11,15 @@ export default function HeightSlider({ value, onChange }: HeightSliderProps) {
     const MAX_INCHES = 84
 
     // Parse "5'10" -> 70
-    const parseHeight = (str: string): number => {
-        if (!str) return 70 // default 5'10"
+    const parseHeight = (raw: string | number): number => {
+        if (raw === undefined || raw === null || raw === '') return 70 // default 5'10"
+        // Older profiles may store a number (centimetres or inches)
+        if (typeof raw === 'number' || /^\d+(\.\d+)?$/.test(String(raw).trim())) {
+            const n = Number(raw)
+            const inches = n > 100 ? Math.round(n / 2.54) : Math.round(n)
+            return Math.min(MAX_INCHES, Math.max(MIN_INCHES, inches))
+        }
+        const str = String(raw)
         const parts = str.split("'")
         if (parts.length < 1) return 70
         const ft = parseInt(parts[0]) || 0

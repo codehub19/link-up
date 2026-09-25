@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore'
+import { db } from '../firebase'
 import { useAuth } from '../state/AuthContext'
 import './MobileNavbar.css'
 
@@ -33,13 +36,33 @@ const ProfileIcon = () => (
 )
 
 /** Native-style bottom tab bar for the app (phones and tablets). */
+const ms = (t: any) => (t?.toMillis ? t.toMillis() : t?.seconds ? t.seconds * 1000 : 0)
+
+/** True when any chat has a message from the other person you haven't opened yet. */
+function useHasUnreadChats(uid?: string, enabled = true) {
+    const [unread, setUnread] = useState(false)
+    useEffect(() => {
+        if (!uid || !enabled) return
+        const q = query(collection(db, 'threads'), where('participants', 'array-contains', uid), orderBy('updatedAt', 'desc'), limit(30))
+        return onSnapshot(q, (snap) => {
+            setUnread(snap.docs.some((d) => {
+                const t = d.data({ serverTimestamps: 'estimate' }) as any
+                const last = t.lastMessage
+                return !!last && last.senderUid !== uid && (ms(last.at) || ms(t.updatedAt)) > ms(t.lastRead?.[uid])
+            }))
+        }, () => setUnread(false))
+    }, [uid, enabled])
+    return unread
+}
+
 export default function MobileNavbar() {
-    const { profile } = useAuth()
+    const { user, profile } = useAuth()
     const loc = useLocation()
+    const inApp = loc.pathname.startsWith('/dashboard') && !!profile?.isProfileComplete
+    const unreadChats = useHasUnreadChats(user?.uid, inApp)
 
     // Only inside the app, and never on top of a full-screen chat
-    if (!loc.pathname.startsWith('/dashboard')) return null
-    if (!profile?.isProfileComplete) return null
+    if (!inApp) return null
 
     const isMale = profile?.gender === 'male'
     const tabs: Tab[] = [
@@ -61,7 +84,10 @@ export default function MobileNavbar() {
                 const active = t.match.some((m) => loc.pathname === m || loc.pathname.startsWith(m + '/'))
                 return (
                     <Link key={t.label} to={t.to} className={`app-tab ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
-                        <span className="app-tab-icon">{t.icon}</span>
+                        <span className="app-tab-icon">
+                            {t.icon}
+                            {t.label === 'Chat' && unreadChats && !active && <span className="app-tab-dot" aria-label="Unread messages" />}
+                        </span>
                         <span className="app-tab-label">{t.label}</span>
                     </Link>
                 )

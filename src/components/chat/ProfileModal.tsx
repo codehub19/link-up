@@ -1,7 +1,16 @@
-import React, { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import LoadingHeart from '../LoadingHeart';
+import { Avatar } from './ChatList'
+import '../../styles/chat.css'
 
+const VerifiedBadge = () => (
+  <svg width="20" height="20" viewBox="0 0 22 22" fill="none" aria-label="Verified student">
+    <circle cx="11" cy="11" r="10" fill="#3b82f6" />
+    <path d="M7.7 11.8l2.1 2.1 4.1-4.1" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+/** Quick look at the person you're chatting with. */
 export default function ProfileModal({
   open,
   onClose,
@@ -11,118 +20,45 @@ export default function ProfileModal({
   onClose: () => void
   user?: { uid?: string; name?: string; instagramId?: string; photoUrl?: string; bio?: string; interests?: string[]; college?: string; collegeId?: { verified?: boolean } }
 }) {
-  const overlayRef = useRef<HTMLDivElement>(null)
   const nav = useNavigate()
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  if (!open) return null
+  if (!open || !user) return null
 
-  if (!user) return <div className="loading-page-wrapper">
-    <LoadingHeart size={72} />
-  </div>;
   return (
-    <div
-      ref={overlayRef}
-      className="modal-overlay"
-      role="dialog"
-      aria-modal="true"
-      onMouseDown={(e) => {
-        // Close when clicking the dimmed overlay (not when clicking inside the card)
-        if (e.target === overlayRef.current) onClose()
-      }}
-    >
-      <div className="modal-card" role="document">
-        <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
-        <div className="modal-header">
-          <div className="avatar lg">
-            {user?.photoUrl ? <img src={user.photoUrl} alt={user?.name || 'user'} /> : <div className="avatar-fallback">{(user?.name || 'U').slice(0, 1)}</div>}
+    <div className="dm dm-modal" role="dialog" aria-modal="true" aria-label={user.name || 'Profile'} onClick={onClose}>
+      <div className="dm-modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="dm-sheet-handle" />
+        <button type="button" className="dm-modal-close" onClick={onClose} aria-label="Close">✕</button>
+        <div className="dm-modal-head">
+          <Avatar name={user.name} photoUrl={user.photoUrl} />
+          <div className="dm-modal-name">
+            {user.name || 'User'}
+            {user.collegeId?.verified && <VerifiedBadge />}
           </div>
-          <div className="modal-title">
-            <div className="name">
-              {user?.name || 'User'}
-              {user?.collegeId?.verified && (
-                <span title="Verified" style={{ marginLeft: 4, verticalAlign: 'middle', display: 'inline-block' }}>
-                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                    <defs>
-                      <linearGradient id="insta-gradient" x1="0" y1="0" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-                        <stop stopColor="#f9ce34" />
-                        <stop offset="0.5" stopColor="#ee2a7b" />
-                        <stop offset="1" stopColor="#6228d7" />
-                      </linearGradient>
-                    </defs>
-                    <circle cx="11" cy="11" r="10" fill="url(#insta-gradient)" />
-                    <path
-                      d="M7.7 11.8l2.1 2.1 4.1-4.1"
-                      stroke="#fff"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <circle cx="11" cy="11" r="9.2" stroke="#fff" strokeWidth="1.2" fill="none" />
-                  </svg>
-                </span>
-              )}
-            </div>
-            <div className="sub">@{user?.instagramId || '—'}</div>
+          {user.college && <div className="dm-modal-sub">{user.college}</div>}
+          {user.instagramId && <div className="dm-modal-sub">@{user.instagramId}</div>}
+        </div>
+        {user.bio && <p className="dm-modal-bio">{user.bio}</p>}
+        {!!user.interests?.length && (
+          <div className="dm-modal-tags">
+            {user.interests.map((i) => <span key={i}>{i}</span>)}
           </div>
-
-          {user?.uid && (
-            <button
-              className="view-profile-btn"
-              onClick={() => {
-                onClose()
-                nav(`/profile/${user.uid}`)
-              }}
-              title="View Full Profile"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                <polyline points="15 3 21 3 21 9"></polyline>
-                <line x1="10" y1="14" x2="21" y2="3"></line>
-              </svg>
+        )}
+        {user.uid && (
+          <div className="dm-modal-actions">
+            <button type="button" className="dm-pill-btn" onClick={() => { onClose(); nav(`/profile/${user.uid}`) }}>
+              View full profile
             </button>
-          )}
-        </div>
-        <div className="modal-body">
-          {user?.college ? <div className="row"><strong>College:</strong>&nbsp;<span>{user.college}</span></div> : null}
-          {user?.bio ? <p className="bio">{user.bio}</p> : null}
-          {user?.interests?.length ? (
-            <div className="tags">
-              {user.interests.map((i) => <span className="tag" key={i}>{i}</span>)}
-            </div>
-          ) : null}
-        </div>
+          </div>
+        )}
       </div>
-      <style>{`
-        .view-profile-btn {
-          margin-left: auto;
-          margin-right: 25px; /* Shift 25px left from edge */
-          background: #232a38;
-          border: 1px solid rgba(255,255,255,0.1);
-          color: #a6a7bb;
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .view-profile-btn:hover {
-          background: #ff5d7c;
-          color: white;
-          border-color: #ff5d7c;
-        }
-      `}</style>
     </div>
   )
 }
