@@ -289,8 +289,10 @@ service cloud.firestore {
       allow read: if request.auth != null
         && resource.data.userUid == request.auth.uid;
 
-      // No one can update
-      allow update: if false;
+      // Owners can only mark their own personal notifications as seen
+      allow update: if request.auth != null
+        && resource.data.userUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seen', 'seenAt']);
     }
 
     // Account Deletion Requests

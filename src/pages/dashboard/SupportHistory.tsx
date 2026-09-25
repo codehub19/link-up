@@ -27,7 +27,7 @@ export default function SupportHistoryPage() {
             <Navbar />
             <div className="dashboard-container" style={{ paddingTop: 100 }}>
                 <div style={{ maxWidth: 800, margin: '0 auto', width: '100%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+                    <div className="support-history-header" style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
                         <button onClick={() => nav(-1)} style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 24 }}>
                             &larr;
                         </button>

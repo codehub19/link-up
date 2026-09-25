@@ -126,6 +126,20 @@ html.app-mode .rounds-action-btn:active {
         text-align: left;
     }
 
+    /* Pushed screens: the top bar already shows the back button and title */
+    html.app-mode .notifications-title,
+    html.app-mode .settings-header,
+    html.app-mode .edit-profile-header,
+    html.app-mode .support-history-header {
+        display: none !important;
+    }
+
+    html.app-mode .notifications-hero {
+        margin-bottom: 1rem !important;
+        padding-top: 0 !important;
+        text-align: left;
+    }
+
     html.app-mode .rounds-subtitle,
     html.app-mode .plans-subtitle {
         font-size: 0.95rem;
@@ -232,4 +246,167 @@ html.app-mode .rounds-action-btn:active {
         gap: 32px;
         text-align: left;
     }
+}
+
+/* ==========================================================================
+   App extras: offline pill, install sheet, installed-app welcome
+   ========================================================================== */
+html.app-mode {
+    /* Native apps don't show scrollbars */
+    scrollbar-width: none;
+}
+html.app-mode::-webkit-scrollbar,
+html.app-mode body::-webkit-scrollbar {
+    display: none;
+}
+
+.app-offline {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + var(--app-topbar-h) + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #3f3f46;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.app-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: app-fade-in 0.2s ease-out;
+}
+
+.app-sheet {
+    width: 100%;
+    max-width: 520px;
+    padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
+    border-radius: 24px 24px 0 0;
+    background: #1a1a22;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fff;
+    text-align: center;
+    animation: app-sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.app-sheet-handle {
+    width: 40px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 auto 16px;
+}
+
+.app-sheet-icon {
+    display: block;
+    margin: 0 auto;
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+}
+
+.app-sheet h3 { margin: 12px 0 6px; font-size: 1.2rem; }
+.app-sheet p { margin: 0 0 16px; color: rgba(255, 255, 255, 0.65); font-size: 0.9rem; line-height: 1.5; }
+
+.app-sheet-steps {
+    text-align: left;
+    margin: 0 auto 16px;
+    padding-left: 22px;
+    max-width: 320px;
+    line-height: 2;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9rem;
+}
+
+.app-sheet-primary,
+.app-sheet-secondary,
+.app-welcome-btn {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.app-sheet-primary,
+.app-welcome-btn {
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    color: #fff;
+}
+
+.app-sheet-secondary {
+    margin-top: 8px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+@keyframes app-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes app-sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.app-welcome {
+    min-height: 100dvh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: calc(env(safe-area-inset-top) + 20vh) 24px calc(env(safe-area-inset-bottom) + 28px);
+    background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255, 65, 108, 0.18) 0%, transparent 60%),
+        #0c0c11;
+    color: #fff;
+    text-align: center;
+}
+
+.app-welcome-logo {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.app-welcome-top p {
+    margin: 14px auto 0;
+    max-width: 300px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+}
+
+.app-welcome-legal {
+    margin: 14px 0 0;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.app-welcome-legal a { color: rgba(255, 255, 255, 0.75); }
+
+/* Launch screen (also defined inline in index.html for the first paint) */
+#launch { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #0c0c11; z-index: 9999; }
+
+/* Native apps don't let you accidentally select UI text; keep it for typing and chat */
+html.app-mode body {
+    -webkit-user-select: none;
+    user-select: none;
+}
+html.app-mode input,
+html.app-mode textarea,
+html.app-mode [contenteditable="true"],
+html.app-mode .bubble {
+    -webkit-user-select: text;
+    user-select: text;
 }

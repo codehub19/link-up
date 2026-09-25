@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { isStandalone } from '../utils/pwa'
+import { InstallSheet, OfflineBanner } from './AppExtras'
+import MobileNavbar from './MobileNavbar'
 import { useAuth } from '../state/AuthContext'
 import './AppShell.css'
 
@@ -22,21 +25,79 @@ function useMediaQuery(q: string) {
   return matches
 }
 
+const VIEWPORT_DEFAULT = 'width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content'
+// Inside the app: no pinch/double-tap zoom, like a native app
+const VIEWPORT_APP = VIEWPORT_DEFAULT + ', maximum-scale=1, user-scalable=no'
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
-  const { profile } = useAuth()
+  const { user, profile, loading } = useAuth()
   const isAppRoute = APP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  const standalone = isStandalone()
 
   // Global "app mode" styling (compact bars, no rubber-band scroll, safe areas)
   useEffect(() => {
-    document.documentElement.classList.toggle('app-mode', isAppRoute)
-    return () => document.documentElement.classList.remove('app-mode')
-  }, [isAppRoute])
+    const root = document.documentElement
+    root.classList.toggle('app-mode', isAppRoute)
+    root.classList.toggle('standalone', standalone)
+    document.querySelector('meta[name="viewport"]')?.setAttribute('content', isAppRoute ? VIEWPORT_APP : VIEWPORT_DEFAULT)
+    return () => root.classList.remove('app-mode')
+  }, [isAppRoute, standalone])
 
   // Admins can still use the app on desktop to test and support users
   if (isAppRoute && isDesktop && !profile?.isAdmin) return <DesktopGate />
-  return <>{children}</>
+
+  // Opened from the home-screen icon: skip the marketing website
+  if (standalone && pathname === '/' && !loading) {
+    if (user) return <Navigate to="/dashboard" replace />
+    return <AppWelcome />
+  }
+
+  return (
+    <>
+      {children}
+      {/* Rendered outside the page transition so it stays still while screens slide */}
+      <MobileNavbar />
+      {isAppRoute && <OfflineBanner />}
+      {isAppRoute && user && !isDesktop && <InstallSheet />}
+    </>
+  )
+}
+
+/** First screen of the installed app for signed-out users (instead of the website). */
+function AppWelcome() {
+  const { login } = useAuth()
+  const nav = useNavigate()
+  const [busy, setBusy] = useState(false)
+  return (
+    <div className="app-welcome">
+      <div className="app-welcome-top">
+        <div className="app-welcome-logo">DateU</div>
+        <p>Meet people from your campus through curated rounds, voice calls and real conversations.</p>
+      </div>
+      <div className="app-welcome-bottom">
+        <button
+          className="app-welcome-btn"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true)
+            try {
+              const isNew = await login()
+              nav(isNew ? '/setup/profile' : '/dashboard', { replace: true })
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          {busy ? 'Signing in…' : 'Continue with Google'}
+        </button>
+        <p className="app-welcome-legal">
+          By continuing you agree to our <a href="/legal/terms">Terms</a> and <a href="/legal/privacy">Privacy Policy</a>.
+        </p>
+      </div>
+    </div>
+  )
 }
 
 function DesktopGate() {

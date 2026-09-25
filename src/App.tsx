@@ -4,7 +4,6 @@ import Home from './pages/Home'
 import Protected from './components/Protected'
 import SetupGuard from './components/SetupGuard'
 import { useAuth } from './state/AuthContext'
-import LoadingHeart from './components/LoadingHeart'
 import AdminGuard from './pages/admin/AdminGuard'
 import IncomingCall from './components/IncomingCall'
 import AppStatus from './components/AppStatus'
@@ -85,9 +84,10 @@ export default function App() {
     }
   }, [])
 
-  if (loading) return <div className="loading-page-wrapper">
-    <LoadingHeart size={72} />
-  </div>;
+  // Same markup as the launch screen in index.html, so start-up looks seamless
+  if (loading) return (
+    <div id="launch"><div className="logo">DateU</div><div className="dots"><span /><span /><span /></div></div>
+  );
   return (
     <Suspense fallback={null}>
       <AppStatus>

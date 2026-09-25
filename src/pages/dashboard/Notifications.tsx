@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import { useAuth } from "../../state/AuthContext";
+import { getNotificationsSeenAt, markNotificationsSeen } from "../../services/notifications";
 import {
   collection,
   query,
@@ -53,7 +54,7 @@ function formatDateKey(secs?: number) {
 }
 
 export default function NotificationsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -118,15 +119,19 @@ export default function NotificationsPage() {
     fetchNotifications();
   }, [user?.uid]);
 
-  // Mark as seen logic
+  // Mark as seen when the page is opened:
+  // - personal notifications: every unseen one (not just the last 7 days shown here)
+  // - broadcasts (userUid == null): remember when the user last looked
+  const [broadcastSeenBefore, setBroadcastSeenBefore] = useState<number | null>(null);
   useEffect(() => {
-    if (!user?.uid || notifications.length === 0) return;
-    notifications.forEach((n) => {
-      if (!n.seen && n.userUid === user.uid) {
-        updateDoc(doc(db, "notifications", n.id), { seen: true }).catch(() => { });
-      }
-    });
-  }, [notifications, user?.uid]);
+    if (!user?.uid) return;
+    setBroadcastSeenBefore(getNotificationsSeenAt(profile?.notificationsSeenAt));
+    markNotificationsSeen(user.uid).catch(() => { });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
+
+  const isUnread = (n: Notification) =>
+    n.userUid ? !n.seen : (n.createdAt?.seconds || 0) * 1000 > (broadcastSeenBefore ?? Infinity);
 
   // Group by date
   const grouped = notifications.reduce((acc, n) => {
@@ -167,7 +172,7 @@ export default function NotificationsPage() {
                 </div>
                 <ul className="notification-list">
                   {grouped[date].map((n) => (
-                    <li key={n.id} className={`notification-card ${!n.seen ? 'unread' : ''}`}>
+                    <li key={n.id} className={`notification-card ${isUnread(n) ? 'unread' : ''}`}>
                       <div className="notif-header">
                         <div className="notif-title">
                           {n.title}
@@ -175,7 +180,7 @@ export default function NotificationsPage() {
                             <span className="badge-group">Group</span>
                           )}
                         </div>
-                        {!n.seen && (
+                        {isUnread(n) && (
                           <span className="badge-new">New</span>
                         )}
                       </div>

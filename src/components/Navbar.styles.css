@@ -145,3 +145,38 @@
         font-size: 0.85rem;
     }
 }
+/* --- Pushed app screens: back button + title --- */
+.nav-pushed {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.nav-back-btn {
+    width: 40px;
+    height: 40px;
+    margin-left: -8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--clr-text-primary, #fff);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.nav-back-btn:active {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-pushed-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
