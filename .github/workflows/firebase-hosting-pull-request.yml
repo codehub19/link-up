@@ -11,6 +11,9 @@ jobs:
   build_and_preview:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
+    env:
+      # Secrets can't be referenced in `if:`, so expose whether it's configured.
+      HAS_FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LINKUP_DC86A != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,7 +40,11 @@ jobs:
       # Type-check Cloud Functions too (they're deployed separately)
       - run: npm ci --prefix functions
       - run: npm --prefix functions run build
+      - name: Preview deploy skipped
+        if: env.HAS_FIREBASE_SA != 'true'
+        run: echo "::warning::FIREBASE_SERVICE_ACCOUNT_LINKUP_DC86A secret is not set; skipping the preview deploy. Run 'firebase init hosting:github' to add it."
       - uses: FirebaseExtended/action-hosting-deploy@v0
+        if: env.HAS_FIREBASE_SA == 'true'
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LINKUP_DC86A }}
