@@ -7,7 +7,9 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
-  increment,
+  query,
+  where,
+  Timestamp,
 } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { auth, db, functions } from '../firebase'
@@ -134,37 +136,71 @@ export async function notifyUser(uid: string, title: string, body: string) {
 
 /* ---------------- Subscriptions ---------------- */
 
-export async function grantSubscription(uid: string, planId: string, quota: number, note?: string) {
-  const plan = (await getDoc(doc(db, 'plans', planId))).data() || {}
-  await addDoc(collection(db, 'subscriptions'), {
-    uid,
-    planId,
-    status: 'active',
-    matchQuota: quota,
-    remainingMatches: quota,
-    roundsAllowed: plan.roundsAllowed ?? 1,
-    roundsUsed: 0,
-    supportAvailable: !!plan.supportAvailable,
-    grantedByAdmin: true,
-    note: note || null,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  })
-  await logAdminAction('grant_subscription', uid, { planId, quota })
+const DAY_MS = 86_400_000
+
+async function syncPremiumUntil(uid: string) {
+  // Public read-only marker used to show Premium members first (see functions/src/premium.ts)
+  const subs = await getDocs(query(collection(db, 'subscriptions'), where('uid', '==', uid)))
+  const now = Date.now()
+  const latest = subs.docs
+    .map((d) => d.data())
+    .filter((d) => d.status === 'active' && (toMillis(d.expiresAt) === 0 || toMillis(d.expiresAt) > now))
+    .map((d) => d.expiresAt)
+    .sort((a, b) => toMillis(b) - toMillis(a))[0] || null
+  await setDoc(doc(db, 'users', uid), { premiumUntil: latest }, { merge: true })
+}
+
+/** Give (or extend) Premium for free. Extends the current end date if already Premium. */
+export async function grantSubscription(uid: string, planId: string, days: number, note?: string) {
+  const subs = await getDocs(query(collection(db, 'subscriptions'), where('uid', '==', uid)))
+  const now = Date.now()
+  const active = subs.docs.find((d) => d.data().status === 'active' && toMillis(d.data().expiresAt) > now)
+  if (active) {
+    const expiresAt = Timestamp.fromMillis(toMillis(active.data().expiresAt) + days * DAY_MS)
+    await updateDoc(active.ref, { expiresAt, planId, updatedAt: serverTimestamp() })
+  } else {
+    const plan = (await getDoc(doc(db, 'plans', planId))).data() || {}
+    await addDoc(collection(db, 'subscriptions'), {
+      uid,
+      planId,
+      status: 'active',
+      startsAt: serverTimestamp(),
+      expiresAt: Timestamp.fromMillis(now + days * DAY_MS),
+      durationDays: days,
+      supportAvailable: !!plan.supportAvailable,
+      grantedByAdmin: true,
+      note: note || null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  }
+  await syncPremiumUntil(uid)
+  await logAdminAction('grant_premium', uid, { planId, days })
 }
 
 export async function setSubscriptionStatus(subId: string, uid: string, status: 'active' | 'expired') {
-  await updateDoc(doc(db, 'subscriptions', subId), { status, updatedAt: serverTimestamp() })
-  await logAdminAction(status === 'active' ? 'reactivate_subscription' : 'expire_subscription', uid, { subId })
+  const patch: Record<string, any> = { status, updatedAt: serverTimestamp() }
+  if (status === 'active') {
+    // Reactivating an ended plan gives it 30 days from now
+    const cur = (await getDoc(doc(db, 'subscriptions', subId))).data()
+    if (!cur || toMillis(cur.expiresAt) <= Date.now()) patch.expiresAt = Timestamp.fromMillis(Date.now() + 30 * DAY_MS)
+  }
+  await updateDoc(doc(db, 'subscriptions', subId), patch)
+  await syncPremiumUntil(uid)
+  await logAdminAction(status === 'active' ? 'reactivate_premium' : 'expire_premium', uid, { subId })
 }
 
-export async function addSubscriptionMatches(subId: string, uid: string, n: number) {
+/** Add days to a plan (from its current end date, or from now if it already ended). */
+export async function extendSubscription(subId: string, uid: string, days: number) {
+  const cur = (await getDoc(doc(db, 'subscriptions', subId))).data() || {}
+  const base = Math.max(Date.now(), toMillis(cur.expiresAt))
   await updateDoc(doc(db, 'subscriptions', subId), {
-    remainingMatches: increment(n),
-    matchQuota: increment(n),
+    status: 'active',
+    expiresAt: Timestamp.fromMillis(base + days * DAY_MS),
     updatedAt: serverTimestamp(),
   })
-  await logAdminAction('add_matches', uid, { subId, n })
+  await syncPremiumUntil(uid)
+  await logAdminAction('extend_premium', uid, { subId, days })
 }
 
 /* ---------------- Calls ---------------- */

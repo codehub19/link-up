@@ -50,6 +50,8 @@ export default function Footer() {
             <ul>
               <li><Link to="/legal/privacy">Privacy Policy</Link></li>
               <li><Link to="/legal/terms">Terms of Service</Link></li>
+              <li><Link to="/legal/refunds">Refund &amp; Cancellation</Link></li>
+              <li><Link to="/legal/delivery">Shipping &amp; Delivery</Link></li>
               <li><Link to="/legal/guidelines">Guidelines</Link></li>
               <li><Link to="/legal/security">Security</Link></li>
             </ul>

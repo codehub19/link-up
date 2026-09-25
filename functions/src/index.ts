@@ -12,8 +12,10 @@ import Razorpay from 'razorpay'
 import * as crypto from 'crypto'
 import { defineSecret } from 'firebase-functions/params'
 import { onRequest } from "firebase-functions/v2/https"
+import { onSchedule } from 'firebase-functions/v2/scheduler'
 import axios from 'axios'
 import { isUserAdmin, sendPushToUsers } from './push'
+import { DEFAULT_PREMIUM_DAYS, getActivePremium, grantPremiumDays } from './premium'
 
 /* ----------------------------------------------------------------------------
  * Region & Secrets
@@ -69,15 +71,7 @@ async function isRequesterAdmin(uid?: string): Promise<boolean> {
 }
 
 async function getActiveSubscription(uid: string): Promise<ActiveSubscription | null> {
-  const snap = await db
-    .collection('subscriptions')
-    .where('uid', '==', uid)
-    .limit(10)
-    .get()
-  if (snap.empty) return null
-  const subs: ActiveSubscription[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
-  const withRemaining = subs.find(s => s.status === 'active' && Number(s.remainingMatches ?? 0) > 0)
-  return withRemaining || subs.find(s => s.status === 'active') || null
+  return (await getActivePremium(uid)) as ActiveSubscription | null
 }
 
 async function getActiveRoundId(): Promise<string | null> {
@@ -91,43 +85,15 @@ async function getActiveRoundId(): Promise<string | null> {
 async function createOrMergeSubscriptionFromPayment(
   uid: string,
   planId: string,
-  fallbackQuota = 0
+  _legacyQuota = 0
 ) {
+  // Premium is time-based: it gives priority in rounds and calls, not a number of matches.
   const planSnap = await db.collection('plans').doc(planId).get()
   const plan = planSnap.exists ? (planSnap.data() as any) : undefined
-  const quota = Number(plan?.matchQuota ?? plan?.quota ?? fallbackQuota ?? 0)
+  const days = Number(plan?.durationDays) > 0 ? Number(plan.durationDays) : DEFAULT_PREMIUM_DAYS
 
-  if (!quota || quota <= 0) {
-    logger.warn('[provision] Missing or invalid quota', {
-      planId,
-      hasPlanDoc: planSnap.exists,
-      computedQuota: quota,
-    })
-    throw new HttpsError('failed-precondition', 'Plan has no quota.')
-  }
-
-  const active = await getActiveSubscription(uid)
-  const now = admin.firestore.FieldValue.serverTimestamp()
-
-  if (active) {
-    await db.collection('subscriptions').doc(active.id).update({
-      remainingMatches: admin.firestore.FieldValue.increment(quota),
-      updatedAt: now,
-    })
-    logger.log('[provision] Incremented subscription', { uid, planId, added: quota })
-  } else {
-    await db.collection('subscriptions').add({
-      uid,
-      planId,
-      status: 'active',
-      matchQuota: quota,
-      remainingMatches: quota,
-      supportAvailable: !!plan?.supportAvailable,
-      createdAt: now,
-      updatedAt: now,
-    })
-    logger.log('[provision] Created subscription', { uid, planId, quota })
-  }
+  const res = await grantPremiumDays(uid, planId, days, { supportAvailable: !!plan?.supportAvailable })
+  logger.log('[provision] Premium granted', { uid, planId, days, subscriptionId: res.subscriptionId })
 
   // Auto-join current active round (best effort)
   const roundId = await getActiveRoundId()
@@ -469,56 +435,25 @@ export const confirmMatch = onCall({ region: REGION }, async (req) => {
     throw new HttpsError('invalid-argument', 'roundId and girlUid are required')
   }
 
+  // Rounds are free; Premium only affects priority, so there is no quota to check.
   const boyUid = auth.uid
-  const sub = await getActiveSubscription(boyUid)
-  if (!sub || (sub.remainingMatches ?? 0) <= 0) {
-    throw new HttpsError('failed-precondition', 'No active subscription or quota exhausted')
-  }
-
   const likeId = `${roundId}_${girlUid}_${boyUid}`
-  const likeRef = db.collection('likes').doc(likeId)
-  const likeSnap = await likeRef.get()
+  const likeSnap = await db.collection('likes').doc(likeId).get()
   if (!likeSnap.exists) throw new HttpsError('failed-precondition', 'Like not found')
 
   const matchId = `${roundId}_${boyUid}_${girlUid}`
   const matchRef = db.collection('matches').doc(matchId)
-  const subRef = db.collection('subscriptions').doc(sub.id)
-  const roundRef = db.collection('matchingRounds').doc(roundId)
-
   await db.runTransaction(async (tx) => {
-    const [mSnap, sSnap] = await Promise.all([tx.get(matchRef), tx.get(subRef)])
+    const mSnap = await tx.get(matchRef)
     if (mSnap.exists) return
-
-    const curr = sSnap.data() as any
-    const remaining = Number(curr?.remainingMatches ?? 0)
-    if (remaining <= 0) throw new HttpsError('failed-precondition', 'Quota exhausted')
-
-    tx.set(
-      matchRef,
-      {
-        roundId,
-        participants: [boyUid, girlUid],
-        boyUid,
-        girlUid,
-        status: 'confirmed',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    )
-
-    const next = remaining - 1
-    tx.update(subRef, {
-      remainingMatches: next,
-      status: next <= 0 ? 'expired' : 'active',
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    })
-
-    if (next <= 0) {
-      tx.update(roundRef, {
-        participatingMales: admin.firestore.FieldValue.arrayRemove(boyUid),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      })
-    }
+    tx.set(matchRef, {
+      roundId,
+      participants: [boyUid, girlUid],
+      boyUid,
+      girlUid,
+      status: 'confirmed',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true })
   })
 
   return { ok: true }
@@ -543,40 +478,10 @@ export const confirmMatchByGirl = onCall({ region: REGION }, async (req) => {
   const matchId = `${roundId}_${boyUid}_${girlUid}`
   const matchRef = admin.firestore().collection('matches').doc(matchId)
 
-  // Get the boy's active subscription (for quota and rounds logic)
-  const subsSnap = await admin.firestore()
-    .collection('subscriptions')
-    .where('uid', '==', boyUid)
-    .where('status', '==', 'active')
-    .get()
-
-  if (subsSnap.empty) {
-    throw new HttpsError('failed-precondition', 'Boy has no active subscription')
-  }
-
-  const subDoc = subsSnap.docs[0]
-  const subRef = subDoc.ref
-  const subData = subDoc.data()
-  const remainingMatches = Number(subData.remainingMatches ?? 0)
-  const roundsUsed = Number(subData.roundsUsed ?? 0)
-  const roundsAllowed = Number(subData.roundsAllowed ?? 1)
-
-  if (remainingMatches <= 0) {
-    throw new HttpsError('failed-precondition', 'Boy’s match quota exhausted')
-  }
-  if (roundsUsed >= roundsAllowed) {
-    throw new HttpsError('failed-precondition', 'Boy’s allowed rounds exhausted')
-  }
-
+  // Rounds are free; Premium only affects priority, so there is no quota to check.
   await admin.firestore().runTransaction(async (tx) => {
-    // READS FIRST
     const matchSnap = await tx.get(matchRef)
-    const roundRef = admin.firestore().collection('matchingRounds').doc(roundId)
-    const roundSnap = await tx.get(roundRef)
-
     if (matchSnap.exists) return
-
-    // Create the match
     tx.set(matchRef, {
       roundId,
       participants: [boyUid, girlUid],
@@ -585,41 +490,6 @@ export const confirmMatchByGirl = onCall({ region: REGION }, async (req) => {
       status: 'confirmed',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true })
-
-    // Decrement quota
-    const nextMatches = remainingMatches - 1
-    const nextRoundsUsed = nextMatches <= 0 ? roundsUsed + 1 : roundsUsed
-    tx.update(subRef, {
-      remainingMatches: nextMatches,
-      roundsUsed: nextRoundsUsed,
-      status: (nextMatches <= 0 || nextRoundsUsed >= roundsAllowed) ? 'expired' : 'active',
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    })
-
-    // Remove boy from round and all girls' lists if quota/rounds exhausted
-    if (nextMatches <= 0 || nextRoundsUsed >= roundsAllowed) {
-      if (roundSnap.exists) {
-        const data = roundSnap.data()
-        tx.update(roundRef, {
-          participatingMales: admin.firestore.FieldValue.arrayRemove(boyUid),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        })
-        // assignedBoysToGirls logic
-        let assignedBoysToGirls = (data?.assignedBoysToGirls ?? {})
-        if (
-          assignedBoysToGirls &&
-          typeof assignedBoysToGirls === 'object' &&
-          !Array.isArray(assignedBoysToGirls)
-        ) {
-          Object.keys(assignedBoysToGirls).forEach(girlKey => {
-            if (Array.isArray(assignedBoysToGirls[girlKey])) {
-              assignedBoysToGirls[girlKey] = assignedBoysToGirls[girlKey].filter((uid: string) => uid !== boyUid)
-            }
-          })
-          tx.update(roundRef, { assignedBoysToGirls })
-        }
-      }
-    }
   })
 
   // Referral: the girl's referral record qualifies once she confirms a match.
@@ -648,50 +518,20 @@ export const adminPromoteMatch = onCall({ region: REGION }, async (req) => {
     throw new HttpsError('invalid-argument', 'roundId, boyUid, girlUid required')
   }
 
-  const sub = await getActiveSubscription(boyUid)
-  if (!sub || (sub.remainingMatches ?? 0) <= 0) {
-    throw new HttpsError('failed-precondition', 'Boy has no active subscription or quota exhausted')
-  }
-
   const matchId = `${roundId}_${boyUid}_${girlUid}`
   const matchRef = db.collection('matches').doc(matchId)
-  const subRef = db.collection('subscriptions').doc(sub.id)
-  const roundRef = db.collection('matchingRounds').doc(roundId)
 
   await db.runTransaction(async (tx) => {
-    const [mSnap, sSnap] = await Promise.all([tx.get(matchRef), tx.get(subRef)])
+    const mSnap = await tx.get(matchRef)
     if (mSnap.exists) return
-
-    const curr = sSnap.data() as any
-    const remaining = Number(curr?.remainingMatches ?? 0)
-    if (remaining <= 0) throw new HttpsError('failed-precondition', 'Quota exhausted')
-
-    tx.set(
-      matchRef,
-      {
-        roundId,
-        participants: [boyUid, girlUid],
-        boyUid,
-        girlUid,
-        status: 'confirmed',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    )
-
-    const next = remaining - 1
-    tx.update(subRef, {
-      remainingMatches: next,
-      status: next <= 0 ? 'expired' : 'active',
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    })
-
-    if (next <= 0) {
-      tx.update(roundRef, {
-        participatingMales: admin.firestore.FieldValue.arrayRemove(boyUid),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      })
-    }
+    tx.set(matchRef, {
+      roundId,
+      participants: [boyUid, girlUid],
+      boyUid,
+      girlUid,
+      status: 'confirmed',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true })
   })
 
   return { ok: true }
@@ -791,3 +631,39 @@ export const onPaymentApproved = onDocumentUpdated(
 export * from './notifications'
 export * from './randomCall'
 export * from './admin'
+
+/* ----------------------------------------------------------------------------
+ * expirePremium (daily): mark ended Premium plans expired. Older plans that were
+ * sold by match count (no end date) get 30 days from now so nobody loses access
+ * without notice.
+ * ------------------------------------------------------------------------- */
+export const expirePremium = onSchedule({ schedule: '15 0 * * *', timeZone: 'Asia/Kolkata' }, async () => {
+  const snap = await db.collection('subscriptions').where('status', '==', 'active').get()
+  const now = Date.now()
+  let expired = 0
+  let migrated = 0
+  let batch = db.batch()
+  let ops = 0
+  for (const d of snap.docs) {
+    const exp = d.data().expiresAt?.toMillis?.() ?? 0
+    const uid = String(d.data().uid || '')
+    if (!exp) {
+      const expiresAt = admin.firestore.Timestamp.fromMillis(now + DEFAULT_PREMIUM_DAYS * 86_400_000)
+      batch.update(d.ref, { expiresAt, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+      if (uid) { batch.set(db.collection('users').doc(uid), { premiumUntil: expiresAt }, { merge: true }); ops++ }
+      migrated++
+    } else if (exp > now) {
+      // Keep the public profile marker in sync (e.g. plans granted before it existed)
+      if (uid) batch.set(db.collection('users').doc(uid), { premiumUntil: d.data().expiresAt }, { merge: true })
+      else continue
+    } else if (exp <= now) {
+      batch.update(d.ref, { status: 'expired', updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+      expired++
+    } else {
+      continue
+    }
+    if (++ops >= 450) { await batch.commit(); batch = db.batch(); ops = 0 }
+  }
+  if (ops > 0) await batch.commit()
+  logger.info('[expirePremium]', { expired, migrated })
+})

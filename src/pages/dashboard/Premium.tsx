@@ -6,7 +6,7 @@ import HomeBackground from '../../components/home/HomeBackground'
 import FemaleTabs from '../../components/FemaleTabs'
 import MaleTabs from '../../components/MaleTabs'
 import { useAuth } from '../../state/AuthContext'
-import { listActivePlans, getActiveSubscription, type ActiveSubscription } from '../../services/subscriptions'
+import { listActivePlans, getActiveSubscription, formatPremiumUntil, type ActiveSubscription } from '../../services/subscriptions'
 import './dashboard.css'
 import './RandomCall.styles.css'
 
@@ -47,7 +47,8 @@ export default function PremiumPage() {
             <p className="rc-muted">
               Keep chatting with people you meet on random calls after the free 24 hours, and get more calls every day.
             </p>
-            {sub && <p className="rc-notice">✅ Your {sub.plan?.name || 'Premium'} plan is active.</p>}
+            {sub && <p className="rc-notice">✅ Premium is active{formatPremiumUntil(sub) ? ` until ${formatPremiumUntil(sub)}` : ''}.</p>}
+            <p className="rc-muted rc-small">Premium improves your chances but doesn't guarantee a match. Non-refundable once activated — see our <a href="/legal/refunds">refund policy</a>.</p>
             {loading ? (
               <p className="rc-muted">Loading plans…</p>
             ) : plans.length === 0 ? (
@@ -66,12 +67,12 @@ export default function PremiumPage() {
                     </div>
                     {Array.isArray(p.offers) && p.offers.map((o: string) => <div key={o} className="rc-muted rc-small">✓ {o}</div>)}
                     {typeof p.dailyCallLimit === 'number' && <div className="rc-muted rc-small">✓ {p.dailyCallLimit} random calls a day</div>}
+                    <div className="rc-muted rc-small">✓ {Number(p.durationDays) > 0 ? p.durationDays : 30} days of Premium</div>
                     <button
                       className="rc-btn rc-btn-primary"
-                      disabled={!!sub}
                       onClick={() => nav(`/pay?planId=${encodeURIComponent(p.id)}&amount=${final}`)}
                     >
-                      {sub ? 'Active' : 'Get Premium'}
+                      {sub ? 'Extend Premium' : 'Get Premium'}
                     </button>
                   </div>
                 )

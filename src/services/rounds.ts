@@ -4,6 +4,24 @@ import {
 } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { db } from '../firebase'
+import { isSubscriptionActive } from './subscriptions'
+
+/** Premium doesn't guarantee matches; it gives priority. Premium men get this many times more suggestions. */
+const PREMIUM_SUGGESTION_MULTIPLIER = 2
+
+/** Everyone with active (time-based) Premium right now. */
+export async function getPremiumUids(): Promise<Set<string>> {
+  const snap = await getDocs(query(collection(db, 'subscriptions'), where('status', '==', 'active')))
+  return new Set(snap.docs.filter((d) => isSubscriptionActive(d.data())).map((d) => String(d.data().uid)))
+}
+
+/** Stable sort: Premium users first, original order otherwise. */
+function premiumFirst<T>(items: T[], uidOf: (x: T) => string, premium: Set<string>): T[] {
+  return items
+    .map((x, i) => ({ x, i }))
+    .sort((a, b) => Number(premium.has(uidOf(b.x))) - Number(premium.has(uidOf(a.x))) || a.i - b.i)
+    .map((o) => o.x)
+}
 
 export async function createAndSetupRound() {
   // 1. Create Round
@@ -164,42 +182,28 @@ export async function syncApprovedMalesToActiveRound() {
   const active = await getActiveRound()
   if (!active) throw new Error('No active round')
 
-  // Get all active subscriptions
-  const subSnap = await getDocs(query(
-    collection(db, 'subscriptions'),
-    where('status', '==', 'active'),
-  ))
+  // Rounds are free: keep everyone who joined, and auto-enrol Premium men.
+  const premium = await getPremiumUids()
+  const candidates = new Set<string>([...(active.participatingMales || []), ...premium])
 
-  const validUids: string[] = []
-  for (const docSnap of subSnap.docs) {
-    const sub = docSnap.data()
-    const remainingMatches = Number(sub.remainingMatches ?? 0)
-    const roundsUsed = Number(sub.roundsUsed ?? 0)
-    const roundsAllowed = Number(sub.roundsAllowed ?? 1)
-    if (remainingMatches > 0 && roundsUsed < roundsAllowed) {
-      validUids.push(sub.uid)
-    }
-  }
-
-  // Filter: only male users with profile complete
   const maleUids: string[] = []
-  for (const uid of validUids) {
+  for (const uid of candidates) {
     const us = await getDoc(doc(db, 'users', uid))
     if (!us.exists()) continue
     const u = us.data() as any
-    if (u.gender === 'male' && u.isProfileComplete === true) maleUids.push(uid)
+    if (u.gender === 'male' && u.isProfileComplete === true && !u.banned) maleUids.push(uid)
   }
 
-  // Always update the round so only CURRENT active/valid males are present
   const roundRef = doc(db, 'matchingRounds', active.id)
   await setDoc(roundRef, {
-    participatingMales: maleUids,
+    participatingMales: premiumFirst(maleUids, (u) => u, premium),
     updatedAt: serverTimestamp(),
   }, { merge: true })
 
   return {
     activeRoundId: active.id,
     totalMales: maleUids.length,
+    premiumMales: maleUids.filter((u) => premium.has(u)).length,
   }
 }
 
@@ -263,6 +267,8 @@ export async function autoMatchUsers(roundId: string, phase: 'boys' | 'girls', c
     return array;
   }
 
+  const premium = await getPremiumUids()
+
   // Perform Assignment
   let changes = 0
   const newAssignments = { ...assignedMap }
@@ -275,7 +281,10 @@ export async function autoMatchUsers(roundId: string, phase: 'boys' | 'girls', c
     // We shuffle a COPY of targets every time to ensure randomness per user
     // (Inefficient for huge lists, but fine for <1000 users)
     const shuffledTargets = shuffle([...targets])
-    const selected = shuffledTargets.slice(0, countPerUser)
+    // Girls phase: Premium men take the first slots. Boys phase: Premium men get more suggestions.
+    const ordered = phase === 'girls' ? premiumFirst(shuffledTargets, (u) => u, premium) : shuffledTargets
+    const count = phase === 'boys' && premium.has(sourceUid) ? countPerUser * PREMIUM_SUGGESTION_MULTIPLIER : countPerUser
+    const selected = ordered.slice(0, count)
 
     newAssignments[sourceUid] = selected
     changes++
@@ -380,8 +389,9 @@ export async function smartAutoMatchBoys(roundId: string, countPerUser: number =
   if (!roundSnap.exists()) throw new Error('Round not found')
   const roundData = roundSnap.data() as any
 
-  // Sources: Participating Males
-  const maleUids: string[] = roundData.participatingMales || []
+  // Sources: Participating Males (Premium first so they're processed first)
+  const premium = await getPremiumUids()
+  const maleUids: string[] = premiumFirst(roundData.participatingMales || [], (u: string) => u, premium)
 
   // Targets: All Females
   const qGirls = query(collection(db, 'users'), where('gender', '==', 'female'))
@@ -432,8 +442,9 @@ export async function smartAutoMatchBoys(roundId: string, countPerUser: number =
     // 3. Sort Descending
     scored.sort((a, b) => b.score - a.score)
 
-    // 4. Pick Top N
-    const selected = scored.slice(0, countPerUser).map(x => x.uid)
+    // 4. Pick Top N (Premium men get more suggestions)
+    const count = premium.has(boyUid) ? countPerUser * PREMIUM_SUGGESTION_MULTIPLIER : countPerUser
+    const selected = scored.slice(0, count).map(x => x.uid)
 
     if (selected.length > 0) {
       assignedMap[boyUid] = selected
@@ -462,10 +473,13 @@ export async function smartAutoMatchGirls(roundId: string, countPerUser: number 
 
   // Group likes by girl
   const girlsLikesMap: Record<string, string[]> = {} // girlUid -> [boyUid, boyUid]
+  const premium = await getPremiumUids()
   likesSnap.docs.forEach(d => {
     const data = d.data()
-    const girlUid = data.to
-    const boyUid = data.from
+    // Likes are written as { likingUserUid, likedUserUid } (older docs used from/to)
+    const girlUid = data.likedUserUid ?? data.to
+    const boyUid = data.likingUserUid ?? data.likerUid ?? data.from
+    if (!girlUid || !boyUid) return
     if (!girlsLikesMap[girlUid]) girlsLikesMap[girlUid] = []
     if (!girlsLikesMap[girlUid].includes(boyUid)) girlsLikesMap[girlUid].push(boyUid)
   })
@@ -496,8 +510,8 @@ export async function smartAutoMatchGirls(roundId: string, countPerUser: number 
       }
     }
 
-    // Sort
-    scoredBoys.sort((a, b) => b.score - a.score)
+    // Premium men first, then by compatibility
+    scoredBoys.sort((a, b) => Number(premium.has(b.uid)) - Number(premium.has(a.uid)) || b.score - a.score)
     const selected = scoredBoys.slice(0, countPerUser).map(x => x.uid)
 
     // Only assign if valid candidates exist

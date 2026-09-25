@@ -3,6 +3,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { sendPushToUsers } from './push'
+import { getActivePremium } from './premium'
 import * as logger from 'firebase-functions/logger'
 
 /* ----------------------------------------------------------------------------
@@ -69,12 +70,11 @@ function threadIdFor(a: string, b: string) {
 }
 
 async function getActiveSubscription(uid: string) {
-  const snap = await db.collection('subscriptions').where('uid', '==', uid).limit(10).get()
-  return snap.docs.find((d) => d.data()?.status === 'active')?.data() ?? null
+  return getActivePremium(uid)
 }
 
 async function hasActiveSubscription(uid: string) {
-  return !!(await getActiveSubscription(uid))
+  return !!(await getActivePremium(uid))
 }
 
 /** Free users get dailyCallLimit; plan holders get the plan's dailyCallLimit or premiumDailyCallLimit. */
@@ -132,6 +132,7 @@ export const joinRandomCallQueue = onCall({ region: REGION }, async (req) => {
   const statsRef = db.collection('randomCallStats').doc(uid)
   const stats = (await statsRef.get()).data() || {}
   const usedToday = stats.day === today ? Number(stats.calls || 0) : 0
+  const isPremium = !!(await getActiveSubscription(uid))
   const dailyLimit = await dailyLimitFor(uid, cfg)
   // Lets the page show "x of N calls left" for this user's plan
   if (stats.dailyLimit !== dailyLimit) await statsRef.set({ dailyLimit }, { merge: true })
@@ -175,13 +176,17 @@ export const joinRandomCallQueue = onCall({ region: REGION }, async (req) => {
         if (d.id === lastPeerUid || data.lastPeerUid === uid) return false
         return true
       })
-      .sort((a, b) => (a.data().createdAt?.toMillis?.() ?? 0) - (b.data().createdAt?.toMillis?.() ?? 0))[0]
+      // Premium members are paired first, then whoever has waited longest
+      .sort((a, b) =>
+        Number(!!b.data().premium) - Number(!!a.data().premium)
+        || (a.data().createdAt?.toMillis?.() ?? 0) - (b.data().createdAt?.toMillis?.() ?? 0))[0]
 
     const baseEntry = {
       uid,
       gender: me.gender,
       blockedUids: myBlocked,
       lastPeerUid,
+      premium: isPremium,
       // Keep our place in line when re-running matchmaking
       createdAt: rejoin && mine?.status === 'waiting' && mine.createdAt ? mine.createdAt : now,
       heartbeatAt: now,

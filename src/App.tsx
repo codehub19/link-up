@@ -15,6 +15,8 @@ const Legal = lazy(() => import('./pages/legal/Legal'))
 const TermsOfService = lazy(() => import('./pages/legal/TermsOfService'))
 const Support = lazy(() => import('./pages/legal/Support'))
 const Pricing = lazy(() => import('./pages/legal/Pricing'))
+const RefundPolicy = lazy(() => import('./pages/legal/RefundPolicy'))
+const DeliveryPolicy = lazy(() => import('./pages/legal/DeliveryPolicy'))
 const About = lazy(() => import('./pages/legal/About'))
 const CommunityGuidelines = lazy(() => import('./pages/legal/CommunityGuidelines'))
 const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'))
@@ -98,6 +100,8 @@ export default function App() {
           <Route path="/legal/legal" element={<Legal />} />
           <Route path="/legal/terms" element={<TermsOfService />} />
           <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+          <Route path="/legal/refunds" element={<RefundPolicy />} />
+          <Route path="/legal/delivery" element={<DeliveryPolicy />} />
           {/* <Route path="/legal/cookies" element={<Cookies />} /> */}
           <Route path="/legal/guidelines" element={<CommunityGuidelines />} />
           <Route path="/community-guidelines" element={<Navigate to="/legal/guidelines" replace />} />

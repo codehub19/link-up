@@ -6,8 +6,8 @@ import { useAuth } from '../../state/AuthContext'
 import { useDialog } from '../../components/ui/Dialog'
 import {
   AdminUser,
-  addSubscriptionMatches,
   deleteUserPermanently,
+  extendSubscription,
   formatDate,
   getAdminUser,
   grantSubscription,
@@ -65,7 +65,7 @@ export default function UserDetailAdmin() {
   // Forms
   const [edit, setEdit] = useState({ name: '', bio: '', instagramId: '', college: '' })
   const [grantPlan, setGrantPlan] = useState('')
-  const [grantQuota, setGrantQuota] = useState(1)
+  const [grantDays, setGrantDays] = useState(30)
   const [msgTitle, setMsgTitle] = useState('')
   const [msgBody, setMsgBody] = useState('')
 
@@ -128,7 +128,8 @@ export default function UserDetailAdmin() {
   if (loading && !u) return <div className="admin-card">Loading…</div>
   if (!u) return <div className="admin-card">User not found. <Link to="/admin/users">Back to users</Link></div>
 
-  const activeSub = subs.find((s) => s.status === 'active')
+  const isLive = (s: any) => s.status === 'active' && (toMillis(s.expiresAt) === 0 || toMillis(s.expiresAt) > Date.now())
+  const activeSub = subs.find(isLive)
   const isSelf = me?.uid === uid
   const images = (u as any).collegeIdImages || u.collegeId
   const photos: string[] = Array.isArray(u.photoUrls) && u.photoUrls.length ? u.photoUrls : (u.photoUrl ? [u.photoUrl] : [])
@@ -151,7 +152,7 @@ export default function UserDetailAdmin() {
           <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
             {u.isAdmin && <span className="badge badge-info">Admin</span>}
             {u.banned && <span className="badge badge-danger">Banned{u.banReason ? `: ${u.banReason}` : ''}</span>}
-            {activeSub && <span className="badge badge-success">Premium · {activeSub.remainingMatches ?? 0} matches left</span>}
+            {activeSub && <span className="badge badge-success">Premium{toMillis(activeSub.expiresAt) ? ` until ${formatDate(activeSub.expiresAt)}` : ''}</span>}
             {!u.isProfileComplete && <span className="badge badge-neutral">Profile incomplete</span>}
             {u.isPhoneVerified && <span className="badge badge-neutral">Phone verified</span>}
             {u.collegeId?.verified && <span className="badge badge-neutral">College verified</span>}
@@ -306,13 +307,14 @@ export default function UserDetailAdmin() {
       {tab === 'plans' && (
         <div className="stack" style={{ gap: 16 }}>
           <div className="admin-card">
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>Grant a plan (free)</div>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Give Premium (free)</div>
             <div className="admin-toolbar" style={{ marginBottom: 0 }}>
               <select className="input" value={grantPlan} onChange={(e) => setGrantPlan(e.target.value)}>
                 {plans.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.audience || 'male'})</option>)}
               </select>
-              <input className="input" type="number" min={1} style={{ width: 110 }} value={grantQuota} onChange={(e) => setGrantQuota(Number(e.target.value))} title="Match quota" />
-              <button className="btn btn-primary" disabled={busy || !grantPlan} onClick={() => run(() => grantSubscription(uid, grantPlan, Math.max(1, grantQuota), 'Granted from user page'), 'Plan granted.')}>Grant</button>
+              <input className="input" type="number" min={1} style={{ width: 110 }} value={grantDays} onChange={(e) => setGrantDays(Number(e.target.value))} title="Days of Premium" />
+              <span style={{ fontSize: 13, color: 'var(--admin-text-muted)' }}>days</span>
+              <button className="btn btn-primary" disabled={busy || !grantPlan} onClick={() => run(() => grantSubscription(uid, grantPlan, Math.max(1, grantDays), 'Granted from user page'), 'Premium granted.')}>Grant</button>
             </div>
           </div>
 
@@ -320,18 +322,18 @@ export default function UserDetailAdmin() {
             <div style={{ fontWeight: 600, padding: '16px 16px 0' }}>Subscriptions</div>
             <div className="admin-table-wrapper">
               <table className="admin-table">
-                <thead><tr><th>Plan</th><th>Status</th><th>Matches left</th><th>Created</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Plan</th><th>Status</th><th>Premium until</th><th>Created</th><th>Actions</th></tr></thead>
                 <tbody>
                   {subs.map((s) => (
                     <tr key={s.id}>
                       <td>{plans.find((p) => p.id === s.planId)?.name || s.planId}{s.grantedByAdmin ? ' · granted' : ''}</td>
-                      <td><span className={`badge ${s.status === 'active' ? 'badge-success' : 'badge-neutral'}`}>{s.status}</span></td>
-                      <td>{s.remainingMatches ?? 0} / {s.matchQuota ?? 0}</td>
+                      <td><span className={`badge ${isLive(s) ? 'badge-success' : 'badge-neutral'}`}>{isLive(s) ? 'active' : 'ended'}</span></td>
+                      <td>{toMillis(s.expiresAt) ? formatDate(s.expiresAt) : 'no end date (legacy)'}</td>
                       <td>{formatDate(s.createdAt)}</td>
                       <td>
                         <div className="row" style={{ gap: 6 }}>
-                          <button className="btn btn-sm" disabled={busy} onClick={() => run(() => addSubscriptionMatches(s.id, uid, 1))}>+1 match</button>
-                          {s.status === 'active'
+                          <button className="btn btn-sm" disabled={busy} onClick={() => run(() => extendSubscription(s.id, uid, 7))}>+7 days</button>
+                          {isLive(s)
                             ? <button className="btn btn-sm" disabled={busy} onClick={() => run(() => setSubscriptionStatus(s.id, uid, 'expired'))}>Expire</button>
                             : <button className="btn btn-sm" disabled={busy} onClick={() => run(() => setSubscriptionStatus(s.id, uid, 'active'))}>Reactivate</button>}
                         </div>

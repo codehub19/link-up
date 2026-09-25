@@ -6,35 +6,58 @@ export type ActiveSubscription = {
   uid: string
   planId: string
   status: 'active' | 'expired'
-  remainingMatches: number
-  matchQuota: number
+  startsAt?: any
+  /** Premium is time-based: active until this moment */
+  expiresAt?: any
+  durationDays?: number
   supportAvailable?: boolean
-  roundsUsed?: number
-  roundsAllowed?: number
+  grantedByAdmin?: boolean
+  // Legacy (plans used to be sold by match count)
+  remainingMatches?: number
+  matchQuota?: number
   plan?: {
     id: string
     name: string
     price: number
-    matchQuota: number
-    roundsAllowed: number
+    durationDays?: number
     offers?: string[]
     supportAvailable?: boolean
   }
 }
 
+export function toMillis(t: any): number {
+  if (!t) return 0
+  if (typeof t.toMillis === 'function') return t.toMillis()
+  if (t instanceof Date) return t.getTime()
+  if (t.seconds) return t.seconds * 1000
+  if (typeof t === 'number') return t
+  return 0
+}
+
+/** Mirrors isSubActive in functions/src/premium.ts */
+export function isSubscriptionActive(sub: any, now = Date.now()): boolean {
+  if (!sub || sub.status !== 'active') return false
+  const exp = toMillis(sub.expiresAt)
+  return exp === 0 || exp > now
+}
+
+export function formatPremiumUntil(sub: ActiveSubscription | null) {
+  const exp = toMillis(sub?.expiresAt)
+  return exp ? new Date(exp).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : null
+}
+
 export async function getActiveSubscription(uid: string): Promise<ActiveSubscription | null> {
   // Avoid composite index: only filter by uid, then pick an active one in code
-  const q = query(collection(db, 'subscriptions'), where('uid', '==', uid), limit(10))
+  const q = query(collection(db, 'subscriptions'), where('uid', '==', uid), limit(20))
   const snap = await getDocs(q)
   if (snap.empty) return null
 
   const subs = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as ActiveSubscription[]
-  const active = subs.find(s => s.status === 'active' && Number(s.remainingMatches ?? 0) > 0)
-              || subs.find(s => s.status === 'active')
-              || null
+  const active = subs
+    .filter(s => isSubscriptionActive(s))
+    .sort((a, b) => toMillis(b.expiresAt) - toMillis(a.expiresAt))[0] || null
   if (!active) return null
 
-  // Ensure roundsAllowed is present in subscription (from plan if missing)
   if (active.planId) {
     const p = await getDoc(doc(db, 'plans', active.planId))
     if (p.exists()) {
@@ -43,20 +66,12 @@ export async function getActiveSubscription(uid: string): Promise<ActiveSubscrip
         id: p.id,
         name: pd.name,
         price: pd.price,
-        matchQuota: pd.matchQuota ?? pd.quota,
-        roundsAllowed: pd.roundsAllowed ?? 1,
+        durationDays: pd.durationDays,
         offers: pd.offers,
-        supportAvailable: pd.supportAvailable
-      }
-      // If subscription roundsAllowed is missing, set from plan
-      if (active.roundsAllowed == null && pd.roundsAllowed != null) {
-        active.roundsAllowed = pd.roundsAllowed
+        supportAvailable: pd.supportAvailable,
       }
     }
   }
-  // Ensure roundsAllowed is never undefined
-  if (active.roundsAllowed == null) active.roundsAllowed = active.plan?.roundsAllowed ?? 1
-
   return active
 }
 

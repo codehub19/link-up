@@ -4,6 +4,7 @@ import { useAuth } from '../../../state/AuthContext'
 import { useEffect, useState } from 'react'
 import { getActiveRound } from '../../../services/rounds'
 import { getBoysWhoLikedGirl } from '../../../services/likes'
+import { toMillis } from '../../../services/subscriptions'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db, callConfirmMatchByGirl } from '../../../firebase'
 import ProfileMiniCard from '../../../components/ProfileMiniCard'
@@ -114,6 +115,14 @@ export default function MatchingRound() {
           !(p.userType !== 'general' && p.datingPreference === 'college_only')
         )
       }
+
+      // Premium members are shown first (premiumUntil is set only by the server)
+      const now = Date.now()
+      const isPremium = (u: any) => toMillis(u?.premiumUntil) > now
+      filteredProfiles = filteredProfiles
+        .map((u, i) => ({ u, i }))
+        .sort((a, b) => Number(isPremium(b.u)) - Number(isPremium(a.u)) || a.i - b.i)
+        .map((x) => x.u)
 
       setBoys(filteredProfiles)
     }

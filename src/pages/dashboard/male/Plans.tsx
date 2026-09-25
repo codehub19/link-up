@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { collection, onSnapshot, query, where, doc } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { toast } from 'sonner'
-import { listActivePlans, getActiveSubscription, type ActiveSubscription } from '../../../services/subscriptions'
+import { listActivePlans, getActiveSubscription, isSubscriptionActive, formatPremiumUntil, type ActiveSubscription } from '../../../services/subscriptions'
 import { addMaleToActiveRound } from '../../../services/rounds'
 import './Plans.styles.css'
 import HomeBackground from '../../../components/home/HomeBackground'
@@ -179,17 +179,9 @@ export default function MalePlans() {
         const d = doc.data() as any
         const key = slug(d.planId || '')
         if (!key) return
-        const remaining = Number(d.remainingMatches ?? 0)
-        const status = String(d.status ?? 'active')
-        const roundsUsed = Number(d.roundsUsed ?? 0)
-        const roundsAllowed = Number(d.roundsAllowed ?? 1)
-
-        const isActiveNow = status === 'active' && remaining > 0 && roundsUsed < roundsAllowed
-        if (isActiveNow) activeMap[key] = true
-
-        if (status === 'expired' || (status === 'active' && (remaining <= 0 || roundsUsed >= roundsAllowed))) {
-          expiredMap[key] = true
-        }
+        // Premium is time-based: active until expiresAt
+        if (isSubscriptionActive(d)) activeMap[key] = true
+        else expiredMap[key] = true
       })
 
       setActiveByPlan(activeMap)
@@ -360,8 +352,10 @@ export default function MalePlans() {
         <MaleTabs />
 
         <div className="plans-hero">
-          <h1 className="plans-title text-gradient">Choose Your Plan</h1>
-          <p className="plans-subtitle">Unlock exclusive rounds and verified matches.</p>
+          <h1 className="plans-title text-gradient">DateU Premium</h1>
+          <p className="plans-subtitle">
+            Rounds are free for everyone. Premium puts you first — you're shown to women ahead of others in every round.
+          </p>
 
           {isReferralUsed || isReferralPending ? (
             <div style={{ marginTop: 16, display: 'inline-block', background: 'rgba(234, 179, 8, 0.1)', padding: '8px 16px', borderRadius: 20, border: '1px solid rgba(234, 179, 8, 0.2)' }}>
@@ -391,21 +385,15 @@ export default function MalePlans() {
               <div className="banner-details">
                 <b>{sub.plan?.name ?? sub.planId}</b>
                 <span style={{ margin: '0 8px', opacity: 0.3 }}>|</span>
-                {sub.remainingMatches} Matches Remaining
-                {sub.plan?.roundsAllowed && (
-                  <>
-                    <span style={{ margin: '0 8px', opacity: 0.3 }}>|</span>
-                    {sub.plan.roundsAllowed - (sub.roundsUsed ?? 0)} Rounds Remaining
-                  </>
-                )}
+                {formatPremiumUntil(sub) ? `Premium active until ${formatPremiumUntil(sub)}` : 'Premium active'}
               </div>
               {sub.plan?.supportAvailable && (
                 <div style={{ marginTop: 4, fontSize: '0.85rem', color: '#34d399' }}>✓ Premium Support Included</div>
               )}
             </div>
             <div className="banner-actions">
-              <button className="plan-btn plan-btn-primary" style={{ padding: '0.75rem 1.5rem', width: 'auto' }} onClick={() => nav('/dashboard/matches')}>
-                Go to Matches
+              <button className="plan-btn plan-btn-primary" style={{ padding: '0.75rem 1.5rem', width: 'auto' }} onClick={() => nav('/dashboard/male/rounds')}>
+                Go to this round
               </button>
             </div>
           </div>
@@ -427,21 +415,19 @@ export default function MalePlans() {
               const isPending = paymentStatusByPlan[key] === 'pending'
               const isExpired = expiredByPlan[key] === true
 
-              const hasAnyActive = Object.values(activeByPlan).some(v => v === true)
-              const isBlocked = hasAnyActive && !isActive
+              // Buying again while Premium is active simply extends it
+              const isBlocked = false
+              const days = Number(p.durationDays) > 0 ? Number(p.durationDays) : 30
 
-              const matchCount = (p.matchQuota ?? p.quota ?? 1)
-              const roundsAllowed = (p.roundsAllowed ?? 1)
-
-              const btnLabel = isActive
-                ? 'Current Plan'
-                : isPending
-                  ? 'Approval Pending'
+              const btnLabel = isPending
+                ? 'Approval Pending'
+                : isActive
+                  ? 'Extend Premium'
                   : isExpired
-                    ? 'Renew Plan'
-                    : 'Select Plan'
+                    ? 'Renew Premium'
+                    : 'Get Premium'
 
-              const btnAction = isActive ? () => nav('/dashboard/matches') : () => choose(p)
+              const btnAction = () => choose(p)
 
               const isFeatured = p.isFeatured || false; // Assume property or default
 
@@ -509,11 +495,23 @@ export default function MalePlans() {
                   <ul className="plan-features">
                     <li className="plan-feature-item">
                       <CheckIcon />
-                      <span>{matchCount} Verified Match{matchCount > 1 ? 'es' : ''}</span>
+                      <span>{days} days of Premium</span>
                     </li>
                     <li className="plan-feature-item">
                       <CheckIcon />
-                      <span>Access to {roundsAllowed} Matching Round{roundsAllowed > 1 ? 's' : ''}</span>
+                      <span>Shown first to women in every round</span>
+                    </li>
+                    <li className="plan-feature-item">
+                      <CheckIcon />
+                      <span>More profiles suggested to you each round</span>
+                    </li>
+                    <li className="plan-feature-item">
+                      <CheckIcon />
+                      <span>Paired first in random calls{typeof p.dailyCallLimit === 'number' ? ` · ${p.dailyCallLimit} calls a day` : ' · more calls a day'}</span>
+                    </li>
+                    <li className="plan-feature-item">
+                      <CheckIcon />
+                      <span>Keep chatting after the 24-hour call window</span>
                     </li>
                     {Array.isArray(p.offers) && p.offers.map((o: string) => (
                       <li key={o} className="plan-feature-item">
@@ -559,6 +557,12 @@ export default function MalePlans() {
             })}
           </div>
         )}
+
+        <p style={{ maxWidth: 640, margin: '2rem auto 0', textAlign: 'center', fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
+          Premium improves your visibility and your chances — it doesn't guarantee a match, because every match depends on
+          both people choosing each other. Payments are non-refundable once Premium is activated.
+          See our <a href="/legal/refunds" style={{ color: '#fb7185' }}>Refund &amp; Cancellation Policy</a>.
+        </p>
       </div>
     </>
   )

@@ -5,13 +5,13 @@ import { db } from '../firebase'
 
 export type MaleEntitlement = {
   inActiveRound: boolean
+  /** Active Premium (time-based). Rounds are free; Premium gives priority. */
   hasActiveSubscription: boolean
-  remainingMatches: number
 }
 
 export async function getMaleEntitlement(uid: string): Promise<MaleEntitlement> {
   const sub = await getActiveSubscription(uid)
-  const hasActiveSubscription = !!sub && (sub.remainingMatches ?? 0) > 0
+  const hasActiveSubscription = !!sub
   let inActiveRound = false
   try {
     const active = await getActiveRound()
@@ -24,6 +24,5 @@ export async function getMaleEntitlement(uid: string): Promise<MaleEntitlement> 
   return {
     inActiveRound,
     hasActiveSubscription,
-    remainingMatches: sub?.remainingMatches ?? 0,
   }
 }

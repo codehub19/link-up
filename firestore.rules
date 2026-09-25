@@ -31,7 +31,7 @@ service cloud.firestore {
     // Fields only admins / Cloud Functions may set on a user profile.
     function protectedUserKeys() {
       return ['isAdmin', 'banned', 'bannedAt', 'banReason', 'referralEarningsPaid',
-              'referralDiscountUsed', 'referralDiscountUsedAt'];
+              'referralDiscountUsed', 'referralDiscountUsedAt', 'premiumUntil'];
     }
 
     // Private contact data lives in userPrivate/{uid}; it must not be (re)added to the

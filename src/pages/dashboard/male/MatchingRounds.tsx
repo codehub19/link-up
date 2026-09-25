@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react'
 import { getActiveRound } from '../../../services/rounds'
 import { getAssignedGirlsForBoy } from '../../../services/assignments'
 import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore'
-import { db } from '../../../firebase'
+import { db, callJoinMatchingRound } from '../../../firebase'
+import { getActiveSubscription, formatPremiumUntil, type ActiveSubscription } from '../../../services/subscriptions'
 import ProfileMiniCard from '../../../components/ProfileMiniCard'
 import Carousel from '../../../components/Carousel'
 import { toast } from 'sonner'
@@ -38,12 +39,6 @@ type UserDoc = {
   height?: string
 }
 
-type SubscriptionDoc = {
-  status: string // 'active', 'expired', etc.
-  planId?: string
-  validUntil?: any // timestamp
-}
-
 // Helper to get live status of a round
 function getRoundLiveStatus(phases: any): { live: boolean, phase: string | null } {
   const now = Date.now();
@@ -67,9 +62,10 @@ export default function MatchingRounds() {
   const [assignedUids, setAssignedUids] = useState<string[]>([])
   const [girls, setGirls] = useState<UserDoc[]>([])
   const [liked, setLiked] = useState<Set<string>>(new Set())
-  const [subscription, setSubscription] = useState<SubscriptionDoc | null>(null)
-  const [loadingSub, setLoadingSub] = useState(true)
-  const [hasAnySubscription, setHasAnySubscription] = useState<boolean>(false)
+  // Rounds are free; Premium only gives priority
+  const [premium, setPremium] = useState<ActiveSubscription | null>(null)
+  const [inRound, setInRound] = useState(false)
+  const [joining, setJoining] = useState(false)
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   useEffect(() => {
@@ -86,33 +82,28 @@ export default function MatchingRounds() {
     run()
   }, [])
 
-  // Fetch subscription/plan status for the user
   useEffect(() => {
-    const fetchSub = async () => {
-      setLoadingSub(true)
-      if (!user) {
-        setSubscription(null)
-        setHasAnySubscription(false)
-        setLoadingSub(false)
-        return
-      }
-      const subSnap = await getDocs(
-        query(collection(db, 'subscriptions'), where('uid', '==', user.uid))
-      )
-      if (subSnap.empty) {
-        setSubscription(null)
-        setHasAnySubscription(false)
-      } else {
-        setHasAnySubscription(true)
-        const subs = subSnap.docs.map(d => d.data() as SubscriptionDoc)
-        // Sort by validUntil if needed, pick the most recent one
-        const activeSub = subs.find(s => s.status === 'active')
-        setSubscription(activeSub || subs[0] || null)
-      }
-      setLoadingSub(false)
-    }
-    fetchSub()
+    if (!user) return
+    getActiveSubscription(user.uid).then(setPremium).catch(() => setPremium(null))
   }, [user])
+
+  useEffect(() => {
+    setInRound(!!user && Array.isArray(roundObj?.participatingMales) && roundObj.participatingMales.includes(user.uid))
+  }, [roundObj, user])
+
+  const joinRound = async () => {
+    if (!roundId) return
+    setJoining(true)
+    try {
+      await callJoinMatchingRound({ roundId })
+      setInRound(true)
+      toast.success("You're in! Profiles will appear here once this round's picks are ready.")
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not join the round')
+    } finally {
+      setJoining(false)
+    }
+  }
 
   useEffect(() => {
     const run = async () => {
@@ -196,7 +187,6 @@ export default function MatchingRounds() {
   }
 
   // UI logic
-  const hasActivePlan = !!subscription && subscription.status === 'active'
   const roundStatus = roundObj ? getRoundLiveStatus(roundObj.phases) : { live: false, phase: null }
 
   const handleCarouselChange = () => {
@@ -244,23 +234,27 @@ export default function MatchingRounds() {
           )}
         </div>
 
-        {!loadingSub && (
-          !hasAnySubscription ? (
+        {!inRound ? (
             <div className="rounds-empty-card">
-              <div className="rounds-empty-title">Ready to Match?</div>
-              <p className="rounds-empty-text">Purchase your first plan to join the exclusive matching rounds and find verified students.</p>
-              <a className="rounds-action-btn" href="/dashboard/plans">Purchase Plan</a>
-            </div>
-          ) : !hasActivePlan ? (
-            <div className="rounds-empty-card">
-              <div className="rounds-empty-title">Plan Expired</div>
-              <p className="rounds-empty-text">Your membership has expired. Renew your plan to unlock this round and continue matching.</p>
-              <a className="rounds-action-btn" href="/dashboard/plans">Upgrade Plan</a>
+              <div className="rounds-empty-title">Join this round — it's free</div>
+              <p className="rounds-empty-text">
+                We'll suggest a few compatible profiles for you. Like the ones you're interested in, and if she likes you back, it's a match.
+              </p>
+              <button className="rounds-action-btn" onClick={joinRound} disabled={joining} style={{ border: 'none', cursor: 'pointer' }}>
+                {joining ? 'Joining…' : 'Join Round'}
+              </button>
+              {!premium && (
+                <p className="rounds-empty-text" style={{ marginTop: 16, fontSize: '0.85rem' }}>
+                  ⭐ Want to stand out? <Link to="/dashboard/plans">Premium members</Link> are shown first to women and get more suggestions.
+                </p>
+              )}
             </div>
           ) : (
             <>
               <div className="rounds-info-banner">
-                Curated profiles assigned to you this round. Like your favorites to connect!
+                {premium
+                  ? `⭐ Premium${formatPremiumUntil(premium) ? ` until ${formatPremiumUntil(premium)}` : ''} — you're shown first to women this round. Like your favorites to connect!`
+                  : <>Curated profiles for you this round. Like your favorites to connect! <Link to="/dashboard/plans">Get Premium</Link> to be shown first.</>}
               </div>
 
               {assignedUids.length === 0 ? (
@@ -316,8 +310,7 @@ export default function MatchingRounds() {
                 </div>
               )}
             </>
-          )
-        )}
+          )}
       </div>
     </>
   )

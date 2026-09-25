@@ -8,8 +8,10 @@ type Plan = {
   name: string
   price: number
   discountPercent?: number
-  matchQuota: number
-  roundsAllowed: number
+  durationDays?: number
+  // Legacy (plans used to be sold by match count)
+  matchQuota?: number
+  roundsAllowed?: number
   offers: string[]
   supportAvailable: boolean
   audience?: 'male' | 'female' | 'all'
@@ -22,8 +24,7 @@ export default function PlansAdmin() {
   const [name, setName] = useState('')
   const [price, setPrice] = useState<number>(49)
   const [discountPercent, setDiscountPercent] = useState<number>(0)
-  const [matchQuota, setMatchQuota] = useState<number>(1)
-  const [roundsAllowed, setRoundsAllowed] = useState<number>(1)
+  const [durationDays, setDurationDays] = useState<number>(30)
   const [offersText, setOffersText] = useState('')
   const [supportAvailable, setSupportAvailable] = useState<boolean>(false)
   const [active, setActive] = useState<boolean>(true)
@@ -52,7 +53,7 @@ export default function PlansAdmin() {
         // Update existing
         const offers = offersText.split('\n').map(s => s.trim()).filter(Boolean)
         await updateDoc(doc(db, 'plans', editingId), {
-          name, price, discountPercent, matchQuota, roundsAllowed, offers, supportAvailable, active,
+          name, price, discountPercent, durationDays: Math.max(1, durationDays), offers, supportAvailable, active,
           audience, dailyCallLimit: dailyCallLimit === '' ? null : Number(dailyCallLimit),
           updatedAt: new Date()
         })
@@ -61,7 +62,7 @@ export default function PlansAdmin() {
         const id = toSlug(name)
         const offers = offersText.split('\n').map(s => s.trim()).filter(Boolean)
         await setDoc(doc(db, 'plans', id), {
-          name, price, discountPercent, matchQuota, roundsAllowed, offers, supportAvailable, active,
+          name, price, discountPercent, durationDays: Math.max(1, durationDays), offers, supportAvailable, active,
           audience, dailyCallLimit: dailyCallLimit === '' ? null : Number(dailyCallLimit),
           createdAt: new Date(), updatedAt: new Date(),
         }, { merge: true })
@@ -76,7 +77,7 @@ export default function PlansAdmin() {
 
   function resetForm() {
     setName(''); setOffersText(''); setPrice(49); setDiscountPercent(0);
-    setMatchQuota(1); setRoundsAllowed(1); setSupportAvailable(false); setActive(true)
+    setDurationDays(30); setSupportAvailable(false); setActive(true)
     setAudience('male'); setDailyCallLimit('')
     setEditingId(null)
   }
@@ -86,8 +87,7 @@ export default function PlansAdmin() {
     setName(p.name)
     setPrice(p.price)
     setDiscountPercent(p.discountPercent || 0)
-    setMatchQuota(p.matchQuota || 1)
-    setRoundsAllowed(p.roundsAllowed || 1)
+    setDurationDays(p.durationDays || 30)
     setOffersText(p.offers?.join('\n') || '')
     setSupportAvailable(p.supportAvailable || false)
     setActive(p.active)
@@ -147,8 +147,7 @@ export default function PlansAdmin() {
 
               <div style={{ flex: 1 }}>
                 <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                  <span className="badge badge-info">Quota: {p.matchQuota}</span>
-                  <span className="badge badge-info">Rounds: {p.roundsAllowed ?? 1}</span>
+                  <span className="badge badge-info">{p.durationDays || 30} days</span>
                   <span className="badge badge-info">For: {p.audience || 'male'}</span>
                   {typeof p.dailyCallLimit === 'number' && <span className="badge badge-info">Calls/day: {p.dailyCallLimit}</span>}
                   {p.supportAvailable && <span className="badge badge-warning">Support</span>}
@@ -203,12 +202,9 @@ export default function PlansAdmin() {
               <input className="input" type="number" placeholder="0" value={discountPercent} onChange={e => setDiscountPercent(Number(e.target.value))} />
             </div>
             <div className="stack">
-              <label style={{ fontWeight: 600, marginBottom: 6 }}>Match Quota</label>
-              <input className="input" type="number" value={matchQuota} onChange={e => setMatchQuota(Number(e.target.value))} />
-            </div>
-            <div className="stack">
-              <label style={{ fontWeight: 600, marginBottom: 6 }}>Rounds Allowed</label>
-              <input className="input" type="number" value={roundsAllowed} onChange={e => setRoundsAllowed(Number(e.target.value))} />
+              <label style={{ fontWeight: 600, marginBottom: 6 }}>Premium duration (days)</label>
+              <input className="input" type="number" min={1} value={durationDays} onChange={e => setDurationDays(Number(e.target.value))} />
+              <span style={{ fontSize: 12, color: 'var(--admin-text-muted)', marginTop: 4 }}>Premium gives priority in rounds and calls for this long. It doesn't include a number of matches.</span>
             </div>
           </div>
 

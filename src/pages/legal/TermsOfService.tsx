@@ -40,6 +40,13 @@ export default function TermsOfService() {
                 </section>
 
                 <section>
+                    <h3 className="text-xl font-bold text-white mb-4">3A. DateU Premium &amp; Payments</h3>
+                    <p className="text-gray-400 leading-relaxed">
+                        DateU is free to use. DateU Premium is an optional paid service that gives your profile priority placement in matching rounds and random calls for the number of days stated on the plan. Premium does not guarantee any number of matches, replies or dates. Premium does not renew automatically. Payments are non-refundable once Premium is activated, except as set out in our <a href="/legal/refunds" className="text-rose-400 hover:text-rose-300">Refund &amp; Cancellation Policy</a>.
+                    </p>
+                </section>
+
+                <section>
                     <h3 className="text-xl font-bold text-white mb-4">4. Limitation of Liability</h3>
                     <p className="text-gray-400 leading-relaxed uppercase">
                         TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW (INCLUDING INDIAN LAW), DATEU, ITS AFFILIATES, EMPLOYEES, AND DIRECTORS SHALL NOT BE LIABLE FOR ANY DAMAGES WHATSOEVER, WHETHER DIRECT, INDIRECT, GENERAL, SPECIAL, COMPENSATORY, CONSEQUENTIAL, OR INCIDENTAL, ARISING OUT OF OR RELATING TO THE CONDUCT OF YOU OR ANYONE ELSE IN CONNECTION WITH THE USE OF THE SERVICE, INCLUDING WITHOUT LIMITATION, BODILY INJURY, EMOTIONAL DISTRESS, LOSS OF DATA, OR ANY OTHER DAMAGES RESULTING FROM COMMUNICATIONS OR MEETINGS WITH OTHER USERS.

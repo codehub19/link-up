@@ -1,7 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../state/AuthContext'
 import { useEffect, useState } from 'react'
-import { getMaleEntitlement } from '../../services/entitlements'
 
 export default function DashboardChooser() {
   const { user, profile, loading } = useAuth()
@@ -24,9 +23,8 @@ export default function DashboardChooser() {
 
       if (profile.gender === 'male') {
         if (!user) return setDest('/setup/gender')
-        const ent = await getMaleEntitlement(user.uid)
-        if (ent.hasActiveSubscription) return setDest('/dashboard/matches')
-        return setDest('/dashboard/plans')
+        // Rounds are free for everyone, so men land on the round like women do
+        return setDest('/dashboard/male/rounds')
       } else if (profile.gender === 'female') {
         // console.log('Redirecting to female round')
         return setDest('/dashboard/round')
