@@ -239,7 +239,7 @@ export default function SettingsPage() {
       title: 'Help & Support',
       items: [
         { label: 'Help Center', action: () => window.open('/support', '_blank') },
-        { label: 'Contact Us', action: () => window.open('mailto:support@dateu.com') },
+        { label: 'Contact Us', action: () => window.open('mailto:support@dateu.in') },
       ]
     }
   ]

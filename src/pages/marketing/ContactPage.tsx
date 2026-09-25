@@ -24,21 +24,21 @@ export default function ContactPage() {
                                     <span className="text-2xl">📧</span>
                                     <div>
                                         <h4 className="text-white font-medium">Support</h4>
-                                        <a href="mailto:support@dateu.com" className="text-rose-400 hover:text-rose-300">support@dateu.com</a>
+                                        <a href="mailto:support@dateu.in" className="text-rose-400 hover:text-rose-300">support@dateu.in</a>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-4">
                                     <span className="text-2xl">👮</span>
                                     <div>
                                         <h4 className="text-white font-medium">Safety & Legal</h4>
-                                        <a href="mailto:legal@dateu.com" className="text-rose-400 hover:text-rose-300">legal@dateu.com</a>
+                                        <a href="mailto:legal@dateu.in" className="text-rose-400 hover:text-rose-300">legal@dateu.in</a>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-4">
                                     <span className="text-2xl">💼</span>
                                     <div>
                                         <h4 className="text-white font-medium">Partnerships</h4>
-                                        <a href="mailto:partners@dateu.com" className="text-rose-400 hover:text-rose-300">partners@dateu.com</a>
+                                        <a href="mailto:partners@dateu.in" className="text-rose-400 hover:text-rose-300">partners@dateu.in</a>
                                     </div>
                                 </div>
                             </div>

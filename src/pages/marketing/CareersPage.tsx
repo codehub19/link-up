@@ -107,7 +107,7 @@ export default function CareersPage() {
 
                     <div style={{ marginTop: '32px', textAlign: 'center' }}>
                         <p style={{ color: '#6b7280', fontSize: '14px' }}>
-                            Don't see a role for you? <a href="mailto:officialdateu@gmail.com" style={{ color: '#fb7185', textDecoration: 'underline' }}>Email us</a> anyway. We hire for hunger, not just skills.
+                            Don't see a role for you? <a href="mailto:hello@dateu.in" style={{ color: '#fb7185', textDecoration: 'underline' }}>Email us</a> anyway. We hire for hunger, not just skills.
                         </p>
                     </div>
                 </div>

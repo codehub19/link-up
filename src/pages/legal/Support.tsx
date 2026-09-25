@@ -25,7 +25,7 @@ export default function Support() {
         </p>
         <div className="flex items-center gap-2 text-rose-400 font-medium">
           <span>📧</span>
-          <a href="mailto:officialdateu@gmail.com" className="hover:underline">officialdateu@gmail.com</a>
+          <a href="mailto:support@dateu.in" className="hover:underline">support@dateu.in</a>
         </div>
         <p className="text-xs text-gray-500 mt-4">We aim to respond to all inquiries within 48-72 business hours.</p>
       </div>

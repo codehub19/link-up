@@ -56,7 +56,7 @@ export default function PrivacyPolicy() {
             <br /><br />
             <strong>Grievance Officer:</strong> Legal Team
             <br />
-            <strong>Email:</strong> <a href="mailto:officialdateu@gmail.com" className="text-rose-400 hover:text-rose-300">officialdateu@gmail.com</a>
+            <strong>Email:</strong> <a href="mailto:legal@dateu.in" className="text-rose-400 hover:text-rose-300">legal@dateu.in</a>
             <br />
             <strong>Subject:</strong> Privacy Grievance
           </p>

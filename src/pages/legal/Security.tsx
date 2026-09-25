@@ -45,7 +45,7 @@ export default function Security() {
                         <div className="mt-12">
                             <h3 className="text-2xl font-semibold mb-4 text-white">Reporting Vulnerabilities</h3>
                             <p className="text-gray-300">
-                                If you believe you have found a security vulnerability in DateU, please contact our security team immediately at <a href="mailto:security@dateu.com" className="text-rose-400 hover:text-rose-300">security@dateu.com</a>.
+                                If you believe you have found a security vulnerability in DateU, please contact our security team immediately at <a href="mailto:security@dateu.in" className="text-rose-400 hover:text-rose-300">security@dateu.in</a>.
                             </p>
                         </div>
                     </div>
