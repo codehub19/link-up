@@ -20,6 +20,7 @@ import {
   updateDoc,
   serverTimestamp,
   arrayRemove,
+  deleteField,
 } from 'firebase/firestore'
 import {
   getStorage,
@@ -169,17 +170,69 @@ export type UserProfile = {
   [k: string]: any
 }
 
+// ---- Private profile data ----
+// Contact details and ID images live in userPrivate/{uid} (owner + admins only),
+// not on the publicly readable users/{uid} profile.
+export const PRIVATE_USER_FIELDS = ['email', 'phoneNumber', 'upiId', 'fcmToken'] as const
+
+function splitPrivate(patch: Record<string, any>) {
+  const pub: Record<string, any> = {}
+  const priv: Record<string, any> = {}
+  for (const [k, v] of Object.entries(patch)) {
+    if ((PRIVATE_USER_FIELDS as readonly string[]).includes(k)) priv[k] = v
+    else pub[k] = v
+  }
+  return { pub, priv }
+}
+
+export async function updatePrivateProfile(uid: string, patch: Record<string, any>) {
+  await setDoc(doc(db, 'userPrivate', uid), { ...patch, updatedAt: serverTimestamp() }, { merge: true })
+}
+
+export async function getPrivateProfile(uid: string): Promise<Record<string, any>> {
+  const snap = await getDoc(doc(db, 'userPrivate', uid))
+  return snap.exists() ? snap.data() : {}
+}
+
+/**
+ * Moves private fields still stored on the public profile (older accounts) into userPrivate.
+ * Returns true if anything was moved.
+ */
+export async function migrateOwnPrivateFields(uid: string, raw: Record<string, any> | undefined) {
+  if (!raw) return false
+  const priv: Record<string, any> = {}
+  const removals: Record<string, any> = {}
+  for (const k of PRIVATE_USER_FIELDS) {
+    if (raw[k] !== undefined) {
+      if (raw[k] !== null) priv[k] = raw[k]
+      removals[k] = deleteField()
+    }
+  }
+  const cid = raw.collegeId
+  if (cid && (cid.frontUrl || cid.backUrl)) {
+    priv.collegeId = { frontUrl: cid.frontUrl || null, backUrl: cid.backUrl || null }
+    removals['collegeId.frontUrl'] = deleteField()
+    removals['collegeId.backUrl'] = deleteField()
+    removals['collegeId.submitted'] = true
+  }
+  if (Object.keys(removals).length === 0) return false
+  if (Object.keys(priv).length) await updatePrivateProfile(uid, priv)
+  await updateDoc(doc(db, 'users', uid), removals)
+  return true
+}
+
 // ---- Account Deletion Request ----
 export async function requestAccountDeletion(uid: string, reason: string) {
   const refReq = doc(db, 'account_delete_requests', uid)
   const userRef = doc(db, 'users', uid)
   const userSnap = await getDoc(userRef)
   const userData = userSnap.exists() ? userSnap.data() : {}
+  const priv = await getPrivateProfile(uid)
 
   await setDoc(refReq, {
     uid,
-    email: userData.email || null,
-    phoneNumber: userData.phoneNumber || null,
+    email: priv.email || userData.email || null,
+    phoneNumber: priv.phoneNumber || userData.phoneNumber || null,
     reason,
     requestedAt: serverTimestamp(),
     status: 'pending'
@@ -248,9 +301,9 @@ export async function ensureUserDocument(user: FirebaseUser) {
   const snap = await getDoc(refDoc)
   const now = serverTimestamp()
   if (!snap.exists()) {
+    await updatePrivateProfile(user.uid, { email: user.email ?? null })
     await setDoc(refDoc, {
       uid: user.uid,
-      email: user.email ?? null,
       name: user.displayName || '',
       photoUrl: user.photoURL || null,
       createdAt: now,
@@ -287,6 +340,9 @@ export async function updateProfileAndStatus(
   statusPatch?: Record<string, any>
 ) {
   const refDoc = doc(db, 'users', uid)
+  const { pub, priv } = splitPrivate(fieldPatch)
+  if (Object.keys(priv).length) await updatePrivateProfile(uid, priv)
+  fieldPatch = pub
   let mergedStatus = undefined
   if (statusPatch) {
     const snap = await getDoc(refDoc)
@@ -369,13 +425,14 @@ export async function uploadCollegeId(uid: string, frontFile: File, backFile: Fi
   })
   const backUrl = await getDownloadURL(backRef)
 
-  // Store URLs in Firestore
+  // Image URLs are private; the public profile only says an ID is awaiting review
+  await updatePrivateProfile(uid, { collegeId: { frontUrl, backUrl } })
   const refDoc = doc(db, 'users', uid)
   await setDoc(refDoc, {
     collegeId: {
-      frontUrl,
-      backUrl,
-      verified: false // Set true after admin verification
+      submitted: true,
+      verified: false, // Set true after admin verification
+      rejected: false,
     },
     updatedAt: serverTimestamp(),
   }, { merge: true })

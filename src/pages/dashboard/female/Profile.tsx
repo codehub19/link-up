@@ -9,8 +9,7 @@ import '../dashboard.css'
 import '../male/Profile.styles.css' // Reusing the Male styles
 import { getReferralStats, createReferralClaim, listPendingClaims, assignReferralCode } from '../../../services/referrals'
 import { toast } from 'sonner'
-import { updateDoc, doc } from 'firebase/firestore'
-import { db } from '../../../firebase'
+import { db, updatePrivateProfile } from '../../../firebase'
 
 export default function ProfilePage() {
   const { profile } = useAuth()
@@ -276,7 +275,7 @@ function ReferralCard({ user }: { user: any }) {
     if (!upiId.trim() || !user?.uid) return
     setLoading(true)
     try {
-      await updateDoc(doc(db, 'users', user.uid), { upiId: upiId.trim() })
+      await updatePrivateProfile(user.uid, { upiId: upiId.trim() })
       setIsActivated(true)
       toast.success('Referral program activated!')
       refreshData()

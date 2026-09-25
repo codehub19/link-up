@@ -508,7 +508,8 @@ export default function ChatPage() {
   const isMobileView = isMobile
 
   const chatLocked = chatExpiresMs !== undefined && now >= chatExpiresMs
-  const chatDisabled = iAmBlocked || iBlockedThem || chatLocked
+  const isBanned = !!profile?.banned
+  const chatDisabled = iAmBlocked || iBlockedThem || chatLocked || isBanned
 
   const handleUnlock = async () => {
     if (!selectedId) return
@@ -517,8 +518,7 @@ export default function ChatPage() {
       await unlockRandomChat(selectedId)
     } catch (e: any) {
       if (e?.details?.reason === 'premium') {
-        if (profile?.gender === 'male') nav('/dashboard/plans')
-        else await showAlert(`Your free chat time with ${selectedPeer?.name?.split(' ')[0] || 'this person'} has ended. Premium is needed to keep chatting.`)
+        nav(profile?.gender === 'male' ? '/dashboard/plans' : '/dashboard/premium')
       } else {
         await showAlert('Could not unlock this chat. Please try again.')
       }
@@ -527,7 +527,11 @@ export default function ChatPage() {
     }
   }
 
-  const randomCallBanner = chatExpiresMs === undefined ? null : chatLocked ? (
+  const randomCallBanner = isBanned ? (
+    <div className="rc-chat-banner rc-chat-banner-locked">
+      <span>🚫 Your account has been restricted from sending messages. Contact support if you think this is a mistake.</span>
+    </div>
+  ) : chatExpiresMs === undefined ? null : chatLocked ? (
     <div className="rc-chat-banner rc-chat-banner-locked">
       <span>⏳ Your free chat time has ended. Upgrade to Premium to keep chatting.</span>
       <button className="rc-btn rc-btn-primary" onClick={handleUnlock} disabled={unlocking}>
@@ -570,6 +574,17 @@ export default function ChatPage() {
       </div>
 
       <div className="chat-actions">
+        {!chatDisabled && (
+          <button
+            className="icon-btn"
+            onClick={() => selectedPeer && nav(`/dashboard/random-call?with=${encodeURIComponent(selectedPeer.uid)}`)}
+            title="Voice call"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+          </button>
+        )}
         <button
           className="icon-btn"
           onClick={() => setShowReport(true)}
@@ -720,6 +735,17 @@ export default function ChatPage() {
                       </div>
 
                       <div className="chat-actions">
+                        {!chatDisabled && (
+                          <button
+                            className="icon-btn"
+                            onClick={() => selectedPeer && nav(`/dashboard/random-call?with=${encodeURIComponent(selectedPeer.uid)}`)}
+                            title="Voice call"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0 1 22 16.92z" />
+                            </svg>
+                          </button>
+                        )}
                         <button
                           className="icon-btn"
                           onClick={() => setShowReport(true)}

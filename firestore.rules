@@ -4,7 +4,8 @@ service cloud.firestore {
 
     function isAdmin() {
       return request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true;
     }
 
     function isParticipant(uid, participants) {
@@ -27,8 +28,53 @@ service cloud.firestore {
     }
 
 
+    // Fields only admins / Cloud Functions may set on a user profile.
+    function protectedUserKeys() {
+      return ['isAdmin', 'banned', 'bannedAt', 'banReason', 'referralEarningsPaid',
+              'referralDiscountUsed', 'referralDiscountUsedAt'];
+    }
+
+    // Private contact data lives in userPrivate/{uid}; it must not be (re)added to the
+    // publicly readable profile. Removing it (migration) is allowed.
+    function privateUserKeys() {
+      return ['email', 'phoneNumber', 'upiId', 'fcmToken'];
+    }
+
+    // Owners can't mark their own college ID verified or put ID image URLs on the public profile.
+    function collegeIdWriteOk() {
+      let before = resource == null ? {} : resource.data.get('collegeId', {});
+      let after = request.resource.data.get('collegeId', {});
+      return (after.get('verified', false) == false || after.get('verified', false) == before.get('verified', false))
+        && (after.get('frontUrl', null) == null || after.get('frontUrl', null) == before.get('frontUrl', null))
+        && (after.get('backUrl', null) == null || after.get('backUrl', null) == before.get('backUrl', null));
+    }
+
+    function isBanned() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('banned', false) == true;
+    }
+
     match /users/{uid} {
       allow read: if request.auth != null;
+      allow create: if isAdmin() || (
+        request.auth != null && request.auth.uid == uid
+        && !request.resource.data.keys().hasAny(protectedUserKeys())
+        && !request.resource.data.keys().hasAny(privateUserKeys())
+        && collegeIdWriteOk()
+      );
+      allow update: if isAdmin() || (
+        request.auth != null && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(protectedUserKeys())
+        && !request.resource.data.diff(resource.data).addedKeys().hasAny(privateUserKeys())
+        && !request.resource.data.diff(resource.data).changedKeys().hasAny(privateUserKeys())
+        && collegeIdWriteOk()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Email, phone, UPI ID, push token and college ID images: owner and admins only.
+    match /userPrivate/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
       allow create, update: if (request.auth != null && request.auth.uid == uid) || isAdmin();
       allow delete: if isAdmin();
     }
@@ -109,7 +155,13 @@ service cloud.firestore {
     // Chat threads and messages
     match /threads/{threadId} {
       // Participants (or admin) can read existing threads
-      allow read: if request.auth != null && (isAdmin() || isParticipant(request.auth.uid, resource.data.participants));
+      // A missing thread may be read by either person named in its id, so clients can
+      // check for it before creating it (instead of overwriting an existing one).
+      allow read: if request.auth != null && (
+        (resource == null && request.auth.uid in threadId.split('_'))
+        || isAdmin()
+        || (resource != null && isParticipant(request.auth.uid, resource.data.participants))
+      );
 
       // Create must include two participants incl. the caller, and timestamps
       allow create: if request.auth != null
@@ -157,6 +209,7 @@ service cloud.firestore {
                         )
                       )
                       && isChatOpen(get(/databases/$(database)/documents/threads/$(threadId)).data)
+                      && !isBanned()
                       && request.resource.data.senderUid == request.auth.uid
                       && request.resource.data.text is string
                       && request.resource.data.createdAt != null;
@@ -166,6 +219,15 @@ service cloud.firestore {
                         request.auth != null
                         && resource.data.senderUid == request.auth.uid
                         && request.time < resource.data.createdAt + duration.value(30, 'm')
+                      )
+                      // Either participant can like / unlike a message
+                      || (
+                        request.auth != null
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
+                        && isParticipant(
+                             request.auth.uid,
+                             get(/databases/$(database)/documents/threads/$(threadId)).data.participants
+                           )
                       );
         allow delete: if isAdmin()
                       || (
@@ -241,26 +303,35 @@ service cloud.firestore {
 
     // Referrals
     match /referrals/{referralId} {
-      // Create: Authenticated user creating their own referral record during setup
-      allow create: if request.auth != null; 
+      // Create: a new user records who referred them, once (doc id = their uid).
+      allow create: if request.auth != null
+                    && referralId == request.auth.uid
+                    && request.resource.data.refereeUid == request.auth.uid
+                    && request.resource.data.referrerUid is string
+                    && request.resource.data.referrerUid != request.auth.uid
+                    && request.resource.data.hasMatched == false
+                    && request.resource.data.status == 'pending';
       // Read: Referrer can see who they referred, Referee can see their own record
       allow read: if request.auth != null && (
         resource.data.referrerUid == request.auth.uid || 
         resource.data.refereeUid == request.auth.uid || 
         isAdmin()
       );
-      // Update: System updates status. User updates match status (girl confirming match).
-      // We allow updates if user is the referee (confirming match) or admin.
-      allow update: if request.auth != null && (
-         resource.data.refereeUid == request.auth.uid || 
-         isAdmin()
-      ); 
+      // Update: qualification is set by confirmMatchByGirl (Cloud Function) or an admin.
+      allow update: if isAdmin();
     }
 
     // Referral Claims
     match /referral_claims/{claimId} {
       // Create: Authenticated user can create their own claim
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.amount is number
+                    && request.resource.data.amount > 0
+                    && request.resource.data.amount <= 10000
+                    && request.resource.data.upiId is string
+                    && request.resource.data.upiId.size() <= 100;
       // Read: Users read own claims, admins read all
       allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isAdmin());
       // Update: Admin approves/rejects
@@ -271,7 +342,19 @@ service cloud.firestore {
 
     // Job Applications
     match /job_applications/{appId} {
-      allow create: if true; // Public submission
+      // Public submission, limited to the form's fields and sane sizes
+      allow create: if request.resource.data.keys().hasOnly(
+                         ['name', 'email', 'phone', 'college', 'linkedin', 'resumeLink', 'whyFit', 'role', 'status', 'createdAt'])
+                    && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+                    && request.resource.data.email is string && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+$')
+                    && request.resource.data.email.size() <= 200
+                    && request.resource.data.get('phone', '').size() <= 30
+                    && request.resource.data.get('college', '').size() <= 200
+                    && request.resource.data.get('linkedin', '').size() <= 300
+                    && request.resource.data.get('resumeLink', '').size() <= 500
+                    && request.resource.data.get('whyFit', '').size() <= 5000
+                    && request.resource.data.status == 'new'
+                    && request.resource.data.createdAt == request.time;
       allow read, update, delete: if isAdmin();
     }
 
@@ -298,8 +381,11 @@ service cloud.firestore {
     // Created by joinRandomCallQueue; participants exchange WebRTC signaling and
     // record their own post-call decision.
     match /randomCalls/{callId} {
+      // calleeUid check lets the callee listen for incoming (ringing) calls with a query
       allow read: if request.auth != null
-                  && (request.auth.uid in resource.data.participants || isAdmin());
+                  && (resource.data.calleeUid == request.auth.uid
+                      || request.auth.uid in resource.data.participants
+                      || isAdmin());
       allow update: if request.auth != null
                     && request.auth.uid in resource.data.participants
                     && request.resource.data.diff(resource.data).affectedKeys()

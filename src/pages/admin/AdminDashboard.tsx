@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { collection, getCountFromServer, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
+import { collection, getCountFromServer, query, where, getDocs, orderBy, limit, getDoc, doc } from 'firebase/firestore'
 import { ref, onValue } from 'firebase/database'
 import { db, rtdb } from '../../firebase'
 import { listPendingPayments } from '../../services/payments'
 import { getActiveRound } from '../../services/rounds'
+import PrivacyMigrationButton from './PrivacyMigrationButton'
 import { Users, TrendingUp, AlertCircle, CreditCard, Activity } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -50,12 +51,14 @@ export default function AdminDashboard() {
                 // query users ordered by lastLoginAt desc
                 const q = query(userColl, orderBy('lastLoginAt', 'desc'), limit(5));
                 const snap = await getDocs(q);
-                const users = snap.docs.map(d => {
+                // Emails live in userPrivate (admin-readable)
+                const privDocs = await Promise.all(snap.docs.map(d => getDoc(doc(db, 'userPrivate', d.id)).catch(() => null)));
+                const users = snap.docs.map((d, i) => {
                     const data = d.data();
                     return {
                         uid: d.id,
                         name: data.name || 'Unknown',
-                        email: data.email,
+                        email: privDocs[i]?.data()?.email || data.email,
                         photoUrl: data.photoUrl,
                         lastLoginAt: data.lastLoginAt?.toDate ? data.lastLoginAt.toDate() : new Date(),
                     }
@@ -110,6 +113,8 @@ export default function AdminDashboard() {
     return (
         <div>
             <h2 style={{ marginBottom: 24 }}>Dashboard Overview</h2>
+
+            <PrivacyMigrationButton />
 
             <div className="admin-stat-grid">
                 <div className="admin-card">

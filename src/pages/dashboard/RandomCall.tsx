@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
 import { toast } from 'sonner'
 import Navbar from '../../components/Navbar'
@@ -10,7 +10,7 @@ import PhoneVerification from '../../components/PhoneVerification'
 import ReportModal from '../../components/chat/ReportModal'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { useAuth } from '../../state/AuthContext'
-import { db } from '../../firebase'
+import { db, updateProfileAndStatus } from '../../firebase'
 import { reportUser } from '../../services/chatModeration'
 import {
   HEARTBEAT_MS,
@@ -19,6 +19,7 @@ import {
   RandomCallSession,
   joinRandomCallQueue,
   leaveRandomCallQueue,
+  startMatchCall,
   sendQueueHeartbeat,
   submitCallDecision,
   subscribeQueueEntry,
@@ -30,8 +31,23 @@ import './dashboard.css'
 import './RandomCall.styles.css'
 
 // Mirrors RANDOM_CALL_DEFAULTS in functions/src/randomCall.ts (server is authoritative).
-const DEFAULTS = { maxCallSeconds: 300, dailyCallLimit: 5, chatWindowHours: 24, utcOffsetMinutes: 330 }
+const DEFAULTS = {
+  maxCallSeconds: 300,
+  dailyCallLimit: 5,
+  chatWindowHours: 24,
+  utcOffsetMinutes: 330,
+  openHour: null as number | null,
+  closeHour: null as number | null,
+}
 const CONNECT_TIMEOUT_MS = 30_000
+// Calls to a match ring on the other person's phone first, so allow longer
+const RING_TIMEOUT_MS = 45_000
+
+function formatHour(h: number) {
+  const suffix = h >= 12 ? 'PM' : 'AM'
+  const hr = h % 12 === 0 ? 12 : h % 12
+  return `${hr} ${suffix}`
+}
 
 type Phase = 'idle' | 'searching' | 'connecting' | 'in-call' | 'post-call'
 type Peer = { uid: string; name?: string; photoUrl?: string; college?: string; dob?: string }
@@ -49,8 +65,13 @@ function ageFromDob(dob?: string) {
 }
 
 export default function RandomCall() {
-  const { user, profile } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const nav = useNavigate()
+  const [params, setParams] = useSearchParams()
+  // ?call=<id>: answering a match call · ?with=<uid>: calling a match
+  const answerCallId = params.get('call')
+  const callPeerUid = params.get('with')
+  const matchMode = !!(answerCallId || callPeerUid)
 
   const [phase, setPhase] = useState<Phase>('idle')
   const [callId, setCallId] = useState<string | null>(null)
@@ -64,7 +85,8 @@ export default function RandomCall() {
   const [needsPhone, setNeedsPhone] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [showReport, setShowReport] = useState(false)
-  const [stats, setStats] = useState<{ day?: string; calls?: number } | null>(null)
+  const [stats, setStats] = useState<{ day?: string; calls?: number; dailyLimit?: number } | null>(null)
+  const [savingReminder, setSavingReminder] = useState(false)
   const [cfg, setCfg] = useState(DEFAULTS)
 
   const sessionRef = useRef<RandomCallSession | null>(null)
@@ -72,7 +94,10 @@ export default function RandomCall() {
   phaseRef.current = phase
 
   const uid = user?.uid
-  const phoneVerified = !!profile?.isPhoneVerified && !needsPhone
+  const isMatchCall = matchMode || call?.type === 'match'
+  // Phone verification is only required to call strangers
+  const phoneVerified = isMatchCall || (!!profile?.isPhoneVerified && !needsPhone)
+  const dailyLimit = stats?.dailyLimit ?? cfg.dailyCallLimit
 
   useEffect(() => {
     if (!uid) return
@@ -84,8 +109,49 @@ export default function RandomCall() {
   const callsLeft = useMemo(() => {
     const today = new Date(Date.now() + cfg.utcOffsetMinutes * 60_000).toISOString().slice(0, 10)
     const used = stats?.day === today ? Number(stats.calls || 0) : 0
-    return Math.max(0, cfg.dailyCallLimit - used)
+    return Math.max(0, (stats?.dailyLimit ?? cfg.dailyCallLimit) - used)
   }, [stats, cfg])
+
+  const hoursSet = cfg.openHour != null && cfg.closeHour != null
+  const openNow = useMemo(() => {
+    if (!hoursSet) return true
+    const h = new Date(Date.now() + cfg.utcOffsetMinutes * 60_000).getUTCHours()
+    return cfg.openHour! <= cfg.closeHour! ? h >= cfg.openHour! && h < cfg.closeHour! : h >= cfg.openHour! || h < cfg.closeHour!
+  }, [cfg, hoursSet, now])
+
+  // Answer an incoming match call, or place one
+  const startedFromParams = useRef(false)
+  useEffect(() => {
+    if (!uid || startedFromParams.current) return
+    if (answerCallId) {
+      startedFromParams.current = true
+      setCallId(answerCallId)
+    } else if (callPeerUid) {
+      startedFromParams.current = true
+      setJoining(true)
+      startMatchCall(callPeerUid)
+        .then((res) => setCallId(res.callId))
+        .catch((e) => {
+          toast.error(e?.message || 'Could not start the call.')
+          setParams({}, { replace: true })
+        })
+        .finally(() => setJoining(false))
+    }
+  }, [uid, answerCallId, callPeerUid, setParams])
+
+  const toggleReminders = async () => {
+    if (!uid) return
+    setSavingReminder(true)
+    try {
+      await updateProfileAndStatus(uid, { callReminders: !profile?.callReminders })
+      await refreshProfile()
+      toast.success(profile?.callReminders ? 'Reminders turned off' : "We'll remind you when calls open")
+    } catch {
+      toast.error('Could not save your reminder setting.')
+    } finally {
+      setSavingReminder(false)
+    }
+  }
 
   // Tick for countdowns
   useEffect(() => {
@@ -103,6 +169,7 @@ export default function RandomCall() {
   }, [])
 
   const resetForNextCall = useCallback(() => {
+    if (params.toString()) setParams({}, { replace: true })
     setCallId(null)
     setCall(null)
     setPeer(null)
@@ -110,7 +177,7 @@ export default function RandomCall() {
     setWasConnected(false)
     setNotice(null)
     setPhase('idle')
-  }, [])
+  }, [params, setParams])
 
   /* ---------------- Queue ---------------- */
   const startSearch = async () => {
@@ -166,6 +233,12 @@ export default function RandomCall() {
     if (!uid || !call || sessionRef.current || phaseRef.current !== 'connecting') return
     const peerUid = call.participants.find((p) => p !== uid)
     if (!peerUid) return
+    if (call.status === 'ended') {
+      // e.g. answering a call the caller already hung up
+      setNotice('This call has ended.')
+      setPhase('post-call')
+      return
+    }
 
     getDoc(doc(db, 'users', peerUid)).then((snap) => {
       if (snap.exists()) setPeer({ uid: peerUid, ...(snap.data() as any) })
@@ -205,12 +278,12 @@ export default function RandomCall() {
     if (phase !== 'connecting') return
     const t = setTimeout(() => {
       if (phaseRef.current === 'connecting') {
-        setNotice("Couldn't connect this time. Try another call.")
+        setNotice(isMatchCall ? 'No answer. Try again later.' : "Couldn't connect this time. Try another call.")
         endSession('no_answer')
       }
-    }, CONNECT_TIMEOUT_MS)
+    }, isMatchCall ? RING_TIMEOUT_MS : CONNECT_TIMEOUT_MS)
     return () => clearTimeout(t)
-  }, [phase, endSession])
+  }, [phase, endSession, isMatchCall])
 
   // Hard time limit
   const maxSec = call?.maxDurationSec ?? cfg.maxCallSeconds
@@ -277,6 +350,21 @@ export default function RandomCall() {
         <PhoneVerification onVerified={() => setNeedsPhone(false)} />
       </div>
     )
+  } else if (phase === 'idle' && profile?.banned) {
+    body = (
+      <div className="rc-card">
+        <div className="rc-emoji">🚫</div>
+        <h2>Calls unavailable</h2>
+        <p className="rc-muted">Your account has been restricted from calls. Contact support if you think this is a mistake.</p>
+      </div>
+    )
+  } else if (phase === 'idle' && matchMode) {
+    body = (
+      <div className="rc-card">
+        <div className="rc-pulse"><span>📞</span></div>
+        <h2>Starting call…</h2>
+      </div>
+    )
   } else if (phase === 'idle') {
     body = (
       <div className="rc-card">
@@ -286,12 +374,27 @@ export default function RandomCall() {
           Talk to someone new for up to {Math.round(maxSec / 60)} minutes. If you both like each other,
           you get {chatHours} hours of free chat.
         </p>
-        <button className="rc-btn rc-btn-primary" onClick={startSearch} disabled={joining || callsLeft === 0}>
+        {hoursSet && (
+          <p className={openNow ? 'rc-muted rc-small' : 'rc-notice'}>
+            Call hours: {formatHour(cfg.openHour!)} – {formatHour(cfg.closeHour!)}{openNow ? ' · open now' : ' · closed right now'}
+          </p>
+        )}
+        <button className="rc-btn rc-btn-primary" onClick={startSearch} disabled={joining || callsLeft === 0 || !openNow}>
           {joining ? <LoadingSpinner size={18} color="#fff" /> : 'Start a call'}
         </button>
         <p className="rc-muted rc-small">
-          {callsLeft === 0 ? "You've used all your calls today. Come back tomorrow!" : `${callsLeft} of ${cfg.dailyCallLimit} calls left today`}
+          {callsLeft === 0 ? "You've used all your calls today. Come back tomorrow!" : `${callsLeft} of ${dailyLimit} calls left today`}
         </p>
+        {callsLeft === 0 && dailyLimit <= cfg.dailyCallLimit && (
+          <button className="rc-btn rc-btn-link" onClick={() => nav(profile?.gender === 'male' ? '/dashboard/plans' : '/dashboard/premium')}>
+            Get more calls with Premium
+          </button>
+        )}
+        {hoursSet && (
+          <button className="rc-btn rc-btn-link" onClick={toggleReminders} disabled={savingReminder}>
+            {profile?.callReminders ? '🔕 Stop call-hour reminders' : '🔔 Remind me when calls open'}
+          </button>
+        )}
       </div>
     )
   } else if (phase === 'searching') {
@@ -308,7 +411,9 @@ export default function RandomCall() {
       <div className="rc-card">
         {peerCard || <div className="rc-pulse"><span>📞</span></div>}
         <div className={`rc-timer ${phase === 'in-call' && remainingSec <= 30 ? 'rc-timer-warn' : ''}`}>
-          {phase === 'connecting' ? 'Connecting…' : formatClock(remainingSec)}
+          {phase === 'connecting'
+            ? (call?.status === 'ringing' && call.callerUid === uid ? 'Ringing…' : 'Connecting…')
+            : formatClock(remainingSec)}
         </div>
         {phase === 'in-call' && <p className="rc-muted rc-small">Call ends automatically when the timer runs out</p>}
         <div className="rc-controls">
@@ -326,6 +431,8 @@ export default function RandomCall() {
     let outcome: React.ReactNode
     if (!wasConnected) {
       outcome = null
+    } else if (isMatchCall) {
+      outcome = <h2>Call ended</h2>
     } else if (call?.connected) {
       outcome = (
         <>
@@ -366,9 +473,15 @@ export default function RandomCall() {
         {notice && <p className="rc-notice">{notice}</p>}
         {outcome}
         <div className="rc-choice">
-          <button className="rc-btn rc-btn-ghost" onClick={resetForNextCall}>
-            {callsLeft > 0 ? 'Next call' : 'Done'}
-          </button>
+          {isMatchCall && peer ? (
+            <button className="rc-btn rc-btn-primary" onClick={() => nav(`/dashboard/chat?with=${encodeURIComponent(peer.uid)}`)}>
+              Back to chat
+            </button>
+          ) : (
+            <button className="rc-btn rc-btn-ghost" onClick={resetForNextCall}>
+              {callsLeft > 0 ? 'Next call' : 'Done'}
+            </button>
+          )}
           {peer && wasConnected && (
             <button className="rc-btn rc-btn-link" onClick={() => setShowReport(true)}>Report</button>
           )}

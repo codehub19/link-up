@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin'
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
+import { getFcmTokens } from './push'
 import * as logger from 'firebase-functions/logger'
 
 const REGION = 'asia-south2'
@@ -34,15 +35,7 @@ export const onMessageCreate = onDocumentCreated(
         const senderSnap = await admin.firestore().collection('users').doc(senderUid).get()
         const senderName = senderSnap.exists ? (senderSnap.data()?.name || 'Someone') : 'Someone'
 
-        const tokens: string[] = []
-
-        for (const rid of recipients) {
-            const uSnap = await admin.firestore().collection('users').doc(rid).get()
-            const token = uSnap.data()?.fcmToken
-            if (token) {
-                tokens.push(token)
-            }
-        }
+        const tokens = await getFcmTokens(recipients)
 
         if (tokens.length > 0) {
             const payload = {

@@ -1,6 +1,8 @@
 import * as admin from 'firebase-admin'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore'
+import { onSchedule } from 'firebase-functions/v2/scheduler'
+import { sendPushToUsers } from './push'
 import * as logger from 'firebase-functions/logger'
 
 /* ----------------------------------------------------------------------------
@@ -28,7 +30,9 @@ const QUEUE_STALE_MS = 30 * 1000
 export const RANDOM_CALL_DEFAULTS = {
   enabled: true,
   maxCallSeconds: 5 * 60, // hard cap for a single call
-  dailyCallLimit: 5, // calls per user per day
+  dailyCallLimit: 5, // calls per user per day (free)
+  premiumDailyCallLimit: 20, // calls per day with an active plan (a plan's own dailyCallLimit wins)
+  matchCallMaxSeconds: 15 * 60, // calls between people who are already matched
   chatWindowHours: 24, // free chat after a mutual like
   // Optional daily window (local hours, 0-23). null = open all day.
   openHour: null as number | null,
@@ -64,9 +68,24 @@ function threadIdFor(a: string, b: string) {
   return [a, b].sort().join('_')
 }
 
-async function hasActiveSubscription(uid: string) {
+async function getActiveSubscription(uid: string) {
   const snap = await db.collection('subscriptions').where('uid', '==', uid).limit(10).get()
-  return snap.docs.some((d) => d.data()?.status === 'active')
+  return snap.docs.find((d) => d.data()?.status === 'active')?.data() ?? null
+}
+
+async function hasActiveSubscription(uid: string) {
+  return !!(await getActiveSubscription(uid))
+}
+
+/** Free users get dailyCallLimit; plan holders get the plan's dailyCallLimit or premiumDailyCallLimit. */
+async function dailyLimitFor(uid: string, cfg: RandomCallConfig) {
+  const sub = await getActiveSubscription(uid)
+  if (!sub) return cfg.dailyCallLimit
+  if (sub.planId) {
+    const plan = (await db.collection('plans').doc(String(sub.planId)).get()).data()
+    if (typeof plan?.dailyCallLimit === 'number') return plan.dailyCallLimit
+  }
+  return cfg.premiumDailyCallLimit
 }
 
 /* ----------------------------------------------------------------------------
@@ -93,6 +112,9 @@ export const joinRandomCallQueue = onCall({ region: REGION }, async (req) => {
   if (!me.isProfileComplete) {
     throw new HttpsError('failed-precondition', 'Complete your profile first.', { reason: 'profile' })
   }
+  if (me.banned) {
+    throw new HttpsError('permission-denied', 'Your account is restricted from calls.', { reason: 'banned' })
+  }
 
   const cfg = await loadConfig()
   if (!cfg.enabled) {
@@ -110,10 +132,13 @@ export const joinRandomCallQueue = onCall({ region: REGION }, async (req) => {
   const statsRef = db.collection('randomCallStats').doc(uid)
   const stats = (await statsRef.get()).data() || {}
   const usedToday = stats.day === today ? Number(stats.calls || 0) : 0
-  if (usedToday >= cfg.dailyCallLimit) {
+  const dailyLimit = await dailyLimitFor(uid, cfg)
+  // Lets the page show "x of N calls left" for this user's plan
+  if (stats.dailyLimit !== dailyLimit) await statsRef.set({ dailyLimit }, { merge: true })
+  if (usedToday >= dailyLimit) {
     throw new HttpsError('resource-exhausted', 'You have used all your calls for today.', {
       reason: 'limit',
-      dailyCallLimit: cfg.dailyCallLimit,
+      dailyCallLimit: dailyLimit,
     })
   }
 
@@ -173,6 +198,7 @@ export const joinRandomCallQueue = onCall({ region: REGION }, async (req) => {
 
     const callRef = db.collection('randomCalls').doc()
     tx.set(callRef, {
+      type: 'random',
       participants: [peerUid, uid],
       // The user who joined last creates the WebRTC offer.
       callerUid: uid,
@@ -203,7 +229,7 @@ export const onRandomCallUpdated = onDocumentUpdated(
     const after = event.data?.after
     if (!after?.exists) return
     const call = after.data() as any
-    if (call.connected) return
+    if (call.connected || call.type === 'match') return
 
     const [a, b] = (call.participants || []) as string[]
     if (!a || !b) return
@@ -292,3 +318,118 @@ export const unlockRandomChat = onCall({ region: REGION }, async (req) => {
   })
   return { ok: true }
 })
+
+/* ----------------------------------------------------------------------------
+ * startMatchCall: voice-call someone you're already matched with (or connected
+ * with through a random call whose chat is still open). The callee's app rings.
+ * ------------------------------------------------------------------------- */
+async function canCall(a: string, b: string) {
+  const matches = await db.collection('matches').where('participants', 'array-contains', a).get()
+  if (matches.docs.some((d) => (d.data().participants || []).includes(b) && (d.data().status ?? 'confirmed') === 'confirmed')) {
+    return true
+  }
+  const thread = (await db.collection('threads').doc(threadIdFor(a, b)).get()).data()
+  if (thread?.source === 'random_call') {
+    const expires = thread.chatExpiresAt?.toMillis?.() ?? 0
+    return thread.unlocked === true || Date.now() < expires
+  }
+  return false
+}
+
+export const startMatchCall = onCall({ region: REGION }, async (req) => {
+  const uid = req.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Sign in required')
+  const { peerUid } = (req.data || {}) as { peerUid?: string }
+  if (!peerUid || peerUid === uid) throw new HttpsError('invalid-argument', 'peerUid is required')
+
+  const [meSnap, peerSnap, myBlocks, peerBlocks] = await Promise.all([
+    db.collection('users').doc(uid).get(),
+    db.collection('users').doc(peerUid).get(),
+    db.collection('userBlocks').doc(uid).get(),
+    db.collection('userBlocks').doc(peerUid).get(),
+  ])
+  if (meSnap.data()?.banned) {
+    throw new HttpsError('permission-denied', 'Your account is restricted from calls.', { reason: 'banned' })
+  }
+  if (!peerSnap.exists) throw new HttpsError('not-found', 'User not found')
+  if ((myBlocks.data()?.uids || []).includes(peerUid) || (peerBlocks.data()?.uids || []).includes(uid)) {
+    throw new HttpsError('permission-denied', "You can't call this person.", { reason: 'blocked' })
+  }
+  if (!(await canCall(uid, peerUid))) {
+    throw new HttpsError('permission-denied', 'You can only call people you are matched with.', { reason: 'not-matched' })
+  }
+
+  const cfg = await loadConfig()
+  const callRef = db.collection('randomCalls').doc()
+  await callRef.set({
+    type: 'match',
+    participants: [uid, peerUid],
+    callerUid: uid,
+    calleeUid: peerUid,
+    status: 'ringing',
+    maxDurationSec: cfg.matchCallMaxSeconds,
+    decisions: {},
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  })
+
+  const callerName = String(meSnap.data()?.name || 'Your match').split(' ')[0]
+  await sendPushToUsers([peerUid], `📞 ${callerName} is calling you`, 'Open DateU to answer', `/dashboard/random-call?call=${callRef.id}`)
+    .catch((e) => logger.warn('match call push failed', e))
+
+  return { callId: callRef.id, maxCallSeconds: cfg.matchCallMaxSeconds }
+})
+
+/* ----------------------------------------------------------------------------
+ * getTurnCredentials: short-lived TURN relay credentials so calls connect on
+ * strict mobile networks. Configure ONE of these in Firestore (server-only):
+ *   serverConfig/turn { cloudflareKeyId, cloudflareApiToken }   (Cloudflare Realtime TURN)
+ *   serverConfig/turn { urls: [...], username, credential }      (any static TURN server)
+ * ------------------------------------------------------------------------- */
+export const getTurnCredentials = onCall({ region: REGION }, async (req) => {
+  if (!req.auth?.uid) throw new HttpsError('unauthenticated', 'Sign in required')
+  const cfg = (await db.collection('serverConfig').doc('turn').get()).data()
+  if (!cfg) return { iceServers: [] }
+
+  if (cfg.cloudflareKeyId && cfg.cloudflareApiToken) {
+    try {
+      const res = await fetch(
+        `https://rtc.live.cloudflare.com/v1/turn/keys/${cfg.cloudflareKeyId}/credentials/generate-ice-servers`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${cfg.cloudflareApiToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ttl: 3600 }),
+        }
+      )
+      if (!res.ok) throw new Error(`Cloudflare TURN ${res.status}`)
+      const body: any = await res.json()
+      const servers = Array.isArray(body.iceServers) ? body.iceServers : [body.iceServers]
+      return { iceServers: servers.filter(Boolean) }
+    } catch (e: any) {
+      logger.error('TURN credentials failed', e?.message)
+      return { iceServers: [] }
+    }
+  }
+  if (cfg.urls && cfg.username && cfg.credential) {
+    return { iceServers: [{ urls: cfg.urls, username: cfg.username, credential: cfg.credential }] }
+  }
+  return { iceServers: [] }
+})
+
+/* ----------------------------------------------------------------------------
+ * randomCallHourReminder: when call hours are configured (openHour/closeHour),
+ * push a reminder at opening time to users who turned reminders on.
+ * ------------------------------------------------------------------------- */
+export const randomCallHourReminder = onSchedule(
+  { schedule: '0 * * * *', region: REGION, timeZone: 'UTC' },
+  async () => {
+    const cfg = await loadConfig()
+    if (!cfg.enabled || cfg.openHour == null || cfg.closeHour == null) return
+    if (localDate(cfg).getUTCHours() !== cfg.openHour) return
+
+    const snap = await db.collection('users').where('callReminders', '==', true).select().get()
+    const uids = snap.docs.map((d) => d.id)
+    if (!uids.length) return
+    const sent = await sendPushToUsers(uids, '📞 Random calls are open!', 'Call hours just started — meet someone new now.', '/dashboard/random-call')
+    logger.info('call hour reminders sent', { users: uids.length, sent })
+  }
+)

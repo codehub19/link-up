@@ -16,10 +16,11 @@ export type RandomCallDecision = 'like' | 'pass'
 
 export type RandomCallDoc = {
   id: string
+  type?: 'random' | 'match'
   participants: string[]
   callerUid: string
   calleeUid: string
-  status: 'connecting' | 'active' | 'ended'
+  status: 'ringing' | 'connecting' | 'active' | 'ended'
   maxDurationSec: number
   chatWindowHours?: number
   offer?: { type: RTCSdpType; sdp: string }
@@ -47,6 +48,28 @@ export async function joinRandomCallQueue(opts?: { rejoin?: boolean }): Promise<
   const fn = httpsCallable<unknown, JoinResult>(functions, 'joinRandomCallQueue')
   const res = await fn({ rejoin: !!opts?.rejoin })
   return res.data
+}
+
+/** Call someone you're matched with; their app rings. */
+export async function startMatchCall(peerUid: string): Promise<{ callId: string; maxCallSeconds: number }> {
+  const fn = httpsCallable<unknown, { callId: string; maxCallSeconds: number }>(functions, 'startMatchCall')
+  const res = await fn({ peerUid })
+  return res.data
+}
+
+/** Ringing calls addressed to this user. */
+export function subscribeIncomingCalls(uid: string, cb: (calls: RandomCallDoc[]) => void) {
+  const q = query(collection(db, 'randomCalls'), where('calleeUid', '==', uid), where('status', '==', 'ringing'))
+  return onSnapshot(q, (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }) as RandomCallDoc)), () => cb([]))
+}
+
+export async function declineCall(callId: string, uid: string) {
+  await updateDoc(doc(db, 'randomCalls', callId), {
+    status: 'ended',
+    endedAt: serverTimestamp(),
+    endedBy: uid,
+    endReason: 'declined',
+  })
 }
 
 export async function unlockRandomChat(threadId: string) {
@@ -88,19 +111,36 @@ export function subscribeRandomCallConfig(cb: (cfg: Record<string, any> | null) 
  * WebRTC (audio only). Media flows peer-to-peer; Firestore only carries signaling.
  * A TURN server is optional but recommended for users behind strict NATs.
  * ------------------------------------------------------------------------- */
-function iceServers(): RTCIceServer[] {
-  const servers: RTCIceServer[] = [
-    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-  ]
+function envTurnServers(): RTCIceServer[] {
   const turnUrl = import.meta.env.VITE_TURN_URL
-  if (turnUrl) {
-    servers.push({
-      urls: turnUrl.split(',').map((u: string) => u.trim()),
-      username: import.meta.env.VITE_TURN_USERNAME,
-      credential: import.meta.env.VITE_TURN_CREDENTIAL,
-    })
+  if (!turnUrl) return []
+  return [{
+    urls: turnUrl.split(',').map((u: string) => u.trim()),
+    username: import.meta.env.VITE_TURN_USERNAME,
+    credential: import.meta.env.VITE_TURN_CREDENTIAL,
+  }]
+}
+
+// TURN credentials from the getTurnCredentials function are short-lived; reuse for 50 min.
+let turnCache: { at: number; servers: RTCIceServer[] } | null = null
+async function serverTurnServers(): Promise<RTCIceServer[]> {
+  if (turnCache && Date.now() - turnCache.at < 50 * 60 * 1000) return turnCache.servers
+  try {
+    const fn = httpsCallable<unknown, { iceServers: RTCIceServer[] }>(functions, 'getTurnCredentials')
+    const res = await fn({})
+    turnCache = { at: Date.now(), servers: res.data.iceServers || [] }
+  } catch {
+    turnCache = { at: Date.now(), servers: [] }
   }
-  return servers
+  return turnCache.servers
+}
+
+async function iceServers(): Promise<RTCIceServer[]> {
+  return [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+    ...envTurnServers(),
+    ...(await serverTurnServers()),
+  ]
 }
 
 export type CallConnectionState = 'connecting' | 'connected' | 'failed' | 'closed'
@@ -124,7 +164,7 @@ export class RandomCallSession {
 
   async start() {
     this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-    const pc = new RTCPeerConnection({ iceServers: iceServers() })
+    const pc = new RTCPeerConnection({ iceServers: await iceServers() })
     this.pc = pc
 
     this.localStream.getTracks().forEach((t) => pc.addTrack(t, this.localStream!))

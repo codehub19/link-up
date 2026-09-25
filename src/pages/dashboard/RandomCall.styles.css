@@ -205,3 +205,23 @@
   font-size: 0.85rem;
   min-width: 0;
 }
+
+/* Incoming match call overlay */
+.rc-incoming {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(8, 8, 14, 0.8);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.rc-incoming .rc-pulse .rc-avatar {
+  width: 88px;
+  height: 88px;
+  border: none;
+}

@@ -17,19 +17,27 @@ export default function CollegeIdVerification() {
       setLoading(true);
       setError(null);
       try {
-        const snap = await getDocs(collection(db, "users"));
+        // Image URLs and email are in userPrivate (admin-readable); older accounts may
+        // still have them on the public profile until they log in again.
+        const [snap, privSnap] = await Promise.all([
+          getDocs(collection(db, "users")),
+          getDocs(collection(db, "userPrivate")),
+        ]);
+        const priv: Record<string, any> = {};
+        privSnap.forEach(d => { priv[d.id] = d.data(); });
         const arr: any[] = [];
         snap.forEach(doc => {
           const data = doc.data();
+          const p = priv[doc.id] || {};
+          const collegeId = { ...(data.collegeId || {}), ...(p.collegeId || {}) };
           if (
-            data.collegeId &&
-            data.collegeId.frontUrl &&
-            data.collegeId.backUrl &&
-            (!data.collegeId.verified || data.collegeId.verified === false)
+            collegeId.frontUrl &&
+            collegeId.backUrl &&
+            !collegeId.verified &&
             // Only show pending verifications (not verified or rejected)
-            && !data.collegeId.rejected
+            !collegeId.rejected
           ) {
-            arr.push({ ...data, id: doc.id });
+            arr.push({ ...data, email: p.email || data.email, collegeId, id: doc.id });
           }
         });
         setUsers(arr);

@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { db } from '../firebase'
 
 export type ChatMessage = {
@@ -26,22 +26,22 @@ export function threadIdFor(u1: string, u2: string) {
   return [u1, u2].sort().join('_')
 }
 
-// Write-first creation (no pre-read)
+// Creates the thread only if it doesn't exist yet, so opening a chat never wipes
+// its createdAt / lastMessage. (Rules allow reading a missing thread named after you.)
 export async function ensureThread(currentUid: string, peerUid: string): Promise<string> {
   if (!currentUid || !peerUid) throw new Error('Missing participant uid(s)')
   const id = threadIdFor(currentUid, peerUid)
   const ref = doc(db, 'threads', id)
 
-  await setDoc(
-    ref,
-    {
+  const snap = await getDoc(ref)
+  if (!snap.exists()) {
+    await setDoc(ref, {
       participants: [currentUid, peerUid],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       lastMessage: null,
-    },
-    { merge: true }
-  )
+    })
+  }
 
   return id
 }
@@ -108,16 +108,10 @@ export async function deleteMessage(threadId: string, messageId: string) {
 
 export async function toggleLikeMessage(threadId: string, messageId: string, uid: string, currentLikes: string[] = []) {
   const ref = doc(db, 'threads', threadId, 'messages', messageId)
-  const isLiked = currentLikes.includes(uid)
-  if (isLiked) {
-    await updateDoc(ref, {
-      likes: currentLikes.filter(u => u !== uid)
-    })
-  } else {
-    await updateDoc(ref, {
-      likes: [...currentLikes, uid]
-    })
-  }
+  // arrayUnion/arrayRemove so two people liking at once don't overwrite each other
+  await updateDoc(ref, {
+    likes: currentLikes.includes(uid) ? arrayRemove(uid) : arrayUnion(uid)
+  })
 }
 
 export async function editMessage(threadId: string, messageId: string, newText: string) {

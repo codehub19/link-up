@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Users, CreditCard, Layers, Zap, Shield, Key, Bell, Send, Inbox, Briefcase } from 'lucide-react'
+import { Home, Users, CreditCard, Layers, Zap, Shield, Key, Bell, Send, Inbox, Briefcase, Flag } from 'lucide-react'
 
 export default function AdminSidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMobileOpen: (o: boolean) => void }) {
     const location = useLocation()
@@ -11,6 +11,7 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }: { mobileOpen
         { label: 'Applications', href: '/admin/applications', icon: Briefcase }, // <-- Added
         { label: 'Rounds', href: '/admin/rounds', icon: Layers },
         { label: 'Requests', href: '/admin/requests', icon: Inbox },
+        { label: 'Reports', href: '/admin/reports', icon: Flag },
         { label: 'Curation', href: '/admin/curation', icon: Zap },
         { label: 'Payments', href: '/admin/payments', icon: CreditCard },
         { label: 'Plans', href: '/admin/plans', icon: Shield },

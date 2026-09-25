@@ -12,6 +12,9 @@ import {
   finalizeIfComplete,
   normalizeProfile,
   setupPresence,
+  getPrivateProfile,
+  migrateOwnPrivateFields,
+  updatePrivateProfile,
 } from '../firebase'
 import { getToken, onMessage } from 'firebase/messaging'
 import { messaging } from '../firebase'
@@ -33,10 +36,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const loadProfile = async (uid: string) => {
-    const snap = await getDoc(doc(db, 'users', uid))
+    let snap = await getDoc(doc(db, 'users', uid))
     if (!snap.exists()) {
       setProfile(null)
       return
+    }
+    // Older accounts still have contact details on the public profile; move them.
+    try {
+      if (await migrateOwnPrivateFields(uid, snap.data())) snap = await getDoc(doc(db, 'users', uid))
+    } catch (e) {
+      console.warn('Private data migration skipped', e)
     }
     let data = normalizeProfile(snap.data())
     // Auto repair: if flattened keys exist and nested is empty
@@ -49,6 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const again = await getDoc(doc(db, 'users', uid))
       data = normalizeProfile(again.data())
     }
+    // Own private fields (email, phone, UPI, ID images) are merged in for convenience.
+    const priv = await getPrivateProfile(uid).catch(() => ({} as Record<string, any>))
+    if (data) {
+      const { updatedAt: _ignored, collegeId: privCollegeId, ...privFields } = priv as Record<string, any>
+      data = {
+        ...data,
+        ...privFields,
+        ...(data.collegeId || privCollegeId ? { collegeId: { ...(data.collegeId || {}), ...(privCollegeId || {}) } } : {}),
+      }
+    }
     setProfile(data)
   }
 
@@ -59,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
         const token = await getToken(messaging, { vapidKey: "BJMro5dKsOYThOeAFmzgqyZ5a5wUzlFQjEMNGChI6KxSqQHPCw_6_NcPNuLt0O-gR04SR-QeCCUhezAIQjC3s_U" })
         if (token) {
-          await setDoc(doc(db, "users", u.uid), { fcmToken: token }, { merge: true })
+          await updatePrivateProfile(u.uid, { fcmToken: token })
         }
       }
     } catch (e) {
@@ -72,7 +91,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(u)
       if (u && u.uid) {
         await ensureUserDocument(u)
-        await loadProfile(u.uid)
         await loadProfile(u.uid)
         await saveFcmToken(u)
         setupPresence(u.uid)

@@ -1,0 +1,39 @@
+# Deploys the website (Firebase Hosting) whenever main changes.
+# Rules and Cloud Functions are still deployed manually with `firebase deploy`.
+name: Deploy to Firebase Hosting on merge
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    env:
+      HAS_FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LINKUP_DC86A != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+      - name: Deploy skipped
+        if: env.HAS_FIREBASE_SA != 'true' || vars.VITE_FIREBASE_API_KEY == ''
+        run: echo "::warning::Set the FIREBASE_SERVICE_ACCOUNT_LINKUP_DC86A secret and VITE_FIREBASE_* repository variables to enable auto-deploy."
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        # Never publish a build without Firebase config
+        if: env.HAS_FIREBASE_SA == 'true' && vars.VITE_FIREBASE_API_KEY != ''
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LINKUP_DC86A }}
+          channelId: live
+          projectId: linkup-dc86a

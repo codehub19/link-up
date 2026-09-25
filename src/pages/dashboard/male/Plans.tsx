@@ -421,7 +421,7 @@ export default function MalePlans() {
           <div className="empty-state">No active plans available right now.</div>
         ) : (
           <div className="plans-grid">
-            {plans.map((p) => {
+            {plans.filter((p) => (p.audience ?? 'male') !== 'female').map((p) => {
               const key = slug(p.id)
               const isActive = activeByPlan[key] === true
               const isPending = paymentStatusByPlan[key] === 'pending'

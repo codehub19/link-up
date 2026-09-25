@@ -56,6 +56,20 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // Long-lived vendor chunks: cached across deploys and fetched in parallel
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('/firebase/') || id.includes('/@firebase/')) return 'firebase'
+          if (/\/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id)) return 'react'
+          if (id.includes('framer-motion')) return 'motion'
+          if (id.includes('swiper')) return 'swiper'
+        },
+      },
+    },
+  },
   esbuild: { jsx: 'automatic' },
   optimizeDeps: { esbuildOptions: { loader: { '.js': 'jsx' } } },
 })

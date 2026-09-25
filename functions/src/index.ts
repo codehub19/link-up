@@ -11,6 +11,7 @@ import * as crypto from 'crypto'
 import { defineSecret } from 'firebase-functions/params'
 import { onRequest } from "firebase-functions/v2/https"
 import axios from 'axios'
+import { isUserAdmin, sendPushToUsers } from './push'
 
 /* ----------------------------------------------------------------------------
  * Region & Secrets
@@ -46,33 +47,18 @@ interface ActiveSubscription {
 /*notification function to send push notification to multiple users*/
 // ... imports and init ...
 
-// Push notification to a list of users (for any group)
-export const sendPushNotification = onCall({ region: "asia-south2" }, async (req) => {
-  const { userUids, title, body } = req.data;
-  if (!Array.isArray(userUids) || !title || !body) throw new Error("Missing fields");
-
-  const tokens: string[] = [];
-  for (const uid of userUids) {
-    const doc = await admin.firestore().collection("users").doc(uid).get();
-    const token = doc.get("fcmToken");
-    if (token) tokens.push(token);
+// Push notification to a list of users (admin only: rounds, payments, support replies)
+export const sendPushNotification = onCall({ region: REGION }, async (req) => {
+  if (!(await isUserAdmin(req.auth?.uid))) {
+    throw new HttpsError('permission-denied', 'Admin only')
   }
-
-  const uniqueTokens = [...new Set(tokens)];
-
-  if (uniqueTokens.length) {
-    await admin.messaging().sendEachForMulticast({
-      tokens: uniqueTokens,
-      data: {
-        title,
-        body,
-        click_action: '/dashboard/notifications' // Optional helps some browsers
-      },
-    });
+  const { userUids, title, body } = (req.data || {}) as { userUids?: string[]; title?: string; body?: string }
+  if (!Array.isArray(userUids) || !title || !body) {
+    throw new HttpsError('invalid-argument', 'userUids, title and body are required')
   }
-
-  return { sent: tokens.length };
-});
+  const sent = await sendPushToUsers(userUids, String(title), String(body))
+  return { sent }
+})
 
 async function isRequesterAdmin(uid?: string): Promise<boolean> {
   if (!uid) return false
@@ -634,6 +620,14 @@ export const confirmMatchByGirl = onCall({ region: REGION }, async (req) => {
     }
   })
 
+  // Referral: the girl's referral record qualifies once she confirms a match.
+  try {
+    const refs = await db.collection('referrals').where('refereeUid', '==', girlUid).get()
+    await Promise.all(refs.docs.map((d) => d.ref.update({ hasMatched: true, status: 'qualified' })))
+  } catch (e: any) {
+    logger.error('[confirmMatchByGirl] referral update failed', { girlUid, error: e?.message })
+  }
+
   return { ok: true }
 })
 
@@ -794,3 +788,4 @@ export const onPaymentApproved = onDocumentUpdated(
 
 export * from './notifications'
 export * from './randomCall'
+export * from './admin'

@@ -12,6 +12,8 @@ type Plan = {
   roundsAllowed: number
   offers: string[]
   supportAvailable: boolean
+  audience?: 'male' | 'female' | 'all'
+  dailyCallLimit?: number | null
   active: boolean
 }
 
@@ -25,6 +27,8 @@ export default function PlansAdmin() {
   const [offersText, setOffersText] = useState('')
   const [supportAvailable, setSupportAvailable] = useState<boolean>(false)
   const [active, setActive] = useState<boolean>(true)
+  const [audience, setAudience] = useState<'male' | 'female' | 'all'>('male')
+  const [dailyCallLimit, setDailyCallLimit] = useState<string>('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const { showConfirm } = useDialog()
@@ -49,6 +53,7 @@ export default function PlansAdmin() {
         const offers = offersText.split('\n').map(s => s.trim()).filter(Boolean)
         await updateDoc(doc(db, 'plans', editingId), {
           name, price, discountPercent, matchQuota, roundsAllowed, offers, supportAvailable, active,
+          audience, dailyCallLimit: dailyCallLimit === '' ? null : Number(dailyCallLimit),
           updatedAt: new Date()
         })
       } else {
@@ -57,6 +62,7 @@ export default function PlansAdmin() {
         const offers = offersText.split('\n').map(s => s.trim()).filter(Boolean)
         await setDoc(doc(db, 'plans', id), {
           name, price, discountPercent, matchQuota, roundsAllowed, offers, supportAvailable, active,
+          audience, dailyCallLimit: dailyCallLimit === '' ? null : Number(dailyCallLimit),
           createdAt: new Date(), updatedAt: new Date(),
         }, { merge: true })
       }
@@ -71,6 +77,7 @@ export default function PlansAdmin() {
   function resetForm() {
     setName(''); setOffersText(''); setPrice(49); setDiscountPercent(0);
     setMatchQuota(1); setRoundsAllowed(1); setSupportAvailable(false); setActive(true)
+    setAudience('male'); setDailyCallLimit('')
     setEditingId(null)
   }
 
@@ -84,6 +91,8 @@ export default function PlansAdmin() {
     setOffersText(p.offers?.join('\n') || '')
     setSupportAvailable(p.supportAvailable || false)
     setActive(p.active)
+    setAudience(p.audience || 'male')
+    setDailyCallLimit(typeof p.dailyCallLimit === 'number' ? String(p.dailyCallLimit) : '')
     document.getElementById('createPlanForm')?.scrollIntoView({ behavior: 'smooth' })
   }
 
@@ -140,6 +149,8 @@ export default function PlansAdmin() {
                 <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
                   <span className="badge badge-info">Quota: {p.matchQuota}</span>
                   <span className="badge badge-info">Rounds: {p.roundsAllowed ?? 1}</span>
+                  <span className="badge badge-info">For: {p.audience || 'male'}</span>
+                  {typeof p.dailyCallLimit === 'number' && <span className="badge badge-info">Calls/day: {p.dailyCallLimit}</span>}
                   {p.supportAvailable && <span className="badge badge-warning">Support</span>}
                 </div>
                 {p.offers?.length > 0 && (
@@ -198,6 +209,21 @@ export default function PlansAdmin() {
             <div className="stack">
               <label style={{ fontWeight: 600, marginBottom: 6 }}>Rounds Allowed</label>
               <input className="input" type="number" value={roundsAllowed} onChange={e => setRoundsAllowed(Number(e.target.value))} />
+            </div>
+          </div>
+
+          <div className="row" style={{ gap: 16, flexWrap: 'wrap' }}>
+            <div className="stack">
+              <label style={{ fontWeight: 600, marginBottom: 6 }}>Shown to</label>
+              <select className="input" value={audience} onChange={e => setAudience(e.target.value as any)}>
+                <option value="male">Men (Plans page)</option>
+                <option value="female">Women (Premium page)</option>
+                <option value="all">Everyone</option>
+              </select>
+            </div>
+            <div className="stack">
+              <label style={{ fontWeight: 600, marginBottom: 6 }}>Random calls per day</label>
+              <input className="input" type="number" min={0} placeholder="Default Premium limit" value={dailyCallLimit} onChange={e => setDailyCallLimit(e.target.value)} />
             </div>
           </div>
 

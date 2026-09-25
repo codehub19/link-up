@@ -119,3 +119,16 @@
         font-size: 2rem;
     }
 }
+.match-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.match-card-actions .match-card-action-btn {
+  flex: 1;
+}
+
+.match-card-action-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}

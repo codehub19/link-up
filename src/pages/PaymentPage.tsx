@@ -27,7 +27,7 @@ declare global {
 type PlanLike = { id: string; name: string; amount: number }
 
 export default function PaymentPage() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [sp] = useSearchParams()
   const navigate = useNavigate()
   const { showAlert } = useDialog()
@@ -122,7 +122,7 @@ export default function PaymentPage() {
         referralDiscountApplied: isReferral
       }, proof || undefined)
       await showAlert('Payment submitted! We will verify and activate your plan shortly.')
-      navigate('/dashboard/plans')
+      navigate(profile?.gender === 'male' ? '/dashboard/plans' : '/dashboard/premium')
     } catch (e: any) {
       console.error(e)
       await showAlert(e?.message || 'Failed to submit payment')

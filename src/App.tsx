@@ -4,34 +4,35 @@ import Home from './pages/Home'
 import Protected from './components/Protected'
 import SetupGuard from './components/SetupGuard'
 import { useAuth } from './state/AuthContext'
-import ProfileWizard from './pages/setup/Profile'
-import Legal from './pages/legal/Legal'
-import TermsOfService from './pages/legal/TermsOfService'
-import Support from './pages/legal/Support'
-import Pricing from './pages/legal/Pricing'
-import About from './pages/legal/About'
-import CommunityGuidelines from './pages/legal/CommunityGuidelines'
-import PrivacyPolicy from './pages/legal/PrivacyPolicy'
-import Security from './pages/legal/Security'
-import RoundsPage from './pages/marketing/RoundsPage'
-import SuccessStoriesPage from './pages/marketing/SuccessStoriesPage'
-import DownloadPage from './pages/marketing/DownloadPage'
-import CareersPage from './pages/marketing/CareersPage'
-import JobApplicationPage from './pages/marketing/JobApplicationPage'
-import CertificatePage from './pages/marketing/CertificatePage'
-import BlogPage from './pages/marketing/BlogPage'
-import ContactPage from './pages/marketing/ContactPage'
-import MaleRound from './pages/dashboard/male/MatchingRounds'
-import RoundMatchesAdmin from './pages/admin/RoundMatchesAdmin'
-import NotificationsPage from './pages/dashboard/Notifications'
-import SendNotificationAdmin from './pages/admin/SendNotification'
-import NotificationsAdminList from './pages/admin/AdminNotification'
 import LoadingHeart from './components/LoadingHeart'
-import MatchesPage from './pages/dashboard/Matches'
-import ProfileView from './pages/dashboard/ProfileView'
 import AdminGuard from './pages/admin/AdminGuard'
+import IncomingCall from './components/IncomingCall'
 
-/* Lazy dashboard/admin pages (unchanged) */
+/* Pages are loaded on demand so the landing page downloads less JavaScript */
+const ProfileWizard = lazy(() => import('./pages/setup/Profile'))
+const Legal = lazy(() => import('./pages/legal/Legal'))
+const TermsOfService = lazy(() => import('./pages/legal/TermsOfService'))
+const Support = lazy(() => import('./pages/legal/Support'))
+const Pricing = lazy(() => import('./pages/legal/Pricing'))
+const About = lazy(() => import('./pages/legal/About'))
+const CommunityGuidelines = lazy(() => import('./pages/legal/CommunityGuidelines'))
+const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'))
+const Security = lazy(() => import('./pages/legal/Security'))
+const RoundsPage = lazy(() => import('./pages/marketing/RoundsPage'))
+const SuccessStoriesPage = lazy(() => import('./pages/marketing/SuccessStoriesPage'))
+const DownloadPage = lazy(() => import('./pages/marketing/DownloadPage'))
+const CareersPage = lazy(() => import('./pages/marketing/CareersPage'))
+const JobApplicationPage = lazy(() => import('./pages/marketing/JobApplicationPage'))
+const CertificatePage = lazy(() => import('./pages/marketing/CertificatePage'))
+const BlogPage = lazy(() => import('./pages/marketing/BlogPage'))
+const ContactPage = lazy(() => import('./pages/marketing/ContactPage'))
+const MaleRound = lazy(() => import('./pages/dashboard/male/MatchingRounds'))
+const RoundMatchesAdmin = lazy(() => import('./pages/admin/RoundMatchesAdmin'))
+const NotificationsPage = lazy(() => import('./pages/dashboard/Notifications'))
+const SendNotificationAdmin = lazy(() => import('./pages/admin/SendNotification'))
+const NotificationsAdminList = lazy(() => import('./pages/admin/AdminNotification'))
+const MatchesPage = lazy(() => import('./pages/dashboard/Matches'))
+const ProfileView = lazy(() => import('./pages/dashboard/ProfileView'))
 const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
 const MalePlans = lazy(() => import('./pages/dashboard/male/Plans'))
 const MaleProfile = lazy(() => import('./pages/dashboard/male/Profile'))
@@ -56,11 +57,13 @@ const SettingsPage = lazy(() => import('./pages/dashboard/Settings'))
 const SupportHistory = lazy(() => import('./pages/dashboard/SupportHistory'))
 const JobApplications = lazy(() => import('./pages/admin/JobApplications'))
 const RandomCall = lazy(() => import('./pages/dashboard/RandomCall'))
+const PremiumPage = lazy(() => import('./pages/dashboard/Premium'))
+const ReportsAdmin = lazy(() => import('./pages/admin/ReportsAdmin'))
 
 import AnimatedRoutesLayout from './components/layout/AnimatedRoutesLayout'
 
 export default function App() {
-  const { loading, profile } = useAuth();
+  const { loading, profile, user } = useAuth();
 
   // Capture referral code from URL
   React.useEffect(() => {
@@ -76,6 +79,7 @@ export default function App() {
   </div>;
   return (
     <Suspense fallback={null}>
+      {user && <IncomingCall />}
       <Routes>
         <Route element={<AnimatedRoutesLayout />}>
           <Route path="/" element={<Home />} />
@@ -190,6 +194,15 @@ export default function App() {
           />
 
           <Route
+            path="/dashboard/premium"
+            element={
+              <Protected>
+                <PremiumPage />
+              </Protected>
+            }
+          />
+
+          <Route
             path="/dashboard/random-call"
             element={
               <Protected>
@@ -273,6 +286,7 @@ export default function App() {
             <Route path="/admin/notifications" element={<NotificationsAdminList />} />
             <Route path="/admin/referrals" element={<ReferralsAdmin />} />
             <Route path="/admin/applications" element={<JobApplications />} />
+            <Route path="/admin/reports" element={<ReportsAdmin />} />
           </Route>
 
           {/* Fallback */}

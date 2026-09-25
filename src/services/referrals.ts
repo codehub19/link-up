@@ -9,7 +9,8 @@ import {
     serverTimestamp,
     updateDoc,
     where,
-    runTransaction
+    runTransaction,
+    setDoc
 } from 'firebase/firestore'
 import { db } from '../firebase'
 
@@ -59,8 +60,8 @@ export async function validateReferralCode(code: string) {
 }
 
 export async function createReferralRecord(referrerUid: string, refereeUid: string, refereeName: string) {
-    // Create a record in 'referrals' collection
-    await addDoc(collection(db, 'referrals'), {
+    // One record per new user (doc id = their uid), enforced by security rules
+    await setDoc(doc(db, 'referrals', refereeUid), {
         referrerUid,
         refereeUid,
         refereeName: refereeName || 'Unknown',
