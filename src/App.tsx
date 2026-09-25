@@ -7,6 +7,7 @@ import { useAuth } from './state/AuthContext'
 import LoadingHeart from './components/LoadingHeart'
 import AdminGuard from './pages/admin/AdminGuard'
 import IncomingCall from './components/IncomingCall'
+import AppStatus from './components/AppStatus'
 
 /* Pages are loaded on demand so the landing page downloads less JavaScript */
 const ProfileWizard = lazy(() => import('./pages/setup/Profile'))
@@ -59,6 +60,13 @@ const JobApplications = lazy(() => import('./pages/admin/JobApplications'))
 const RandomCall = lazy(() => import('./pages/dashboard/RandomCall'))
 const PremiumPage = lazy(() => import('./pages/dashboard/Premium'))
 const ReportsAdmin = lazy(() => import('./pages/admin/ReportsAdmin'))
+const UsersAdmin = lazy(() => import('./pages/admin/UsersAdmin'))
+const UserDetailAdmin = lazy(() => import('./pages/admin/UserDetailAdmin'))
+const AnalyticsAdmin = lazy(() => import('./pages/admin/AnalyticsAdmin'))
+const ControlsAdmin = lazy(() => import('./pages/admin/ControlsAdmin'))
+const CallsAdmin = lazy(() => import('./pages/admin/CallsAdmin'))
+const SubscriptionsAdmin = lazy(() => import('./pages/admin/SubscriptionsAdmin'))
+const AuditLogAdmin = lazy(() => import('./pages/admin/AuditLogAdmin'))
 
 import AnimatedRoutesLayout from './components/layout/AnimatedRoutesLayout'
 
@@ -79,6 +87,7 @@ export default function App() {
   </div>;
   return (
     <Suspense fallback={null}>
+      <AppStatus>
       {user && <IncomingCall />}
       <Routes>
         <Route element={<AnimatedRoutesLayout />}>
@@ -287,12 +296,20 @@ export default function App() {
             <Route path="/admin/referrals" element={<ReferralsAdmin />} />
             <Route path="/admin/applications" element={<JobApplications />} />
             <Route path="/admin/reports" element={<ReportsAdmin />} />
+            <Route path="/admin/users" element={<UsersAdmin />} />
+            <Route path="/admin/users/:uid" element={<UserDetailAdmin />} />
+            <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
+            <Route path="/admin/controls" element={<ControlsAdmin />} />
+            <Route path="/admin/calls" element={<CallsAdmin />} />
+            <Route path="/admin/subscriptions" element={<SubscriptionsAdmin />} />
+            <Route path="/admin/audit" element={<AuditLogAdmin />} />
           </Route>
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
+      </AppStatus>
     </Suspense>
   )
 }

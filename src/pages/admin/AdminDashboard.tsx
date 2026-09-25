@@ -5,6 +5,7 @@ import { db, rtdb } from '../../firebase'
 import { listPendingPayments } from '../../services/payments'
 import { getActiveRound } from '../../services/rounds'
 import PrivacyMigrationButton from './PrivacyMigrationButton'
+import AdminAttention from './AdminAttention'
 import { Users, TrendingUp, AlertCircle, CreditCard, Activity } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -113,6 +114,8 @@ export default function AdminDashboard() {
     return (
         <div>
             <h2 style={{ marginBottom: 24 }}>Dashboard Overview</h2>
+
+            <AdminAttention />
 
             <PrivacyMigrationButton />
 

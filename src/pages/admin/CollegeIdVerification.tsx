@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import { collection, getDocs, doc, setDoc } from "firebase/firestore";
 import { useAuth } from "../../state/AuthContext";
+import { logAdminAction } from "../../services/adminTools";
 
 export default function CollegeIdVerification() {
   const { profile } = useAuth();
@@ -65,6 +66,7 @@ export default function CollegeIdVerification() {
           rejected: false
         }
       }, { merge: true });
+      logAdminAction("verify_college_id", uid);
       setActionStatus("Verified " + uid);
     } catch (e: any) {
       setActionStatus("Failed to verify: " + (e.message || ""));
@@ -80,6 +82,7 @@ export default function CollegeIdVerification() {
           rejected: true
         }
       }, { merge: true });
+      logAdminAction("reject_college_id", uid);
       setActionStatus("Rejected " + uid);
     } catch (e: any) {
       setActionStatus("Failed to reject: " + (e.message || ""));

@@ -6,6 +6,17 @@ if (!admin.apps.length) admin.initializeApp()
 const db = admin.firestore()
 
 const REGION = 'asia-south2'
+
+async function logAdmin(adminUid: string, action: string, targetUid: string | null, details: Record<string, any> = {}) {
+  await db.collection('adminLogs').add({
+    adminUid,
+    action,
+    targetUid,
+    details,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  }).catch(() => { })
+}
+
 const PRIVATE_FIELDS = ['email', 'phoneNumber', 'upiId', 'fcmToken']
 
 /* ----------------------------------------------------------------------------
@@ -52,6 +63,7 @@ export const migrateUserPrivateData = onCall({ region: REGION, timeoutSeconds: 5
     }
   }
   if (ops > 0) await batch.commit()
+  await logAdmin(req.auth!.uid, 'privacy_migration', null, { migrated })
   return { migrated, total: users.size }
 })
 
@@ -72,5 +84,52 @@ export const setUserBan = onCall({ region: REGION }, async (req) => {
     { merge: true }
   )
   if (banned) await db.collection('callQueue').doc(uid).delete().catch(() => { })
+  await logAdmin(req.auth!.uid, banned ? 'ban' : 'unban', uid, { reason: reason || null })
+  return { ok: true }
+})
+
+/* ----------------------------------------------------------------------------
+ * setUserAdmin (admin): grant or revoke admin access. You can't remove your own.
+ * ------------------------------------------------------------------------- */
+export const setUserAdmin = onCall({ region: REGION }, async (req) => {
+  const caller = req.auth?.uid
+  if (!(await isUserAdmin(caller))) throw new HttpsError('permission-denied', 'Admin only')
+  const { uid, isAdmin } = (req.data || {}) as { uid?: string; isAdmin?: boolean }
+  if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
+  if (uid === caller && !isAdmin) throw new HttpsError('failed-precondition', "You can't remove your own admin access.")
+  await db.collection('users').doc(uid).set({ isAdmin: !!isAdmin }, { merge: true })
+  await logAdmin(caller!, isAdmin ? 'grant_admin' : 'revoke_admin', uid)
+  return { ok: true }
+})
+
+/* ----------------------------------------------------------------------------
+ * adminDeleteUser (admin): permanently delete an account — login, profile,
+ * private data, call data and uploaded files. Chats/matches are kept for the
+ * other person but show the profile as removed.
+ * ------------------------------------------------------------------------- */
+export const adminDeleteUser = onCall({ region: REGION, timeoutSeconds: 120 }, async (req) => {
+  const caller = req.auth?.uid
+  if (!(await isUserAdmin(caller))) throw new HttpsError('permission-denied', 'Admin only')
+  const { uid } = (req.data || {}) as { uid?: string }
+  if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
+  if (uid === caller) throw new HttpsError('failed-precondition', "You can't delete your own account here.")
+
+  const name = (await db.collection('users').doc(uid).get()).data()?.name || null
+  await Promise.all([
+    db.collection('users').doc(uid).delete(),
+    db.collection('userPrivate').doc(uid).delete(),
+    db.collection('callQueue').doc(uid).delete(),
+    db.collection('randomCallStats').doc(uid).delete(),
+    db.collection('userBlocks').doc(uid).delete(),
+  ])
+  try {
+    await admin.storage().bucket().deleteFiles({ prefix: `users/${uid}/` })
+  } catch { /* no files or bucket not configured */ }
+  try {
+    await admin.auth().deleteUser(uid)
+  } catch (e: any) {
+    if (e?.code !== 'auth/user-not-found') throw new HttpsError('internal', e?.message || 'Failed to delete login')
+  }
+  await logAdmin(caller!, 'delete_user', uid, { name })
   return { ok: true }
 })

@@ -1,6 +1,7 @@
 import { listUserPayments } from './razorpay'
 export * from './razorpay'
 import { sendNotification } from './notifications'
+import { logAdminAction } from './adminTools'
 
 // For backward compatibility if other modules import functions like listUserPayments.
 export { listUserPayments }
@@ -93,6 +94,8 @@ export async function approvePayment(paymentId: string) {
     })
   }
 
+  await logAdminAction('approve_payment', data.uid, { paymentId, amount: data.amount ?? null })
+
   // Send Notification
   await sendNotification({
     userUid: data.uid,
@@ -109,6 +112,7 @@ export async function rejectPayment(paymentId: string, reason?: string) {
   const refSnap = await getDoc(refp)
   if (refSnap.exists()) {
     const data = refSnap.data() as Payment
+    await logAdminAction('reject_payment', data.uid, { paymentId, reason: reason || null })
     await sendNotification({
       userUid: data.uid,
       title: 'Payment Rejected ❌',

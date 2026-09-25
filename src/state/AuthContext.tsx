@@ -89,15 +89,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u)
-      if (u && u.uid) {
-        await ensureUserDocument(u)
-        await loadProfile(u.uid)
-        await saveFcmToken(u)
-        setupPresence(u.uid)
-      } else {
+      try {
+        if (u && u.uid) {
+          await ensureUserDocument(u)
+          await loadProfile(u.uid)
+          await saveFcmToken(u)
+          setupPresence(u.uid)
+        } else {
+          setProfile(null)
+        }
+      } catch (e) {
+        // e.g. new account while sign-ups are paused: the profile can't be created.
+        // Never leave the app stuck on the loading screen.
+        console.error('Failed to load profile', e)
         setProfile(null)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
     return () => unsub()
     // eslint-disable-next-line
@@ -120,9 +128,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login: async () => {
       const { user: u, isNewUser } = await signInWithGoogle()
       if (u && u.uid) {
-        await ensureUserDocument(u)
-        await loadProfile(u.uid)
-        await saveFcmToken(u)
+        try {
+          await ensureUserDocument(u)
+          await loadProfile(u.uid)
+          await saveFcmToken(u)
+        } catch (e) {
+          console.error('Failed to set up profile', e)
+        }
       }
       return isNewUser
     },
