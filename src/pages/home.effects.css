@@ -151,3 +151,15 @@ h6 {
   max-width: 65ch;
   font-weight: 400;
 }
+/* Phones: one card per row (this file loads after FeaturesBento's own styles) */
+@media (max-width: 700px) {
+  .bento-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .bento-card {
+    padding: 24px;
+  }
+}

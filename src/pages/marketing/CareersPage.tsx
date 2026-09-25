@@ -9,7 +9,7 @@ export default function CareersPage() {
         <>
             <HomeBackground />
             <Navbar />
-            <main className="relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px', fontFamily: 'sans-serif' }}>
+            <main className="tw relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px', fontFamily: 'sans-serif' }}>
                 {/* Hero Section */}
                 <div style={{ maxWidth: '896px', margin: '0 auto', padding: '0 24px', textAlign: 'center', marginBottom: '80px' }}>
                     <span style={{ display: 'inline-block', padding: '6px 16px', borderRadius: '999px', backgroundColor: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.2)', color: '#fb7185', fontSize: '14px', fontWeight: '500', marginBottom: '24px' }}>

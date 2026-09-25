@@ -352,10 +352,21 @@ function ReferralCard({ user }: { user: any }) {
         ) : (
           <button
             className="profile-btn profile-btn-primary"
-            style={{ width: '100%', justifyContent: 'center', background: referralDiscount > 0 ? '#10b981' : '#333', borderColor: referralDiscount > 0 ? '#059669' : '#444', cursor: referralDiscount > 0 ? 'pointer' : 'default' }}
-            onClick={() => nav('/dashboard/plans?redeem=true')}
+            style={{ width: '100%', justifyContent: 'center', background: referralDiscount > 0 ? '#10b981' : 'linear-gradient(135deg, #ff416c, #ff4b2b)', borderColor: 'transparent', color: '#fff' }}
+            onClick={async () => {
+              if (referralDiscount > 0) { nav('/dashboard/plans?redeem=true'); return }
+              if (!user?.referralCode) return
+              const link = `${window.location.origin}/?ref=${user.referralCode}`
+              const text = `Join me on DateU, the campus dating app. Use my code ${user.referralCode} when you sign up:`
+              // Native share sheet on phones; copy the link elsewhere
+              if (navigator.share) {
+                try { await navigator.share({ title: 'DateU', text, url: link }) } catch { }
+              } else {
+                await navigator.clipboard.writeText(`${text} ${link}`).then(() => toast.success('Invite link copied')).catch(() => { })
+              }
+            }}
           >
-            {referralDiscount > 0 ? 'Redeem on Plans Page' : 'Earn More Discounts'}
+            {referralDiscount > 0 ? 'Redeem on Plans Page' : 'Share my code'}
           </button>
         )}
       </div>

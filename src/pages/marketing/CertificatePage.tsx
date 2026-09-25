@@ -34,7 +34,7 @@ export default function CertificatePage() {
     };
 
     return (
-        <div className="bg-gray-100 min-h-screen py-8 flex flex-col items-center justify-center font-serif">
+        <div className="tw bg-gray-100 min-h-screen py-8 flex flex-col items-center justify-center font-serif">
 
             {/* Download Button - Hidden in Print */}
             <div className="no-print mb-8">

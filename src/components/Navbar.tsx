@@ -6,6 +6,7 @@ import { db } from "../firebase";
 import InstallPWAButton from "./InstallPWAButton";
 import { subscribeUnread } from "../services/notifications";
 import "./Navbar.styles.css";
+import { isDesktopDevice } from "../utils/pwa";
 
 // --- Icons ---
 function BellIcon({ className }: { className?: string }) {
@@ -81,7 +82,7 @@ export default function Navbar() {
   };
   // Help and legal pages opened from inside the app get a back button too
   // (the installed iPhone app has no browser back button)
-  if (user && profile?.isProfileComplete) {
+  if (user && profile?.isProfileComplete && !isDesktopDevice()) {
     Object.assign(PUSHED, {
       "/legal/terms": ["Terms of Service", "/dashboard/settings"],
       "/legal/privacy": ["Privacy Policy", "/dashboard/settings"],

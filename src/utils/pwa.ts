@@ -50,3 +50,20 @@ export function isIOS() {
   if (typeof navigator === 'undefined') return false
   return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 }
+
+/**
+ * Desktop/laptop = anything that isn't a phone or tablet. Based on the device,
+ * not the window size, so shrinking the browser window or a touchscreen
+ * laptop doesn't get around it. Phones and tablets (including iPads that
+ * report themselves as a Mac) are allowed.
+ */
+export function isDesktopDevice(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent || ''
+  const uaData = (navigator as any).userAgentData
+  if (uaData?.mobile) return false
+  if (/Android|iPhone|iPod|iPad|Mobile|Silk|Kindle|BlackBerry|Opera Mini|IEMobile/i.test(ua)) return false
+  // iPadOS 13+ Safari pretends to be a Mac; real Macs have no multi-touch screen
+  if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return false
+  return true
+}

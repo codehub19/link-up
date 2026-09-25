@@ -8,7 +8,7 @@ export default function DownloadPage() {
         <>
             <HomeBackground />
             <Navbar />
-            <main className="relative z-10 flex items-center" style={{ minHeight: '80vh', paddingTop: '160px', paddingBottom: '80px' }}>
+            <main className="tw relative z-10 flex items-center" style={{ minHeight: '80vh', paddingTop: '160px', paddingBottom: '80px' }}>
                 <div className="container max-w-4xl mx-auto px-6 text-center">
                     <h1 className="font-bold mb-8 text-white" style={{ fontSize: '3.75rem' }}>
                         Get <span className="text-rose-500">DateU</span> App

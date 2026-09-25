@@ -9,7 +9,7 @@ export default function RoundsPage() {
         <>
             <HomeBackground />
             <Navbar />
-            <main className="relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px' }}>
+            <main className="tw relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px' }}>
                 <div className="container max-w-4xl mx-auto px-6 text-center">
                     <span className="inline-block py-1 px-3 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm font-medium mb-6">
                         How It Works

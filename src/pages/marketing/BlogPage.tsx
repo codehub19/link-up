@@ -8,7 +8,7 @@ export default function BlogPage() {
         <>
             <HomeBackground />
             <Navbar />
-            <main className="relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px' }}>
+            <main className="tw relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px' }}>
                 <div className="container max-w-4xl mx-auto px-6 text-center mb-16">
                     <h1 className="font-bold mb-6 text-white" style={{ fontSize: '3rem' }}>
                         The DateU Blog

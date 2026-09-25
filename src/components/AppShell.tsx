@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { isStandalone } from '../utils/pwa'
+import { isDesktopDevice, isStandalone } from '../utils/pwa'
 import { InstallSheet, OfflineBanner } from './AppExtras'
 import MobileNavbar from './MobileNavbar'
 import { useAuth } from '../state/AuthContext'
@@ -9,23 +9,6 @@ import './AppShell.css'
 // The logged-in app is built for phones and tablets. The website (home, pricing,
 // legal pages) and the admin panel stay available on desktop.
 const APP_PREFIXES = ['/dashboard', '/setup', '/pay', '/profile']
-
-/**
- * Desktop/laptop = anything that isn't a phone or tablet. Based on the device,
- * not the window size, so shrinking the browser window or a touchscreen
- * laptop doesn't get around it. Phones and tablets (including iPads that
- * report themselves as a Mac) are allowed.
- */
-export function isDesktopDevice(): boolean {
-  if (typeof navigator === 'undefined') return false
-  const ua = navigator.userAgent || ''
-  const uaData = (navigator as any).userAgentData
-  if (uaData?.mobile) return false
-  if (/Android|iPhone|iPod|iPad|Mobile|Silk|Kindle|BlackBerry|Opera Mini|IEMobile/i.test(ua)) return false
-  // iPadOS 13+ Safari pretends to be a Mac; real Macs have no multi-touch screen
-  if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return false
-  return true
-}
 
 const ADMIN_PREVIEW_KEY = 'dateu.adminDesktopPreview'
 function adminPreviewOn() {

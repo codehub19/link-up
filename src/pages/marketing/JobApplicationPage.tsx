@@ -52,7 +52,7 @@ export default function JobApplicationPage() {
             <>
                 <HomeBackground />
                 <Navbar />
-                <main className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-6">
+                <main className="tw relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-6">
                     <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-md max-w-lg w-full">
                         <div className="text-6xl mb-4">🎉</div>
                         <h2 className="text-3xl font-bold text-white mb-2">Application Received!</h2>
@@ -69,7 +69,7 @@ export default function JobApplicationPage() {
         <>
             <HomeBackground />
             <Navbar />
-            <main className="relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px', fontFamily: 'sans-serif' }}>
+            <main className="tw relative z-10" style={{ paddingTop: '160px', paddingBottom: '80px', fontFamily: 'sans-serif' }}>
                 <div style={{ maxWidth: '600px', margin: '0 auto', padding: '0 24px' }}>
                     <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                         <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'white', marginBottom: '16px' }}>Apply for Internship</h1>
