@@ -16,6 +16,24 @@ type Props = {
     onVerified: () => void
 }
 
+const COUNTRY_CODES = [
+    { code: '+91', label: '🇮🇳 +91' },
+    { code: '+1', label: '🇺🇸 +1' },
+    { code: '+44', label: '🇬🇧 +44' },
+    { code: '+971', label: '🇦🇪 +971' },
+    { code: '+61', label: '🇦🇺 +61' },
+    { code: '+65', label: '🇸🇬 +65' },
+    { code: '+49', label: '🇩🇪 +49' },
+    { code: '+33', label: '🇫🇷 +33' },
+    { code: '+977', label: '🇳🇵 +977' },
+    { code: '+880', label: '🇧🇩 +880' },
+    { code: '+94', label: '🇱🇰 +94' },
+    { code: '+966', label: '🇸🇦 +966' },
+    { code: '+974', label: '🇶🇦 +974' },
+    { code: '+60', label: '🇲🇾 +60' },
+    { code: '+64', label: '🇳🇿 +64' },
+]
+
 declare global {
     interface Window {
         recaptchaVerifier: any
@@ -25,10 +43,18 @@ declare global {
 
 export default function PhoneVerification({ onVerified }: Props) {
     const { user, refreshProfile } = useAuth()
+    const [countryCode, setCountryCode] = useState('+91')
     const [phone, setPhone] = useState('')
     const [otp, setOtp] = useState('')
     const [step, setStep] = useState<'phone' | 'otp'>('phone')
     const [loading, setLoading] = useState(false)
+
+    // E.164: country code + subscriber number, at most 15 digits total.
+    // Indian numbers are always 10 digits; elsewhere accept 6-12.
+    const formattedPhone = `${countryCode}${phone}`
+    const isValidPhone = countryCode === '+91'
+        ? phone.length === 10
+        : phone.length >= 6 && formattedPhone.length - 1 <= 15
 
     useEffect(() => {
         // Clear any existing verifier to ensure we bind to the current DOM element
@@ -65,12 +91,10 @@ export default function PhoneVerification({ onVerified }: Props) {
     }, [])
 
     const sendOtp = async () => {
-        if (!phone || phone.length < 10) {
+        if (!isValidPhone) {
             toast.error('Please enter a valid phone number')
             return
         }
-        // Basic formatting for India, can be improved
-        const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`
 
         setLoading(true)
         try {
@@ -117,12 +141,16 @@ export default function PhoneVerification({ onVerified }: Props) {
                 toast.success('Phone number already verified!')
                 if (user) {
                     await updateProfileAndStatus(user.uid, {
-                        phoneNumber: phone,
+                        phoneNumber: user.phoneNumber || formattedPhone,
                         isPhoneVerified: true
                     })
                     await refreshProfile()
                     onVerified()
                 }
+            } else if (error.code === 'auth/invalid-phone-number') {
+                toast.error('That phone number doesn\'t look right. Check the country code and number.')
+            } else if (error.code === 'auth/operation-not-allowed') {
+                toast.error('SMS verification is not available for this country yet.')
             } else {
                 toast.error('Failed to send OTP. ' + error.message)
             }
@@ -149,7 +177,7 @@ export default function PhoneVerification({ onVerified }: Props) {
             // If successful, update profile
             if (user) {
                 await updateProfileAndStatus(user.uid, {
-                    phoneNumber: phone,
+                    phoneNumber: formattedPhone,
                     isPhoneVerified: true
                 })
                 await refreshProfile()
@@ -167,19 +195,30 @@ export default function PhoneVerification({ onVerified }: Props) {
     return (
         <div style={{ marginTop: 12 }}>
             {step === 'phone' ? (
-                <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '2fr 1fr' }}>
+                <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'auto 2fr 1fr' }}>
+                    <select
+                        className="field-input"
+                        aria-label="Country code"
+                        value={countryCode}
+                        onChange={e => setCountryCode(e.target.value)}
+                        disabled={loading}
+                        style={{ paddingRight: 8 }}
+                    >
+                        {COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+                    </select>
                     <input
                         className="field-input"
-                        placeholder="Enter mobile number"
+                        placeholder="Mobile number"
+                        inputMode="tel"
                         value={phone}
-                        onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
-                        maxLength={10}
+                        onChange={e => setPhone(e.target.value.replace(/\D/g, '').replace(/^0+/, ''))}
+                        maxLength={countryCode === '+91' ? 10 : 12}
                         disabled={loading}
                     />
                     <button
                         className="btn btn-primary"
                         onClick={sendOtp}
-                        disabled={loading || phone.length < 10}
+                        disabled={loading || !isValidPhone}
                         style={{ minWidth: 80, whiteSpace: 'nowrap' }}
                     >
                         {loading ? <LoadingSpinner size={16} color="#fff" /> : 'Send OTP'}

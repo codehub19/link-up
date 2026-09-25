@@ -18,6 +18,8 @@ import FullScreenChat from './FullScreenChat'
 import '../../../styles/chat.css'
 import HomeBackground from '../../../components/home/HomeBackground'
 import { useDialog } from '../../../components/ui/Dialog'
+import { unlockRandomChat } from '../../../services/randomCall'
+import '../RandomCall.styles.css'
 
 type UserDoc = { uid: string; name?: string; photoUrl?: string; instagramId?: string; bio?: string; interests?: string[]; college?: string }
 type ThreadDoc = {
@@ -26,6 +28,8 @@ type ThreadDoc = {
   updatedAt?: any
   createdAt?: any // Add createdAt
   blocks?: Record<string, boolean>; typing?: Record<string, any>; lastRead?: Record<string, any>
+  // Set by the server when two people connect through a random call
+  source?: 'random_call'; chatExpiresAt?: any; unlocked?: boolean
 }
 type MatchDoc = { id: string; participants: string[]; boyUid: string; girlUid: string; status?: string }
 
@@ -202,6 +206,18 @@ export default function ChatPage() {
       }
     })
 
+    threads.forEach((t) => {
+      if (t.source !== 'random_call' || threadMap.has(t.id)) return
+      const peerUid = t.participants?.find((p: string) => p !== user.uid)
+      if (!peerUid) return
+      threadMap.set(t.id, {
+        peerUid,
+        threadId: t.id,
+        lastMessage: t.lastMessage?.text || '📞 Connected on a random call',
+        updatedAt: t.updatedAt || t.createdAt || 0,
+      })
+    })
+
     // Helper to format time
     const formatListTime = (ms: number) => {
       if (!ms) return ''
@@ -351,6 +367,14 @@ export default function ChatPage() {
     return myBlockedSet.has(selectedPeer.uid)
   }, [myBlockedSet, selectedPeer, user])
 
+  // Random-call chats are free for a limited window, then need Premium
+  const [unlocking, setUnlocking] = useState(false)
+  const chatExpiresMs: number | undefined = useMemo(() => {
+    if (selectedThread?.source !== 'random_call' || selectedThread.unlocked) return undefined
+    const t = selectedThread.chatExpiresAt
+    return t?.toMillis ? t.toMillis() : (t?.seconds ? t.seconds * 1000 : undefined)
+  }, [selectedThread])
+
   const isPeerTyping = useMemo(() => {
     if (!selectedThread?.typing || !selectedPeer) return false
     const ts = selectedThread.typing[selectedPeer.uid]
@@ -483,6 +507,42 @@ export default function ChatPage() {
   const isFemale = profile?.gender === 'female'
   const isMobileView = isMobile
 
+  const chatLocked = chatExpiresMs !== undefined && now >= chatExpiresMs
+  const chatDisabled = iAmBlocked || iBlockedThem || chatLocked
+
+  const handleUnlock = async () => {
+    if (!selectedId) return
+    setUnlocking(true)
+    try {
+      await unlockRandomChat(selectedId)
+    } catch (e: any) {
+      if (e?.details?.reason === 'premium') {
+        if (profile?.gender === 'male') nav('/dashboard/plans')
+        else await showAlert(`Your free chat time with ${selectedPeer?.name?.split(' ')[0] || 'this person'} has ended. Premium is needed to keep chatting.`)
+      } else {
+        await showAlert('Could not unlock this chat. Please try again.')
+      }
+    } finally {
+      setUnlocking(false)
+    }
+  }
+
+  const randomCallBanner = chatExpiresMs === undefined ? null : chatLocked ? (
+    <div className="rc-chat-banner rc-chat-banner-locked">
+      <span>⏳ Your free chat time has ended. Upgrade to Premium to keep chatting.</span>
+      <button className="rc-btn rc-btn-primary" onClick={handleUnlock} disabled={unlocking}>
+        {unlocking ? 'Checking…' : 'Unlock with Premium'}
+      </button>
+    </div>
+  ) : (
+    <div className="rc-chat-banner">
+      <span>📞 Connected on a random call · free chat ends in {(() => {
+        const mins = Math.max(0, Math.ceil((chatExpiresMs - now) / 60000))
+        return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`
+      })()}</span>
+    </div>
+  )
+
   // Compose chat header for FullScreenChat
   const chatHeader = selectedId && selectedPeer && (
     <div className="chat-header-inner">
@@ -566,9 +626,9 @@ export default function ChatPage() {
           key={selectedId}
           currentUid={user.uid}
           messages={displayMessages}
-          onSend={iAmBlocked || iBlockedThem ? () => { } : async (t, a) => onSend(t, a)}
-          header={chatHeader}
-          disabled={iAmBlocked || iBlockedThem}
+          onSend={chatDisabled ? () => { } : async (t, a) => onSend(t, a)}
+          header={<>{chatHeader}{randomCallBanner}</>}
+          disabled={chatDisabled}
           peerTyping={displayTyping}
           peerAvatar={selectedPeer?.photoUrl}
           onTyping={handleTyping}
@@ -715,12 +775,14 @@ export default function ChatPage() {
                     </div>
                   ) : null}
 
+                  {randomCallBanner}
+
                   <ChatWindow
                     key={selectedId}
                     currentUid={user.uid}
                     messages={displayMessages}
-                    onSend={iAmBlocked || iBlockedThem ? () => { } : async (t, a) => onSend(t, a)}
-                    disabled={iAmBlocked || iBlockedThem}
+                    onSend={chatDisabled ? () => { } : async (t, a) => onSend(t, a)}
+                    disabled={chatDisabled}
                     peerTyping={displayTyping}
                     peerAvatar={selectedPeer?.photoUrl}
                     onTyping={handleTyping}

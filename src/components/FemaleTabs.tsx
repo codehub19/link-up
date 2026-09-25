@@ -45,6 +45,16 @@ export default function FemaleTabs() {
         <span className="tab-btn-label">Matches</span>
       </Link>
 
+      <Link className={`tab-btn${is('/dashboard/random-call') ? ' tab-btn-active' : ''}`} to="/dashboard/random-call">
+        <span className="tab-btn-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Random Call">
+            <title>Random Call</title>
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0 1 22 16.92z" />
+          </svg>
+        </span>
+        <span className="tab-btn-label">Call</span>
+      </Link>
+
       {/* Chat */}
       <Link
         className={`tab-btn${is('/dashboard/chat') ? ' tab-btn-active' : ''}`}

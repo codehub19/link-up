@@ -1,0 +1,207 @@
+.rc-wrap {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 6rem;
+}
+
+.rc-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 2rem 1.5rem;
+  border-radius: 24px;
+  background: rgba(24, 25, 35, 0.55);
+  border: 1px solid var(--clr-border-glass, rgba(255, 255, 255, 0.08));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.rc-card h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.rc-card .field-input {
+  width: 100%;
+}
+
+.rc-muted {
+  color: var(--clr-text-muted, rgba(255, 255, 255, 0.65));
+  margin: 0;
+  line-height: 1.5;
+}
+
+.rc-small {
+  font-size: 0.85rem;
+}
+
+.rc-emoji {
+  font-size: 2.75rem;
+}
+
+.rc-notice {
+  margin: 0;
+  padding: 0.5rem 0.9rem;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  font-size: 0.9rem;
+}
+
+.rc-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 0.8rem 1.6rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  min-width: 140px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rc-btn-primary {
+  background: linear-gradient(135deg, #ff416c, #ff4b2b);
+  color: #fff;
+}
+
+.rc-btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.rc-btn-link {
+  background: none;
+  color: var(--clr-text-muted, rgba(255, 255, 255, 0.65));
+  min-width: 0;
+  text-decoration: underline;
+}
+
+.rc-choice {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.rc-peer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.rc-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 65, 108, 0.6);
+}
+
+.rc-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rc-peer-name {
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.rc-timer {
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-timer-warn {
+  color: #f87171;
+}
+
+.rc-controls {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.rc-round {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #fff;
+}
+
+.rc-round:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rc-round-on {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.rc-round-end {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.rc-pulse {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+  background: rgba(255, 65, 108, 0.15);
+  animation: rc-pulse 1.6s ease-out infinite;
+}
+
+@keyframes rc-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 65, 108, 0.45); }
+  100% { box-shadow: 0 0 0 28px rgba(255, 65, 108, 0); }
+}
+
+/* Random-call chat window banner (chat page) */
+.rc-chat-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  background: rgba(255, 65, 108, 0.1);
+  border-bottom: 1px solid rgba(255, 65, 108, 0.25);
+}
+
+.rc-chat-banner-locked {
+  background: rgba(245, 158, 11, 0.12);
+  border-bottom-color: rgba(245, 158, 11, 0.3);
+}
+
+.rc-chat-banner .rc-btn {
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  min-width: 0;
+}
