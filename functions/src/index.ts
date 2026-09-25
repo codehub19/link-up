@@ -1,3 +1,5 @@
+// Must be imported first so the options apply to every function below
+import './options'
 import * as admin from 'firebase-admin'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import {
