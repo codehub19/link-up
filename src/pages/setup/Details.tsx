@@ -13,8 +13,10 @@ export default function Details({ embedded, onComplete }: Props) {
   const { user, profile, refreshProfile } = useAuth()
   const nav = useNavigate()
 
-  const [name, setName] = useState(profile?.name || '')
+  // Pre-fill the name from the Google account
+  const [name, setName] = useState(profile?.name || user?.displayName || '')
   const [insta, setInsta] = useState(profile?.instagramId || '')
+  const [instaTouched, setInstaTouched] = useState(false)
   const [college, setCollege] = useState(profile?.college || '')
   const [dob, setDob] = useState(profile?.dob || '')
 
@@ -23,7 +25,8 @@ export default function Details({ embedded, onComplete }: Props) {
     profile?.userType || 'college'
   )
   const [datingPreference, setDatingPreference] = useState<'college_only' | 'open_to_all'>(
-    profile?.datingPreference || 'college_only'
+    // Older profiles may hold men/women/everyone here; treat anything else as the default
+    profile?.datingPreference === 'open_to_all' ? 'open_to_all' : 'college_only'
   )
 
   const [saving, setSaving] = useState(false)
@@ -118,12 +121,13 @@ export default function Details({ embedded, onComplete }: Props) {
                   className="field-input"
                   value={insta.replace(/^@/, '')}
                   onChange={e => setInsta(e.target.value)}
+                  onBlur={() => setInstaTouched(true)}
                   placeholder="yourhandle"
                   required
                 />
               </div>
-              {!insta.trim() && (
-                <span style={{ color: 'red', fontSize: 13 }}>
+              {instaTouched && !insta.trim() && (
+                <span style={{ color: '#ff6b84', fontSize: 13 }}>
                   Instagram handle is required
                 </span>
               )}

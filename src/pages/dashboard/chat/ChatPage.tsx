@@ -278,7 +278,9 @@ export default function ChatPage() {
 
   const tsMs = (v: any) => toMs(v)
   const peerTyping = !!(selectedThread?.typing && peerUid && now - tsMs(selectedThread.typing[peerUid]) < 5000)
-  const peerLastReadMs = peerUid ? tsMs(selectedThread?.lastRead?.[peerUid]) || undefined : undefined
+  // Read receipts work both ways: if either person turns them off, neither sees "seen"
+  const receiptsOn = (profile as any)?.readReceipts !== false && (selectedPeer as any)?.readReceipts !== false
+  const peerLastReadMs = peerUid && receiptsOn ? tsMs(selectedThread?.lastRead?.[peerUid]) || undefined : undefined
 
   const iAmBlocked = peerBlocksMe || (!!peerUid && selectedThread?.blocks?.[peerUid] === true)
   const iBlockedThem = !!peerUid && myBlockedSet.has(peerUid)

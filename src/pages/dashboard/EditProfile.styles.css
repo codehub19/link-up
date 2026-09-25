@@ -362,3 +362,30 @@
         text-align: center;
     }
 }
+/* Two-option segmented control */
+.edit-segment {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.edit-segment button {
+    flex: 1;
+    padding: 10px 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.edit-segment button.on {
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    color: #fff;
+}

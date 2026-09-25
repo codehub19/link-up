@@ -180,3 +180,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* Pushed screens show back + title; the dashboard shortcut isn't needed */
+.navbar-modern.pushed .nav-icon-btn[title="Dashboard"],
+.navbar-modern.pushed .hide-mobile {
+    display: none;
+}

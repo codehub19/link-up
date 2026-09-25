@@ -219,8 +219,23 @@ img {
   border: 1px solid var(--card-border);
 }
 
+/* Form controls use the app font (browsers default textareas to monospace) */
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+
 /* Inputs */
 .input,
+.field-input,
+input:not([type]),
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="password"],
+input[type="date"],
 input[type="text"],
 input[type="number"],
 input[type="email"],

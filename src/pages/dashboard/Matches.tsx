@@ -78,19 +78,21 @@ export default function MatchesPage() {
         {profile?.gender === 'male' ? <MaleTabs /> : <FemaleTabs />}
 
         <div className="matches-hero">
-          <h1 className="matches-title text-gradient">My Connections</h1>
+          <h1 className="matches-title text-gradient">Matches</h1>
           <p className="matches-subtitle">Your matches from all rounds.</p>
         </div>
 
-        <div className="matches-info-banner">
-          Click a profile to view details or start a chat with your matches.
-        </div>
+        {matches.length > 0 && (
+          <div className="matches-info-banner">
+            Tap a profile to see more, or start a chat with your matches.
+          </div>
+        )}
 
         {matches.length === 0 ? (
           <div className="matches-empty-card">
             <div className="matches-empty-title">No Matches Yet</div>
             <p className="matches-empty-text">Join the next matching round to find verified connections!</p>
-            <Link className="matches-action-btn" to="/dashboard/rounds">View Rounds</Link>
+            <Link className="matches-action-btn" to={profile?.gender === 'male' ? '/dashboard/male/rounds' : '/dashboard/round'}>View Rounds</Link>
           </div>
         ) : (
           <div className="matches-grid">

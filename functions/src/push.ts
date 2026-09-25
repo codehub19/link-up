@@ -3,7 +3,8 @@ import * as admin from 'firebase-admin'
 if (!admin.apps.length) admin.initializeApp()
 const db = admin.firestore()
 
-/** FCM tokens for the given users (userPrivate first, legacy users/{uid}.fcmToken as fallback). */
+/** FCM tokens for the given users (userPrivate first, legacy users/{uid}.fcmToken as fallback),
+ *  skipping anyone who turned push notifications off. */
 export async function getFcmTokens(uids: string[]): Promise<string[]> {
   const unique = [...new Set(uids.filter(Boolean))]
   const tokens: string[] = []
@@ -14,6 +15,8 @@ export async function getFcmTokens(uids: string[]): Promise<string[]> {
       db.getAll(...chunk.map((u) => db.collection('users').doc(u))),
     ])
     chunk.forEach((_, idx) => {
+      // Respect the "Push notifications" switch in Settings
+      if (userSnaps[idx].get('pushNotifications') === false) return
       const t = privSnaps[idx].get('fcmToken') || userSnaps[idx].get('fcmToken')
       if (t) tokens.push(t)
     })

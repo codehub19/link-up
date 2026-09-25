@@ -352,3 +352,35 @@
         /* Account for navbar */
     }
 }
+/* Rows: label on the left, value on the right; only tappable rows react */
+.settings-item:not(.tappable) {
+    cursor: default;
+}
+
+.settings-item:not(.tappable):hover {
+    background: transparent;
+}
+
+.settings-item.tappable:active {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.settings-item-info {
+    flex: 1;
+    min-width: 0;
+    justify-content: space-between;
+}
+
+.settings-item .settings-item-value {
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 500;
+    text-align: right;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.settings-chevron {
+    margin-left: 10px;
+}

@@ -17,6 +17,7 @@ import { db } from '../firebase'
 import { useDialog } from '../components/ui/Dialog'
 import LoadingHeart from '../components/LoadingHeart'
 import './PaymentPage.styles.css'
+import { isIOS } from '../utils/pwa'
 
 declare global {
   interface Window {
@@ -156,7 +157,7 @@ export default function PaymentPage() {
         {/* Header */}
         <div className="payment-hero">
           <h1 className="payment-title text-gradient">Complete Payment</h1>
-          <p className="payment-subtitle">Secure your spot in the next round</p>
+          <p className="payment-subtitle">Pay with any UPI app, then upload the payment screenshot. Premium starts once we confirm it.</p>
         </div>
 
         {/* Main Card */}
@@ -220,27 +221,19 @@ export default function PaymentPage() {
                   <div className="upi-box">
                     <label className="input-label">Quick Pay</label>
                     <div className="mobile-pay-options">
-                      <a
-                        href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
-                        className="btn-upi-intent"
-                        style={{ background: '#4285F4' }}
-                      >
-                        GPay
-                      </a>
-                      <a
-                        href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
-                        className="btn-upi-intent"
-                        style={{ background: '#5D3FD3' }}
-                      >
-                        PhonePe
-                      </a>
-                      <a
-                        href={`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR`}
-                        className="btn-upi-intent"
-                        style={{ background: '#02b1ff' }}
-                      >
-                        Paytm
-                      </a>
+                      {(() => {
+                        // Each app has its own link; the generic upi:// link doesn't open anything on iPhone
+                        const q = `pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR&tn=${encodeURIComponent('DateU Premium')}`
+                        const apps = [
+                          { name: 'GPay', href: `${isIOS() ? 'gpay' : 'tez'}://upi/pay?${q}`, bg: '#4285F4' },
+                          { name: 'PhonePe', href: `phonepe://pay?${q}`, bg: '#5D3FD3' },
+                          { name: 'Paytm', href: `paytmmp://pay?${q}`, bg: '#02b1ff' },
+                          { name: 'Other', href: `upi://pay?${q}`, bg: '#3f3f46' },
+                        ]
+                        return apps.map((a) => (
+                          <a key={a.name} href={a.href} className="btn-upi-intent" style={{ background: a.bg }}>{a.name}</a>
+                        ))
+                      })()}
                     </div>
                   </div>
 

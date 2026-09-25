@@ -103,6 +103,11 @@ html.app-mode .rounds-action-btn:active {
         padding-bottom: calc(var(--app-tabbar-h, 64px) + env(safe-area-inset-bottom) + 8px);
     }
 
+    html.app-mode .setup-top {
+        top: calc(var(--app-topbar-h) + env(safe-area-inset-top));
+        padding: 10px 16px;
+    }
+
     html.app-mode .setup-wrap {
         padding-top: calc(var(--app-topbar-h) + env(safe-area-inset-top) + 8px);
         padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
@@ -111,6 +116,7 @@ html.app-mode .rounds-action-btn:active {
     /* Native-sized page titles instead of big website heroes */
     html.app-mode .rounds-title,
     html.app-mode .plans-title,
+    html.app-mode .matches-title,
     html.app-mode .chat-title,
     html.app-mode .matches-title,
     html.app-mode .dashboard-container > h1,
@@ -140,6 +146,97 @@ html.app-mode .rounds-action-btn:active {
         margin-bottom: 1rem !important;
         padding-top: 0 !important;
         text-align: left;
+    }
+
+    /* ---- Rounds: title and status on one line, card fits on screen ---- */
+    html.app-mode .rounds-hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+    }
+
+    html.app-mode .rounds-hero .rounds-title {
+        margin: 0 !important;
+    }
+
+    html.app-mode .rounds-hero > div {
+        margin-top: 0 !important;
+    }
+
+    html.app-mode .rounds-hero .rounds-subtitle,
+    html.app-mode .matches-subtitle,
+    html.app-mode .notifications-subtitle {
+        display: none;
+    }
+
+    html.app-mode .live-round-badge {
+        padding: 0.3rem 0.75rem;
+        font-size: 0.68rem;
+        box-shadow: none;
+    }
+
+    html.app-mode .rounds-info-banner,
+    html.app-mode .matches-info-banner {
+        padding: 0.65rem 0.9rem;
+        margin: 0 0 0.75rem;
+        font-size: 0.85rem;
+        line-height: 1.45;
+        text-align: left;
+        max-width: none;
+    }
+
+    html.app-mode .rounds-carousel-wrapper {
+        margin: 0.25rem 0 0;
+        min-height: 0;
+    }
+
+    /* Keep the whole profile card (and its Like button) on one screen */
+    html.app-mode .rounds-carousel-wrapper .pm-image-area,
+    html.app-mode .matches-grid .pm-image-area {
+        max-height: calc(100dvh - var(--app-topbar-h) - var(--app-tabbar-h, 64px) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 170px);
+        min-height: 360px;
+    }
+
+    /* Short phones (iPhone SE etc.): drop the tip so the card fits */
+    @media (max-height: 740px) {
+        html.app-mode .rounds-info-banner {
+            display: none;
+        }
+
+        html.app-mode .rounds-carousel-wrapper .pm-image-area {
+            min-height: 300px;
+        }
+    }
+
+    html.app-mode .payment-hero {
+        text-align: left;
+        margin: 0 0 1rem;
+    }
+
+    html.app-mode .payment-hero .payment-title {
+        display: none;
+    }
+
+    html.app-mode .payment-hero .payment-subtitle {
+        margin: 0;
+        font-size: 0.92rem;
+        line-height: 1.5;
+    }
+
+    html.app-mode .matches-hero {
+        text-align: left;
+        margin-bottom: 0.75rem;
+    }
+
+    html.app-mode .match-card-actions {
+        flex-wrap: nowrap;
+    }
+
+    html.app-mode .match-card-action-btn {
+        white-space: nowrap;
+        padding: 10px 16px;
     }
 
     html.app-mode .rounds-subtitle,
@@ -434,4 +531,15 @@ html.app-mode [contenteditable="true"],
 html.app-mode .bubble {
     -webkit-user-select: text;
     user-select: text;
+}
+
+/* Hover effects "stick" after a tap on touch screens; native apps don't do that */
+@media (hover: none) {
+    html.app-mode .pm-card:hover,
+    html.app-mode .card:hover,
+    html.app-mode .pm-card:hover .pm-card-img,
+    html.app-mode .match-card-action-btn:hover,
+    html.app-mode .btn:hover {
+        transform: none;
+    }
 }

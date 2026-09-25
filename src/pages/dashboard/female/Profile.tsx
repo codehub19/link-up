@@ -10,6 +10,7 @@ import '../male/Profile.styles.css' // Reusing the Male styles
 import { getReferralStats, createReferralClaim, listPendingClaims, assignReferralCode } from '../../../services/referrals'
 import { toast } from 'sonner'
 import { db, updatePrivateProfile } from '../../../firebase'
+import { formatHeight, labelFor } from '../../../utils/profileLabels'
 
 export default function ProfilePage() {
   const { profile } = useAuth()
@@ -197,7 +198,7 @@ export default function ProfilePage() {
               <div className="profile-basics-grid">
                 <div className="profile-basic-item">
                   <span className="profile-basic-label">Height</span>
-                  <span className="profile-basic-value">{profile?.height || '--'}</span>
+                  <span className="profile-basic-value">{formatHeight(profile?.height) || '--'}</span>
                 </div>
                 <div className="profile-basic-item">
                   <span className="profile-basic-label">Gender</span>
@@ -205,11 +206,11 @@ export default function ProfilePage() {
                 </div>
                 <div className="profile-basic-item">
                   <span className="profile-basic-label">Looking For</span>
-                  <span className="profile-basic-value">{profile?.datingPreference === 'everyone' ? 'Everyone' : (profile?.datingPreference === 'women' ? 'Women' : 'Men')}</span>
+                  <span className="profile-basic-value">{labelFor('lookingFor', profile?.lookingFor) || '--'}</span>
                 </div>
                 <div className="profile-basic-item">
-                  <span className="profile-basic-label">Distance</span>
-                  <span className="profile-basic-value">{profile?.distancePreference ? `${profile.distancePreference} km` : '50 km'}</span>
+                  <span className="profile-basic-label">Open To</span>
+                  <span className="profile-basic-value">{profile?.datingPreference === 'college_only' ? 'College students' : 'Everyone'}</span>
                 </div>
               </div>
             </div>

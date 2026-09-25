@@ -66,7 +66,10 @@ export default function Terms({ embedded, onComplete }: Props) {
           </div>
           <label className="terms-accept">
             <input type="checkbox" checked={agree} onChange={e=>setAgree(e.target.checked)} />
-            <span>I agree to the Terms & Conditions.</span>
+            <span>
+              I agree to the <a href="/legal/terms" target="_blank" rel="noopener">Terms of Service</a> and{' '}
+              <a href="/legal/privacy" target="_blank" rel="noopener">Privacy Policy</a>, and I’m at least 18.
+            </span>
           </label>
           {error && <div style={{color:'#ff6b84', fontSize:13, marginTop:8}}>{error}</div>}
           <div className="setup-card-footer">

@@ -217,7 +217,29 @@ export default function Carousel({
       </div>
 
       <button className="deck-btn right" onClick={next} aria-label="Next">›</button>
+      {count > 1 && (
+        <div className="deck-dots" aria-label={`Profile ${idx + 1} of ${count}`}>
+          {slides.map((_, i) => <span key={i} className={i === idx ? 'on' : ''} />)}
+        </div>
+      )}
       <style>{`
+        .deck-dots {
+          display: flex;
+          justify-content: center;
+          gap: 6px;
+          margin-top: 12px;
+        }
+        .deck-dots span {
+          width: 6px;
+          height: 6px;
+          border-radius: 3px;
+          background: rgba(255,255,255,0.25);
+          transition: width 0.2s, background 0.2s;
+        }
+        .deck-dots span.on {
+          width: 18px;
+          background: #ff416c;
+        }
         .deck-wrap {
           position: relative;
           overflow: visible; /* Fix clipping of shadows/edges */
@@ -277,7 +299,10 @@ export default function Carousel({
         
         @media (max-width: 640px) {
           .deck-btn {
-            display: none; /* Hide buttons on mobile if requested */
+            display: none; /* Swipe on phones instead */
+          }
+          .deck-wrap {
+            padding: 8px 0 4px;
           }
           .deck-item.is-behind {
              /* pointer-events already none inline */

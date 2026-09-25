@@ -75,7 +75,7 @@ export default function ProfileWizard() {
 
   const idx = ORDER.indexOf(step)
   const total = ORDER.length - 1
-  const progress = Math.min(100, (idx / total) * 100)
+  const progress = Math.min(100, ((idx + 1) / total) * 100)
 
   const advance = () => {
     setStep(prev => {

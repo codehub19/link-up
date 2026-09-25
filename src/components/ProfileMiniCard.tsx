@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import ReactDOM from 'react-dom'
 import "./ProfileMiniCard.styles.css";
+import { formatHeight, labelFor } from '../utils/profileLabels'
 
 type UserStructure = {
   uid: string
@@ -140,7 +141,7 @@ export default function ProfileMiniCard({
   // --- Main Card Content ---
 
   const collapsedContent = (
-    <div className="pm-card">
+    <div className="pm-card pm-mini">
       <div className="pm-image-area" onClick={() => onExpand?.()}>
         {renderProgressBar()}
         <img src={imageToShow} alt="profile" className="pm-card-img" />
@@ -297,7 +298,7 @@ export default function ProfileMiniCard({
                   {user?.height && (
                     <div className="pm-attr-item">
                       <span className="pm-attr-label">📏 Height</span>
-                      <span className="pm-attr-value">{user.height}</span>
+                      <span className="pm-attr-value">{formatHeight(user.height)}</span>
                     </div>
                   )}
                   {user?.gender && (
@@ -321,31 +322,31 @@ export default function ProfileMiniCard({
                   {user?.loveLanguage && (
                     <div className="pm-attr-item">
                       <span className="pm-attr-label">❤️ Love Language</span>
-                      <span className="pm-attr-value">{user.loveLanguage}</span>
+                      <span className="pm-attr-value">{labelFor('loveLanguage', user.loveLanguage)}</span>
                     </div>
                   )}
                   {user?.sundayStyle && (
                     <div className="pm-attr-item">
                       <span className="pm-attr-label">☀️ Sunday Style</span>
-                      <span className="pm-attr-value">{user.sundayStyle}</span>
+                      <span className="pm-attr-value">{labelFor('sundayStyle', user.sundayStyle)}</span>
                     </div>
                   )}
                   {user?.travelPreference && (
                     <div className="pm-attr-item">
                       <span className="pm-attr-label">✈️ Travel</span>
-                      <span className="pm-attr-value">{user.travelPreference}</span>
+                      <span className="pm-attr-value">{labelFor('travelPreference', user.travelPreference)}</span>
                     </div>
                   )}
                   {user?.communicationImportance && (
                     <div className="pm-attr-item">
                       <span className="pm-attr-label">💬 Communication</span>
-                      <span className="pm-attr-value">{user.communicationImportance}</span>
+                      <span className="pm-attr-value">{labelFor('communicationImportance', user.communicationImportance)}</span>
                     </div>
                   )}
                   {user?.conflictApproach && (
                     <div className="pm-attr-item">
                       <span className="pm-attr-label">🤝 Conflict</span>
-                      <span className="pm-attr-value">{user.conflictApproach}</span>
+                      <span className="pm-attr-value">{labelFor('conflictApproach', user.conflictApproach)}</span>
                     </div>
                   )}
                 </div>

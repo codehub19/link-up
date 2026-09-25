@@ -21,7 +21,7 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.5rem;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(12, 12, 17, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--clr-border-glass);
@@ -425,4 +425,24 @@ textarea.field-input {
     border: 1px solid var(--clr-border-glass);
     border-radius: 12px;
     width: 100%;
+}
+/* Agree checkbox: large, on-brand tap target */
+.terms-accept {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  line-height: 1.45;
+}
+
+.terms-accept input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin: 1px 0 0;
+  accent-color: #ff416c;
+}
+
+.terms-accept a {
+  color: #ff7a93;
 }

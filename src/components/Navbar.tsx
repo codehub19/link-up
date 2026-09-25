@@ -79,6 +79,21 @@ export default function Navbar() {
     "/dashboard/premium": ["Premium", profileTab],
     "/pay": ["Payment", profileTab],
   };
+  // Help and legal pages opened from inside the app get a back button too
+  // (the installed iPhone app has no browser back button)
+  if (user && profile?.isProfileComplete) {
+    Object.assign(PUSHED, {
+      "/legal/terms": ["Terms of Service", "/dashboard/settings"],
+      "/legal/privacy": ["Privacy Policy", "/dashboard/settings"],
+      "/legal/refunds": ["Refund Policy", "/dashboard/settings"],
+      "/legal/delivery": ["Delivery Policy", "/dashboard/settings"],
+      "/legal/guidelines": ["Guidelines", "/dashboard/settings"],
+      "/legal/security": ["Security", "/dashboard/settings"],
+      "/legal/legal": ["Legal", "/dashboard/settings"],
+      "/support": ["Help Center", "/dashboard/settings"],
+      "/contact": ["Contact", "/dashboard/settings"],
+    } as Record<string, [string, string]>);
+  }
   const pushed = PUSHED[loc.pathname] || (loc.pathname.startsWith("/profile/") ? ["Profile", "/dashboard/matches"] as [string, string] : null);
   const pushedTitle = pushed?.[0];
   const pushedParent = pushed?.[1] || "/dashboard";
@@ -88,7 +103,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className={`navbar-modern ${scrolled ? "scrolled" : ""}`}>
+      <header className={`navbar-modern ${scrolled ? "scrolled" : ""} ${pushedTitle ? "pushed" : ""}`}>
         <div className="navbar-container">
 
           {/* Left: back + title on pushed app screens, otherwise the brand */}
@@ -158,7 +173,7 @@ export default function Navbar() {
               {user && profile?.isProfileComplete ? (
                 // If logged in & setup, maybe show nothing or settings icon? Keeping generic for now as requested.
                 null
-              ) : user ? (
+              ) : user && loc.pathname.startsWith("/setup") ? null : user ? (
                 <Link to="/setup/profile" className="nav-btn nav-btn-primary">
                   Complete Setup
                 </Link>

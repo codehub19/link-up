@@ -3,7 +3,7 @@ import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
 import { useAuth } from '../../state/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { updateProfileAndStatus, requestAccountDeletion, db, getDoc, doc, updateDoc, arrayRemove } from '../../firebase'
+import { updateProfileAndStatus, requestAccountDeletion, db, getDoc, doc, updateDoc, arrayRemove, getPrivateProfile } from '../../firebase'
 import './dashboard.css'
 import './Settings.styles.css'
 import LoadingSpinner from '../../components/LoadingSpinner'
@@ -40,6 +40,7 @@ export default function SettingsPage() {
 
   // Local State for Sliders (debounced save)
   const [ageRange, setAgeRange] = useState<[number, number]>([18, 35])
+  const [privateInfo, setPrivateInfo] = useState<{ email?: string; phoneNumber?: string }>({})
   const [distance, setDistance] = useState(50)
 
   // UI State
@@ -59,6 +60,12 @@ export default function SettingsPage() {
       setDistance(profile.distancePreference || 50)
     }
   }, [profile])
+
+  // Email and phone live in the private profile (not on the public one)
+  useEffect(() => {
+    if (!user) return
+    getPrivateProfile(user.uid).then((p) => setPrivateInfo({ email: p.email, phoneNumber: p.phoneNumber })).catch(() => { })
+  }, [user])
 
   // Handlers
   const toggleSetting = async (field: string, currentVal: boolean) => {
@@ -162,37 +169,41 @@ export default function SettingsPage() {
   }
 
 
+  const premiumUntilMs = (() => {
+    const t: any = (profile as any)?.premiumUntil
+    return t?.toMillis ? t.toMillis() : (t?.seconds ? t.seconds * 1000 : 0)
+  })()
+  const premiumActive = premiumUntilMs > Date.now()
+  const premiumPath = profile?.gender === 'male' ? '/dashboard/plans' : '/dashboard/premium'
+
   const sections: Section[] = [
     {
       title: 'Account',
       items: [
-        { label: 'Phone Number', value: profile?.phoneNumber || 'Not linked', action: () => { } },
-        { label: 'Email', value: profile?.email || 'Not linked', action: () => { } },
-        { label: 'Restore Purchases', action: () => showAlert('Restore Purchases functionality coming soon.') },
+        { label: 'Email', value: user?.email || privateInfo.email || 'Not linked', type: 'info' },
+        {
+          label: 'Phone Number',
+          value: privateInfo.phoneNumber || user?.phoneNumber || 'Not verified',
+          type: 'info',
+        },
+        {
+          label: 'Premium',
+          value: premiumActive
+            ? `Active until ${new Date(premiumUntilMs).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}`
+            : 'Not active',
+          action: () => nav(premiumPath),
+        },
       ]
     },
     {
       title: 'Discovery',
       items: [
         {
-          label: 'Distance Preference',
-          type: 'slider',
-          value: distance + ' km',
-          min: 5, max: 200,
-          onChange: (val) => { setDistance(val); updateProfileAndStatus(user!.uid, { distancePreference: val }); }
-        },
-        {
           label: 'Age Range',
           type: 'slider',
           value: `${ageRange[0]} - ${ageRange[1]}`,
           range: ageRange, // Custom handling in UI
           min: 18, max: 60
-        },
-        {
-          label: 'Global Mode',
-          type: 'toggle',
-          checked: profile?.globalMode || false,
-          action: () => toggleSetting('globalMode', profile?.globalMode || false)
         },
       ]
     },
@@ -204,12 +215,6 @@ export default function SettingsPage() {
           type: 'toggle',
           checked: profile?.pushNotifications !== false, // default true
           action: () => toggleSetting('pushNotifications', profile?.pushNotifications !== false)
-        },
-        {
-          label: 'Email Updates',
-          type: 'toggle',
-          checked: profile?.emailUpdates || false,
-          action: () => toggleSetting('emailUpdates', profile?.emailUpdates || false)
         },
       ]
     },
@@ -231,15 +236,24 @@ export default function SettingsPage() {
     {
       title: 'Community',
       items: [
-        { label: 'Community Guidelines', action: () => window.open('/community-guidelines', '_blank') },
-        { label: 'Safety Tips', action: () => window.open('/support', '_blank') },
+        { label: 'Community Guidelines', action: () => nav('/legal/guidelines') },
+        { label: 'Safety Tips', action: () => nav('/legal/guidelines') },
       ]
     },
     {
       title: 'Help & Support',
       items: [
-        { label: 'Help Center', action: () => window.open('/support', '_blank') },
-        { label: 'Contact Us', action: () => window.open('mailto:support@dateu.in') },
+        { label: 'Help Center', action: () => nav('/support') },
+        { label: 'My Support Requests', action: () => nav('/dashboard/support-history') },
+        { label: 'Contact Us', value: 'support@dateu.in', action: () => { window.location.href = 'mailto:support@dateu.in' } },
+      ]
+    },
+    {
+      title: 'Legal',
+      items: [
+        { label: 'Terms of Service', action: () => nav('/legal/terms') },
+        { label: 'Privacy Policy', action: () => nav('/legal/privacy') },
+        { label: 'Refund Policy', action: () => nav('/legal/refunds') },
       ]
     }
   ]
@@ -271,7 +285,7 @@ export default function SettingsPage() {
               <h3 className="settings-section-title">{section.title}</h3>
               <div className="settings-list">
                 {section.items.map((item, i) => (
-                  <div key={i} className="settings-item" onClick={item.type === 'slider' ? undefined : item.action}>
+                  <div key={i} className={`settings-item ${item.action && item.type !== 'slider' ? 'tappable' : ''}`} onClick={item.type === 'slider' ? undefined : item.action}>
                     <div className="settings-item-row-main">
                       <div className="settings-item-info">
                         <span className="settings-item-label">{item.label}</span>
@@ -286,7 +300,7 @@ export default function SettingsPage() {
                       )}
 
                       {/* Action Arrow */}
-                      {!item.type && !item.value && (
+                      {!item.type && item.action && (
                         <span className="settings-chevron">›</span>
                       )}
                     </div>

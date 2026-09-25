@@ -14,7 +14,7 @@ export const onMessageCreate = onDocumentCreated(
         const message = snap.data()
         const { threadId } = event.params
         const senderUid = message.senderUid
-        const text = message.text || (message.audioUrl ? 'Sent a voice note' : 'Sent a message')
+        const text = message.audioUrl || message.type === 'audio' ? '🎤 Voice message' : (message.text || 'Sent a message')
 
         // Fetch thread to get specific participants or group name if applicable
         // For now assuming 1:1 or small group stored in participants array
@@ -43,7 +43,8 @@ export const onMessageCreate = onDocumentCreated(
                     title: senderName,
                     body: text,
                     threadId,
-                    url: `/dashboard/chat?threadId=${threadId}`
+                    // Opens this conversation (the chat screen is keyed by the other person)
+                    url: `/dashboard/chat?with=${encodeURIComponent(senderUid)}`
                 }
             }
 

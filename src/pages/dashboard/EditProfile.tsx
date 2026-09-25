@@ -60,6 +60,7 @@ export default function EditProfile() {
   const [insta, setInsta] = useState(profile?.instagramId ?? '')
   const [height, setHeight] = useState(profile?.height ?? '')
   const [college, setCollege] = useState(profile?.college ?? '')
+  const [collegeOnly, setCollegeOnly] = useState(profile?.datingPreference === 'college_only')
   const [loveLanguage, setLoveLanguage] = useState(profile?.loveLanguage ?? '')
   const [travelPreference, setTravelPreference] = useState(profile?.travelPreference ?? '')
   const [sundayStyle, setSundayStyle] = useState(profile?.sundayStyle ?? '')
@@ -88,6 +89,7 @@ export default function EditProfile() {
       setInsta(profile.instagramId ?? '')
       setHeight(profile.height ?? '')
       setCollege(profile.college ?? '')
+      setCollegeOnly(profile.datingPreference === 'college_only')
       setLoveLanguage(profile.loveLanguage ?? '')
       setTravelPreference(profile.travelPreference ?? '')
       setSundayStyle(profile.sundayStyle ?? '')
@@ -170,6 +172,8 @@ export default function EditProfile() {
         photoUrls: filteredUrls,
         height,
         college,
+        // Only students can limit matches to other students
+        ...(profile?.userType !== 'general' ? { datingPreference: collegeOnly ? 'college_only' : 'open_to_all' } : {}),
         loveLanguage,
         travelPreference,
         sundayStyle,
@@ -295,6 +299,16 @@ export default function EditProfile() {
                   <span className="field-label">College</span>
                   <CollegeSelect value={college} onChange={setCollege} placeholder="Search your college" />
                 </label>
+
+                {profile?.userType !== 'general' && (
+                  <div className="field">
+                    <span className="field-label">Who would you like to meet?</span>
+                    <div className="edit-segment" role="radiogroup">
+                      <button type="button" role="radio" aria-checked={collegeOnly} className={collegeOnly ? 'on' : ''} onClick={() => setCollegeOnly(true)}>College students only</button>
+                      <button type="button" role="radio" aria-checked={!collegeOnly} className={!collegeOnly ? 'on' : ''} onClick={() => setCollegeOnly(false)}>Everyone</button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="edit-section-title">Personality & Preferences</div>
                 {radioGroup('Communication Importance', communicationImportance, setCommunicationImportance, COM, 'com')}

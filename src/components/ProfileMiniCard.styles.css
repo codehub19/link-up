@@ -519,3 +519,66 @@
         max-height: 48%;
     }
 }
+/* --- Collapsed card: name, interests and actions over the photo ---
+   Scoped to .pm-mini so ProfileMatchCard's styles (same class names, loaded
+   only on the Matches page) can't hide or restyle them. */
+.pm-mini.pm-card {
+    max-width: none;
+}
+
+.pm-mini .pm-card-img {
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.pm-mini .pm-card-info-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 72px 16px 16px;
+    background: linear-gradient(to top, rgba(10, 10, 14, 0.96) 0%, rgba(10, 10, 14, 0.8) 55%, rgba(10, 10, 14, 0) 100%);
+    cursor: default;
+}
+
+.pm-mini .pm-card-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    margin-bottom: 10px;
+    color: #fff;
+}
+
+.pm-mini .pm-card-name {
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.pm-mini .pm-card-age {
+    font-size: 1.3rem;
+    font-weight: 500;
+    margin-left: 0;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.pm-mini .pm-interests-preview {
+    margin-bottom: 12px;
+}
+
+.pm-mini .pm-actions-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    width: 100%;
+    margin-top: 0;
+}
+
+.pm-mini .pm-action-slot {
+    flex: 1;
+    min-width: 0;
+}

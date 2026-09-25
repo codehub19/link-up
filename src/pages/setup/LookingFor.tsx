@@ -9,7 +9,8 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 export default function LookingFor({ embedded, onComplete }: { embedded?: boolean; onComplete?: () => void }) {
   const { user, profile, refreshProfile } = useAuth()
   const nav = useNavigate()
-  const [sel, setSel] = useState<'men' | 'women' | 'everyone'>(profile?.datingPreference || 'everyone')
+  // Stored separately from datingPreference, which holds the "college students only / everyone" choice
+  const [sel, setSel] = useState<'men' | 'women' | 'everyone'>((profile as any)?.interestedIn || 'everyone')
   const [saving, setSaving] = useState(false)
 
   const save = async () => {
@@ -18,7 +19,7 @@ export default function LookingFor({ embedded, onComplete }: { embedded?: boolea
     try {
       await updateProfileAndStatus(
         user.uid,
-        { datingPreference: sel },
+        { interestedIn: sel } as any,
         { lookingFor: true } // Mark step as lookingFor (reusing this map key loosely or add new)
       )
       await refreshProfile()
