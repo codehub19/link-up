@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import Navbar from '../../components/Navbar'
 import { useAuth } from '../../state/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { updateProfileAndStatus, nextSetupRoute } from '../../firebase'
 import { generateReferralCode } from '../../services/referrals'
 import CollegeSelect from '../../components/CollegeSelect'
-import PhoneVerification from '../../components/PhoneVerification'
 import './setup.styles.css'
 
 type Props = { embedded?: boolean; onComplete?: () => void }
@@ -27,14 +26,6 @@ export default function Details({ embedded, onComplete }: Props) {
     profile?.datingPreference || 'college_only'
   )
 
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false)
-
-  useEffect(() => {
-    if (profile?.isPhoneVerified) {
-      setIsPhoneVerified(true)
-    }
-  }, [profile])
-
   const [saving, setSaving] = useState(false)
 
   // Validation
@@ -44,7 +35,7 @@ export default function Details({ embedded, onComplete }: Props) {
   const validDob = !!dob
   const validCollege = isCollegeUser ? !!college : true
 
-  const valid = validName && validInsta && validDob && validCollege && isPhoneVerified
+  const valid = validName && validInsta && validDob && validCollege
 
   const save = async () => {
     if (!user || !valid) return
@@ -192,25 +183,12 @@ export default function Details({ embedded, onComplete }: Props) {
               )}
             </label>
 
-            {/* Phone Verification */}
-            <div className="field">
-              <span className="field-label">Mobile Verification <span style={{ color: 'red' }}>*</span></span>
-              {isPhoneVerified ? (
-                <div className="tag" style={{ background: '#e6fffa', color: '#009688', border: '1px solid #b2dfdb', padding: '8px 12px', display: 'inline-block' }}>
-                  ✓ Phone Verified
-                </div>
-              ) : (
-                <PhoneVerification onVerified={() => setIsPhoneVerified(true)} />
-              )}
-            </div>
-
           </div>
 
           <div className="setup-card-footer">
             <button className="btn-primary-lg" disabled={!valid || saving} onClick={save}>
               {saving ? 'Saving…' : 'Continue'}
             </button>
-            {!isPhoneVerified && <p style={{ fontSize: 12, color: 'red', marginTop: 8 }}>Please verify your phone number to continue.</p>}
           </div>
         </section>
       </div>

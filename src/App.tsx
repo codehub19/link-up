@@ -55,6 +55,7 @@ const EditProfile = lazy(() => import('./pages/dashboard/EditProfile'))
 const SettingsPage = lazy(() => import('./pages/dashboard/Settings'))
 const SupportHistory = lazy(() => import('./pages/dashboard/SupportHistory'))
 const JobApplications = lazy(() => import('./pages/admin/JobApplications'))
+const RandomCall = lazy(() => import('./pages/dashboard/RandomCall'))
 
 import AnimatedRoutesLayout from './components/layout/AnimatedRoutesLayout'
 
@@ -184,6 +185,15 @@ export default function App() {
             element={
               <Protected>
                 <ChatPage />
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/dashboard/random-call"
+            element={
+              <Protected>
+                <RandomCall />
               </Protected>
             }
           />
