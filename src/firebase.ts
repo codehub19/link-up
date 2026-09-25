@@ -166,6 +166,14 @@ export type UserProfile = {
   referralEarningsPaid?: number
   upiId?: string
 
+  // Calling Feature
+  successfulCallsCount?: number // Lifetime successful calls
+  dailyCalls?: {
+    date: string // YYYY-MM-DD
+    count: number
+  }
+  planId?: string // Current active plan
+
   [k: string]: any
 }
 

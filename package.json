@@ -15,6 +15,10 @@
     "clean:shadow:nix": "bash -lc \"shopt -s globstar; for f in src/**/*.js; do base=${f%.js}; if [[ -e ${base}.tsx || -e ${base}.jsx ]]; then rm -f \\\"$f\\\"; fi; done; for m in src/**/*.js.map; do base=${m%.js.map}; if [[ -e ${base}.tsx || -e ${base}.jsx ]]; then rm -f \\\"$m\\\"; fi; done\""
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/ios": "^8.3.1",
     "@firebase/messaging": "^0.12.23",
     "browser-image-compression": "^2.0.2",
     "firebase": "^12.4.0",

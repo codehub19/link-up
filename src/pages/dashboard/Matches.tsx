@@ -115,9 +115,14 @@ export default function MatchesPage() {
                     key={u.uid}
                     user={u}
                     footer={
-                      <Link className="match-card-action-btn" to={`/dashboard/chat?with=${encodeURIComponent(u.uid)}`}>
-                        Start Chat
-                      </Link>
+                      <div className="match-card-actions">
+                        <Link className="match-card-action-btn" to={`/dashboard/chat?with=${encodeURIComponent(u.uid)}`}>
+                          Start Chat
+                        </Link>
+                        <Link className="match-card-action-btn call-btn-secondary" to={`/dashboard/call?with=${encodeURIComponent(u.uid)}`}>
+                          Calling Date
+                        </Link>
+                      </div>
                     }
                   />
                 ) : null

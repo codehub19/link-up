@@ -24,6 +24,8 @@ export interface Plan {
   price: number              // Rupees
   currency?: string
   matchQuota?: number
+  callQuota?: number          // calls per day (premium) or total (free)
+  maxCallDuration?: number     // in minutes
   offers?: string[]
   supportAvailable?: boolean
   highlight?: boolean
@@ -56,6 +58,8 @@ function normalizePlan(id: string, data: DocumentData): Plan | null {
     amount: price,
     currency: data.currency || 'INR',
     matchQuota: typeof data.matchQuota === 'number' ? data.matchQuota : undefined,
+    callQuota: typeof data.callQuota === 'number' ? data.callQuota : undefined,
+    maxCallDuration: typeof data.maxCallDuration === 'number' ? data.maxCallDuration : undefined,
     offers: Array.isArray(data.offers) ? data.offers.slice() : undefined,
     supportAvailable: !!data.supportAvailable,
     highlight: !!data.highlight,
