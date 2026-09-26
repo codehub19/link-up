@@ -17,11 +17,11 @@ export default function Hero() {
           </div>
 
           <h1 className="hero-title display-text">
-            Dating for <br />
-            <span className="text-gradient">Real Connections.</span>
+            Real connections, <br />
+            <span className="text-gradient">on campus.</span>
           </h1>
 
-          Skip the endless swiping. DateU connects you with verified students through curated rounds and safe, meaningful interactions.
+          Date, make friends, or just talk. DateU connects verified college students through curated dating rounds, 5-minute voice calls and a students-only Friends space.
 
           <div className="hero-actions">
             {!user ? (

@@ -4,7 +4,7 @@ import PageTransition, { TransitionKind } from './PageTransition'
 
 // Top-level app tabs switch instantly, like a native tab bar
 const TAB_ROOTS = [
-    '/dashboard/male/rounds', '/dashboard/round', '/dashboard/random-call', '/dashboard/matches',
+    '/dashboard/male/rounds', '/dashboard/round', '/dashboard/random-call', '/dashboard/friends',
     '/dashboard/chat', '/dashboard/male/profile', '/dashboard/female/profile',
 ]
 

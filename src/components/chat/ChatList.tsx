@@ -12,7 +12,7 @@ export type ChatListItem = {
   unread?: boolean
   active?: boolean
   /** e.g. "18h left" for random-call chats, or "Chat ended" */
-  tag?: { text: string; ended?: boolean }
+  tag?: { text: string; ended?: boolean; kind?: 'friend' }
 }
 
 export function Avatar({ name, photoUrl, online, size }: { name?: string; photoUrl?: string; online?: boolean; size?: 'sm' }) {
@@ -79,10 +79,10 @@ export default function ChatList({
               </svg>
             </div>
             <h3>No chats yet</h3>
-            <p>When you match in a round, or you both like each other after a random call, your chat shows up here.</p>
+            <p>Chats with your matches and friends show up here — match in a round, connect on a random call, or add friends.</p>
             <div className="dm-list-empty-actions">
               <Link className="dm-pill-btn" to={roundsPath}>Go to Rounds</Link>
-              <Link className="dm-pill-btn ghost" to="/dashboard/random-call">Random call</Link>
+              <Link className="dm-pill-btn ghost" to="/dashboard/friends">Find friends</Link>
             </div>
           </div>
         )
@@ -106,7 +106,7 @@ export default function ChatList({
                   <span className="dm-row-last">
                     {t.lastText ? `${t.lastFromMe ? 'You: ' : ''}${t.lastText}` : 'Say hi 👋'}
                   </span>
-                  {t.tag && <span className={`dm-tag ${t.tag.ended ? 'ended' : ''}`}>{t.tag.text}</span>}
+                  {t.tag && <span className={`dm-tag ${t.tag.ended ? 'ended' : ''} ${t.tag.kind || ''}`}>{t.tag.text}</span>}
                   {t.unread && <span className="dm-unread-dot" aria-label="Unread" />}
                 </div>
               </div>

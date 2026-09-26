@@ -203,6 +203,7 @@ export default function MatchingRounds() {
           <MaleTabs />
           <div className="rounds-hero">
             <h1 className="rounds-title">Upcoming Rounds</h1>
+            <Link to="/dashboard/matches" className="rounds-matches-link">My matches ›</Link>
           </div>
           <EmptyState
             icon="calendar"
@@ -224,6 +225,7 @@ export default function MatchingRounds() {
 
         <div className="rounds-hero">
           <h1 className="rounds-title text-gradient">Matching Round</h1>
+            <Link to="/dashboard/matches" className="rounds-matches-link">My matches ›</Link>
           {/* Subheading */}
           <p className="rounds-subtitle">Discover your curated matches for this round.</p>
           {/* Show round live badge if round is live */}

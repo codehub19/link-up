@@ -191,6 +191,7 @@ export default function MatchingRound() {
           <FemaleTabs />
           <div className="rounds-hero">
             <h1 className="rounds-title">Upcoming Rounds</h1>
+            <Link to="/dashboard/matches" className="rounds-matches-link">My matches ›</Link>
           </div>
           <EmptyState
             icon="calendar"
@@ -212,6 +213,7 @@ export default function MatchingRound() {
 
         <div className="rounds-hero">
           <h1 className="rounds-title text-gradient">Matching Round</h1>
+            <Link to="/dashboard/matches" className="rounds-matches-link">My matches ›</Link>
           {/* Subheading */}
           <p className="rounds-subtitle">See who liked you and reveal your match.</p>
           {/* Show round live badge if round is live */}

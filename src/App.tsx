@@ -38,6 +38,7 @@ const NotificationsPage = lazy(() => import('./pages/dashboard/Notifications'))
 const SendNotificationAdmin = lazy(() => import('./pages/admin/SendNotification'))
 const NotificationsAdminList = lazy(() => import('./pages/admin/AdminNotification'))
 const MatchesPage = lazy(() => import('./pages/dashboard/Matches'))
+const FriendsPage = lazy(() => import('./pages/dashboard/Friends'))
 const ProfileView = lazy(() => import('./pages/dashboard/ProfileView'))
 const DashboardChooser = lazy(() => import('./pages/dashboard/DashboardChooser'))
 const MalePlans = lazy(() => import('./pages/dashboard/male/Plans'))
@@ -228,6 +229,15 @@ export default function App() {
             element={
               <Protected>
                 <RandomCall />
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/dashboard/friends"
+            element={
+              <Protected>
+                <FriendsPage />
               </Protected>
             }
           />

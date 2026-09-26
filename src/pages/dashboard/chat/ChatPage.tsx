@@ -28,7 +28,8 @@ type ThreadDoc = {
   typing?: Record<string, any>
   lastRead?: Record<string, any>
   // Set by the server when two people connect through a random call
-  source?: 'random_call'
+  source?: 'random_call' | 'friend'
+  friend?: boolean
   chatExpiresAt?: any
   unlocked?: boolean
 }
@@ -197,7 +198,8 @@ export default function ChatPage() {
       if (!byId.has(tid)) byId.set(tid, { peerUid: p, t: threads.find((x) => x.id === tid), fallbackMs: toMs(m.createdAt) })
     })
     threads.forEach((t) => {
-      if (t.source !== 'random_call' || byId.has(t.id)) return
+      const isFriendChat = t.friend === true || (t.source === 'friend' && t.friend !== false)
+      if ((t.source !== 'random_call' && !isFriendChat) || byId.has(t.id)) return
       const p = t.participants?.find((x) => x !== user.uid)
       if (p) byId.set(t.id, { peerUid: p, t, fallbackMs: toMs(t.createdAt) })
     })
@@ -209,7 +211,8 @@ export default function ChatPage() {
         const lastMs = toMs(last?.at) || toMs(t?.updatedAt)
         const unread = !!last && last.senderUid !== user.uid && lastMs > toMs(t?.lastRead?.[user.uid]) && threadId !== selectedId
         let tag: ChatListItem['tag']
-        if (t?.source === 'random_call' && !t.unlocked && t.chatExpiresAt) {
+        if (t?.friend === true || (t?.source === 'friend' && t?.friend !== false)) tag = { text: 'Friend', kind: 'friend' }
+        if (t?.source === 'random_call' && !t.unlocked && t.chatExpiresAt && !t.friend) {
           const left = toMs(t.chatExpiresAt) - now
           tag = left > 0 ? { text: `${timeLeft(left)} left` } : { text: 'Chat ended', ended: true }
         }
@@ -284,7 +287,7 @@ export default function ChatPage() {
 
   const iAmBlocked = peerBlocksMe || (!!peerUid && selectedThread?.blocks?.[peerUid] === true)
   const iBlockedThem = !!peerUid && myBlockedSet.has(peerUid)
-  const chatExpiresMs = selectedThread?.source === 'random_call' && !selectedThread.unlocked ? tsMs(selectedThread.chatExpiresAt) || undefined : undefined
+  const chatExpiresMs = selectedThread?.source === 'random_call' && !selectedThread.unlocked && !selectedThread.friend ? tsMs(selectedThread.chatExpiresAt) || undefined : undefined
   const chatLocked = chatExpiresMs !== undefined && now >= chatExpiresMs
   const isBanned = !!profile?.banned
   const chatDisabled = iAmBlocked || iBlockedThem || chatLocked || isBanned
@@ -452,7 +455,9 @@ export default function ChatPage() {
         onTyping={handleTyping}
         peerLastReadMs={peerLastReadMs}
         peer={selectedPeer}
-        intro={selectedThread?.source === 'random_call' ? 'You connected on a random call.' : 'You matched in a DateU round.'}
+        intro={selectedThread?.friend || selectedThread?.source === 'friend'
+          ? 'You’re friends on DateU. Say hi!'
+          : selectedThread?.source === 'random_call' ? 'You connected on a random call.' : 'You matched in a DateU round.'}
         onLike={interactive ? handleLike : undefined}
         onReply={interactive && !chatDisabled ? (m) => { setEditingMessage(null); setReplyTo(m) } : undefined}
         onDelete={interactive ? handleDelete : undefined}

@@ -207,6 +207,27 @@ export default function SettingsPage() {
         },
       ]
     },
+    ...(profile?.userType !== 'general' ? [{
+      title: 'Friends',
+      items: [
+        {
+          label: 'Show me in Friends',
+          type: 'toggle' as const,
+          checked: !!profile?.friendsVisible,
+          action: () => toggleSetting('friendsVisible', !!profile?.friendsVisible)
+        },
+        {
+          label: profile?.gender === 'female' ? 'Only women can find me' : profile?.gender === 'male' ? 'Only men can find me' : 'Only my gender can find me',
+          type: 'toggle' as const,
+          checked: profile?.friendsAudience === 'same',
+          action: async () => {
+            if (!user) return
+            await updateProfileAndStatus(user.uid, { friendsAudience: profile?.friendsAudience === 'same' ? 'all' : 'same' })
+            await refreshProfile()
+          }
+        },
+      ]
+    }] : []),
     {
       title: 'Notifications',
       items: [

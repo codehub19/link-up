@@ -301,6 +301,11 @@
   color: #ff7a93;
 }
 
+.dm-tag.friend {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+}
+
 .dm-tag.ended {
   background: rgba(245, 158, 11, 0.14);
   color: #fbbf24;

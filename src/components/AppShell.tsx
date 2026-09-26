@@ -85,7 +85,7 @@ function AppWelcome() {
     <div className="app-welcome">
       <div className="app-welcome-top">
         <div className="app-welcome-logo">DateU</div>
-        <p>Meet people from your campus through curated rounds, voice calls and real conversations.</p>
+        <p>Meet people from your campus — dates, friends and real conversations.</p>
       </div>
       <div className="app-welcome-bottom">
         <button

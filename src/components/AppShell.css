@@ -567,3 +567,23 @@ html.app-mode .bubble {
         transform: none;
     }
 }
+
+/* "My matches" shortcut next to the Rounds title */
+.rounds-matches-link {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+html.app-mode .rounds-hero .rounds-matches-link {
+    order: 3;
+}

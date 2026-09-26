@@ -179,6 +179,21 @@ export default function ProfileTab({ referral }: { referral?: React.ReactNode })
         {referral}
 
         <div className="pt-list">
+          <button type="button" className="pt-row" onClick={() => nav('/dashboard/matches')}>
+            <span className="pt-row-icon"><Icon><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" /></Icon></span>
+            <span className="pt-row-body"><span className="pt-row-title">My matches</span></span>
+            <Chevron />
+          </button>
+          {isStudent && (
+            <button type="button" className="pt-row" onClick={() => nav('/dashboard/friends')}>
+              <span className="pt-row-icon"><Icon><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></Icon></span>
+              <span className="pt-row-body">
+                <span className="pt-row-title">Friends</span>
+                <span className="pt-row-sub">{p.friendsVisible ? 'You’re visible to other students' : 'Turn on to make friends on campus'}</span>
+              </span>
+              <Chevron />
+            </button>
+          )}
           <button type="button" className="pt-row" onClick={() => nav('/dashboard/support-history')}>
             <span className="pt-row-icon"><Icon><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></Icon></span>
             <span className="pt-row-body"><span className="pt-row-title">My support requests</span></span>

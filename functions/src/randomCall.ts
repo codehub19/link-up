@@ -334,6 +334,14 @@ async function canCall(a: string, b: string) {
     return true
   }
   const thread = (await db.collection('threads').doc(threadIdFor(a, b)).get()).data()
+  // Friends can call each other
+  if (thread?.friend === true) {
+    const [ab, ba] = await Promise.all([
+      db.collection('friendRequests').doc(`${a}_${b}`).get(),
+      db.collection('friendRequests').doc(`${b}_${a}`).get(),
+    ])
+    if (ab.get('status') === 'accepted' || ba.get('status') === 'accepted') return true
+  }
   if (thread?.source === 'random_call') {
     const expires = thread.chatExpiresAt?.toMillis?.() ?? 0
     return thread.unlocked === true || Date.now() < expires
@@ -361,7 +369,7 @@ export const startMatchCall = onCall({ region: REGION }, async (req) => {
     throw new HttpsError('permission-denied', "You can't call this person.", { reason: 'blocked' })
   }
   if (!(await canCall(uid, peerUid))) {
-    throw new HttpsError('permission-denied', 'You can only call people you are matched with.', { reason: 'not-matched' })
+    throw new HttpsError('permission-denied', 'You can only call your matches and friends.', { reason: 'not-matched' })
   }
 
   const cfg = await loadConfig()

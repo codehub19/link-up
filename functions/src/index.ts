@@ -632,6 +632,7 @@ export * from './notifications'
 export * from './randomCall'
 export * from './admin'
 export * from './referralRewards'
+export * from './friends'
 
 /* ----------------------------------------------------------------------------
  * expirePremium (daily): mark ended Premium plans expired. Older plans that were
