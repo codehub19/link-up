@@ -58,7 +58,9 @@ function useHasUnreadChats(uid?: string, enabled = true) {
 export default function MobileNavbar() {
     const { user, profile } = useAuth()
     const loc = useLocation()
-    const inApp = loc.pathname.startsWith('/dashboard') && !!profile?.isProfileComplete
+    // Screens opened from another screen (like native "pushed" screens) don't show the tab bar
+    const pushed = ['/dashboard/notifications', '/dashboard/edit-profile', '/dashboard/settings', '/dashboard/support-history', '/dashboard/plans', '/dashboard/premium'].includes(loc.pathname)
+    const inApp = loc.pathname.startsWith('/dashboard') && !!profile?.isProfileComplete && !pushed
     const unreadChats = useHasUnreadChats(user?.uid, inApp)
 
     // Only inside the app, and never on top of a full-screen chat

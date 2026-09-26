@@ -164,3 +164,31 @@
         align-self: flex-start;
     }
 }
+/* Title on the left, "New" pill on the right, on one line */
+.notification-card .notif-header {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.notification-card .notif-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-card .badge-new {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.notification-card .notif-body {
+    margin-top: 6px;
+    line-height: 1.5;
+}
+
+.notification-card .notif-meta {
+    margin-top: 10px;
+    font-size: 0.8rem;
+}

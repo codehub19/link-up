@@ -81,7 +81,8 @@ export default function EditProfile() {
   })
   const [isCompressing, setIsCompressing] = useState<boolean[]>(Array(MAX_PHOTOS).fill(false))
 
-  useEffect(() => {
+  // Load the form from the saved profile (also used by Reset)
+  const loadFromProfile = () => {
     if (profile) {
       setName(profile.name ?? '')
       setBio(profile.bio ?? '')
@@ -106,6 +107,11 @@ export default function EditProfile() {
         }))
       )
     }
+  }
+
+  useEffect(() => {
+    loadFromProfile()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile])
 
   // Pick photo for a slot (instant preview, compress, upload)
@@ -322,11 +328,7 @@ export default function EditProfile() {
                 <button
                   className="btn-ghost"
                   type="button"
-                  onClick={() => {
-                    if (!profile) return
-                    // Simple reset logic
-                    window.location.reload()
-                  }}
+                  onClick={loadFromProfile}
                   disabled={saving}
                 >
                   Reset

@@ -18,7 +18,8 @@
     <title>DateU</title>
     <!-- Launch screen: shown instantly (dark, no white flash) until the app has loaded -->
     <style>
-      html, body { background: #0c0c11; }
+      /* Only on body, so the app stylesheet's body background covers the whole page */
+      body { background: #0c0c11; }
       #launch { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #0c0c11; }
       #launch .logo { font: 800 40px/1 'Poppins', system-ui, sans-serif; background: linear-gradient(135deg, #ff416c, #ff4b2b); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -0.02em; }
       #launch .dots { display: flex; gap: 6px; }

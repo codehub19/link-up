@@ -376,3 +376,29 @@
     padding: 1rem 0.25rem;
   }
 }
+
+/* Short phones (iPhone SE etc.): keep everything above the tab bar */
+@media (max-height: 700px) {
+  .rc-hero-icon {
+    width: 80px;
+    height: 80px;
+    margin-top: 0;
+  }
+
+  .rc-hero-icon svg {
+    width: 30px;
+    height: 30px;
+  }
+
+  .rc-home {
+    gap: 0.75rem;
+  }
+
+  .rc-home > .rc-muted:not(.rc-small) {
+    font-size: 0.9rem;
+  }
+
+  .rc-facts div {
+    padding: 8px 4px;
+  }
+}

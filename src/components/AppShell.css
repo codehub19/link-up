@@ -96,6 +96,16 @@ html.app-mode .rounds-action-btn:active {
         box-sizing: border-box;
     }
 
+    /* Screens without the tab bar only need room for the home indicator */
+    html.app-mode.no-tabbar .dashboard-container,
+    html.app-mode.no-tabbar .edit-profile-wrap {
+        padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+    }
+
+    html.app-mode.no-tabbar .edit-profile-wrap {
+        padding-bottom: 0;
+    }
+
     /* Chat fills the space between the bars instead of the whole screen */
     html.app-mode .dashboard-container.chat-page {
         height: 100dvh;

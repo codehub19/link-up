@@ -32,9 +32,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const root = document.documentElement
     root.classList.toggle('app-mode', isAppRoute)
     root.classList.toggle('standalone', standalone)
+    // No bottom tab bar on pushed screens (see MobileNavbar)
+    root.classList.toggle('no-tabbar', ['/dashboard/notifications', '/dashboard/edit-profile', '/dashboard/settings', '/dashboard/support-history', '/dashboard/plans', '/dashboard/premium'].includes(pathname) || !pathname.startsWith('/dashboard'))
     document.querySelector('meta[name="viewport"]')?.setAttribute('content', isAppRoute ? VIEWPORT_APP : VIEWPORT_DEFAULT)
     return () => root.classList.remove('app-mode')
-  }, [isAppRoute, standalone])
+  }, [isAppRoute, standalone, pathname])
 
   // The app is phone/tablet only. Admins can opt in to a preview for this tab
   // (to test and support users) but still see the gate first.

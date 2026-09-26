@@ -132,11 +132,20 @@ export default function PaymentPage() {
     }
   }
 
+  const [copied, setCopied] = useState(false)
   function copyUPI() {
-    navigator.clipboard.writeText(UPI_ID).then(async () => {
-      await showAlert('UPI ID copied')
+    navigator.clipboard.writeText(UPI_ID).then(() => {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
     }).catch(() => { })
   }
+  const [proofPreview, setProofPreview] = useState<string | null>(null)
+  useEffect(() => {
+    if (!proof) { setProofPreview(null); return }
+    const u = URL.createObjectURL(proof)
+    setProofPreview(u)
+    return () => URL.revokeObjectURL(u)
+  }, [proof])
 
   if (!resolvedPlan) {
     return (
@@ -148,136 +157,97 @@ export default function PaymentPage() {
 
   const amount = amountOverride ? Number(amountOverride) : resolvedPlan.amount
 
+  const upiQuery = `pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR&tn=${encodeURIComponent('DateU Premium')}`
+  // Each app has its own link; the generic upi:// link doesn't open anything on iPhone
+  const upiApps = [
+    { name: 'GPay', href: `${isIOS() ? 'gpay' : 'tez'}://upi/pay?${upiQuery}`, bg: '#4285F4' },
+    { name: 'PhonePe', href: `phonepe://pay?${upiQuery}`, bg: '#5D3FD3' },
+    { name: 'Paytm', href: `paytmmp://pay?${upiQuery}`, bg: '#00b9f1' },
+    { name: 'Other UPI', href: `upi://pay?${upiQuery}`, bg: '#3f3f46' },
+  ]
+
   return (
     <>
       <HomeBackground />
       <Navbar />
       <div className="dashboard-container payment-page-container">
-
-        {/* Header */}
-        <div className="payment-hero">
-          <h1 className="payment-title text-gradient">Complete Payment</h1>
-          <p className="payment-subtitle">Pay with any UPI app, then upload the payment screenshot. Premium starts once we confirm it.</p>
-        </div>
-
-        {/* Main Card */}
-        <div className="payment-card">
-          <div className="payment-content">
-
-            {/* Left Col: QR */}
-            <div className="qr-section">
-              <div className="qr-code-wrapper">
-                <img
-                  src={UPI_QR_URL}
-                  alt="Payment QR Code"
-                  className="qr-image"
-                />
-              </div>
-              <p className="qr-instruction">
-                Scan with any UPI app<br />
-                (GPay, PhonePe, Paytm)
-              </p>
+        <div className="pay-page">
+          {/* Order summary */}
+          <div className="pay-summary">
+            <div>
+              <div className="pay-summary-label">You’re buying</div>
+              <div className="pay-summary-plan">{resolvedPlan.name}</div>
             </div>
-
-            {/* Right Col: Details */}
-            <div className="payment-details">
-
-              {/* Plan Box */}
-              <div className="plan-summary-box">
-                <div>
-                  <div className="plan-label">Selected Plan</div>
-                  <div className="plan-name">{resolvedPlan.name}</div>
-                </div>
-                <div className="plan-price">
-                  ₹{amount}
-                  {(resolvedPlan as any).originalAmount && (
-                    <div style={{ fontSize: '0.8rem', color: '#888', textDecoration: 'line-through' }}>
-                      ₹{(resolvedPlan as any).originalAmount}
-                    </div>
-                  )}
-                  {(resolvedPlan as any).discountPercent && (
-                    <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 'bold' }}>
-                      {(resolvedPlan as any).discountPercent}% OFF
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* UPI ID */}
-              <div className="upi-box">
-                <label className="input-label">UPI ID</label>
-                <div className="copy-input-group">
-                  <input className="upi-input" readOnly value={UPI_ID} />
-                  <button type="button" className="btn-copy" onClick={copyUPI}>
-                    Copy
-                  </button>
-                </div>
-              </div>
-
-              {/* Upload Proof - Only if Amount > 0 */}
-              {amount > 0 ? (
-                <>
-                  {/* Mobile Options (Conditional) */}
-                  <div className="upi-box">
-                    <label className="input-label">Quick Pay</label>
-                    <div className="mobile-pay-options">
-                      {(() => {
-                        // Each app has its own link; the generic upi:// link doesn't open anything on iPhone
-                        const q = `pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR&tn=${encodeURIComponent('DateU Premium')}`
-                        const apps = [
-                          { name: 'GPay', href: `${isIOS() ? 'gpay' : 'tez'}://upi/pay?${q}`, bg: '#4285F4' },
-                          { name: 'PhonePe', href: `phonepe://pay?${q}`, bg: '#5D3FD3' },
-                          { name: 'Paytm', href: `paytmmp://pay?${q}`, bg: '#02b1ff' },
-                          { name: 'Other', href: `upi://pay?${q}`, bg: '#3f3f46' },
-                        ]
-                        return apps.map((a) => (
-                          <a key={a.name} href={a.href} className="btn-upi-intent" style={{ background: a.bg }}>{a.name}</a>
-                        ))
-                      })()}
-                    </div>
-                  </div>
-
-                  <div className="upload-box">
-                    <label className="input-label">Payment Screenshot</label>
-                    <div
-                      className={`file-input-wrapper ${proof ? 'has-file' : ''}`}
-                    >
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setProof(e.target.files?.[0] || null)}
-                      />
-                      {proof ? (
-                        <span className="upload-success">
-                          ✓ Screenshot Attached: {proof.name.slice(0, 20)}...
-                        </span>
-                      ) : (
-                        <span className="upload-placeholder">
-                          Click to upload screenshot
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div style={{ padding: 20, background: 'rgba(16, 185, 129, 0.1)', borderRadius: 12, border: '1px solid #10b981', textAlign: 'center', marginBottom: 24, marginTop: 24 }}>
-                  <h3 style={{ margin: 0, color: '#34d399', fontSize: 18 }}>100% Discount Applied!</h3>
-                  <p style={{ margin: '8px 0 0', color: '#d1fae5', fontSize: 14 }}>
-                    You can activate this plan for free using your referral rewards.
-                  </p>
-                </div>
-              )}
-
-              {/* Submit Action */}
-              <button
-                className="btn-confirm-payment"
-                onClick={onConfirmPaid}
-                disabled={submitting}
-              >
-                {submitting ? 'Processing...' : amount > 0 ? 'Submit Payment' : 'Activate Plan'}
-              </button>
-
+            <div className="pay-summary-price">
+              ₹{amount}
+              {(resolvedPlan as any).originalAmount && <s>₹{(resolvedPlan as any).originalAmount}</s>}
             </div>
+          </div>
+
+          {amount > 0 ? (
+            <>
+              <section className="pay-step">
+                <div className="pay-step-head"><span className="pay-step-num">1</span>Pay ₹{amount} with UPI</div>
+                {isMobile && (
+                  <div className="pay-apps">
+                    {upiApps.map((a) => (
+                      <a key={a.name} href={a.href} className="pay-app" style={{ background: a.bg }}>{a.name}</a>
+                    ))}
+                  </div>
+                )}
+                <div className="pay-upi">
+                  <div>
+                    <div className="pay-upi-label">UPI ID</div>
+                    <div className="pay-upi-id">{UPI_ID}</div>
+                  </div>
+                  <button type="button" className="pay-copy" onClick={copyUPI}>{copied ? 'Copied ✓' : 'Copy'}</button>
+                </div>
+                <details className="pay-qr" open={!isMobile}>
+                  <summary>{isMobile ? 'Paying from another phone? Show QR code' : 'Scan the QR code'}</summary>
+                  <img src={UPI_QR_URL} alt="UPI QR code" />
+                </details>
+              </section>
+
+              <section className="pay-step">
+                <div className="pay-step-head"><span className="pay-step-num">2</span>Upload the payment screenshot</div>
+                <label className={`pay-upload ${proof ? 'has-file' : ''}`}>
+                  <input type="file" accept="image/*" onChange={(e) => setProof(e.target.files?.[0] || null)} />
+                  {proofPreview ? (
+                    <>
+                      <img src={proofPreview} alt="Payment screenshot" />
+                      <span className="pay-upload-change">Change</span>
+                    </>
+                  ) : (
+                    <span className="pay-upload-empty">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+                      Tap to choose the screenshot
+                      <small>It should show the amount and the transaction ID</small>
+                    </span>
+                  )}
+                </label>
+              </section>
+            </>
+          ) : (
+            <div className="pay-free">
+              <strong>100% discount applied</strong>
+              <span>You can activate this plan for free with your referral rewards.</span>
+            </div>
+          )}
+
+          <div className="pay-submit-bar">
+            <button
+              className="btn-confirm-payment"
+              onClick={onConfirmPaid}
+              disabled={submitting || (amount > 0 && !proof)}
+            >
+              {submitting ? 'Submitting…' : amount > 0 ? 'Submit for verification' : 'Activate plan'}
+            </button>
+            <p>
+              {amount > 0
+                ? 'We usually verify payments within a few hours. Premium starts once it’s confirmed.'
+                : 'Premium starts right away.'}{' '}
+              Non-refundable once activated — <a href="/legal/refunds">refund policy</a>.
+            </p>
           </div>
         </div>
       </div>

@@ -55,3 +55,6 @@
 /* Outside the app (no tab bar) sit near the bottom edge */
 html:not(.app-mode) .notif-prompt { bottom: calc(env(safe-area-inset-bottom) + 16px); }
 
+
+/* No tab bar on this screen: sit near the bottom edge */
+html.no-tabbar .notif-prompt { bottom: calc(env(safe-area-inset-bottom) + 16px); }
