@@ -352,6 +352,9 @@ export default function MalePlans() {
         <MaleTabs />
 
         <div className="plans-hero">
+          <div className="plans-crown" aria-hidden="true">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20" /><path d="M4 17 2 7l6 4 4-7 4 7 6-4-2 10z" /></svg>
+          </div>
           <h1 className="plans-title text-gradient">DateU Premium</h1>
           <p className="plans-subtitle">
             Rounds are free for everyone. Premium puts you first — you're shown to women ahead of others in every round.
@@ -454,6 +457,7 @@ export default function MalePlans() {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
                             <span className="plan-price">₹{finalPrice}</span>
+                            <span className="plan-period">for {days} days</span>
                             {(planDiscount > 0 || extraDiscountAmount > 0) && (
                               <span style={{ textDecoration: 'line-through', color: 'rgba(255,255,255,0.4)', fontSize: '1.1rem' }}>
                                 ₹{originalPrice}
@@ -461,6 +465,9 @@ export default function MalePlans() {
                             )}
                           </div>
 
+                          {finalPrice > 0 && days > 1 && (
+                            <div className="plan-per-day">That’s about ₹{Math.max(1, Math.round(finalPrice / days))} a day</div>
+                          )}
                           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                             {planDiscount > 0 && (
                               <span style={{

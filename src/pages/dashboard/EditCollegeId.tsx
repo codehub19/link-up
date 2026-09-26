@@ -17,10 +17,13 @@ export default function EditCollegeId() {
   const { collegeId } = profile || ({} as any);
 
   // Determine upload eligibility
+  // (The image links live in the private profile now; the public one only has
+  // submitted / verified / rejected flags.)
+  const submitted = !!(collegeId?.submitted || collegeId?.frontUrl || collegeId?.backUrl)
   const canUpload =
     !collegeId ||
-    (!collegeId.frontUrl && !collegeId.backUrl) ||
-    (collegeId.verified === false && collegeId.rejected === true);
+    (!submitted && !collegeId.verified) ||
+    (collegeId.verified !== true && collegeId.rejected === true);
 
   const handleFrontChange = async (file: File | null) => {
     if (file) {

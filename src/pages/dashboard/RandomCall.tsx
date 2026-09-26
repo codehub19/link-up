@@ -64,6 +64,20 @@ function ageFromDob(dob?: string) {
   return Math.floor((Date.now() - d.getTime()) / (365.25 * 24 * 3600 * 1000))
 }
 
+
+const PhoneGlyph = ({ size = 34 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+)
+const MicGlyph = ({ off }: { off?: boolean }) => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="22" />
+    {off && <line x1="3" y1="3" x2="21" y2="21" />}
+  </svg>
+)
+const HangupGlyph = () => (
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ transform: 'rotate(135deg)' }}><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" /></svg>
+)
+
 export default function RandomCall() {
   const { user, profile, refreshProfile } = useAuth()
   const nav = useNavigate()
@@ -361,30 +375,38 @@ export default function RandomCall() {
   } else if (phase === 'idle' && matchMode) {
     body = (
       <div className="rc-card">
-        <div className="rc-pulse"><span>📞</span></div>
+        <div className="rc-hero-icon searching"><span /><span /><PhoneGlyph size={38} /></div>
         <h2>Starting call…</h2>
       </div>
     )
   } else if (phase === 'idle') {
+    const mins = Math.round(maxSec / 60)
     body = (
-      <div className="rc-card">
-        <div className="rc-emoji">🎧</div>
-        <h2>Random Voice Call</h2>
-        <p className="rc-muted">
-          Talk to someone new for up to {Math.round(maxSec / 60)} minutes. If you both like each other,
-          you get {chatHours} hours of free chat.
-        </p>
+      <div className="rc-card rc-home">
+        <div className="rc-hero-icon"><span /><span /><PhoneGlyph size={38} /></div>
+        <h2>Talk to someone new</h2>
+        <p className="rc-muted">A quick voice call with a random DateU member. No photos, no pressure — just a conversation.</p>
+        <div className="rc-facts">
+          <div><strong>{mins} min</strong><span>per call</span></div>
+          <div><strong>Voice</strong><span>only</span></div>
+          <div><strong>{chatHours}h</strong><span>chat if you match</span></div>
+        </div>
         {hoursSet && (
           <p className={openNow ? 'rc-muted rc-small' : 'rc-notice'}>
             Call hours: {formatHour(cfg.openHour!)} – {formatHour(cfg.closeHour!)}{openNow ? ' · open now' : ' · closed right now'}
           </p>
         )}
-        <button className="rc-btn rc-btn-primary" onClick={startSearch} disabled={joining || callsLeft === 0 || !openNow}>
-          {joining ? <LoadingSpinner size={18} color="#fff" /> : 'Start a call'}
+        <button className="rc-btn rc-btn-primary rc-btn-block" onClick={startSearch} disabled={joining || callsLeft === 0 || !openNow}>
+          {joining ? <LoadingSpinner size={18} color="#fff" /> : <><PhoneGlyph size={18} /> Start a call</>}
         </button>
-        <p className="rc-muted rc-small">
-          {callsLeft === 0 ? "You've used all your calls today. Come back tomorrow!" : `${callsLeft} of ${dailyLimit} calls left today`}
-        </p>
+        <div className="rc-quota" aria-label={`${callsLeft} of ${dailyLimit} calls left today`}>
+          {dailyLimit <= 12 && (
+            <div className="rc-quota-dots">
+              {Array.from({ length: dailyLimit }).map((_, i) => <span key={i} className={i < callsLeft ? 'on' : ''} />)}
+            </div>
+          )}
+          <span>{callsLeft === 0 ? "You've used today's calls — come back tomorrow" : `${callsLeft} of ${dailyLimit} calls left today`}</span>
+        </div>
         {callsLeft === 0 && dailyLimit <= cfg.dailyCallLimit && (
           <button className="rc-btn rc-btn-link" onClick={() => nav(profile?.gender === 'male' ? '/dashboard/plans' : '/dashboard/premium')}>
             Get more calls with Premium
@@ -392,7 +414,7 @@ export default function RandomCall() {
         )}
         {hoursSet && (
           <button className="rc-btn rc-btn-link" onClick={toggleReminders} disabled={savingReminder}>
-            {profile?.callReminders ? '🔕 Stop call-hour reminders' : '🔔 Remind me when calls open'}
+            {profile?.callReminders ? 'Stop call-hour reminders' : 'Remind me when calls open'}
           </button>
         )}
       </div>
@@ -400,16 +422,16 @@ export default function RandomCall() {
   } else if (phase === 'searching') {
     body = (
       <div className="rc-card">
-        <div className="rc-pulse"><span>🔎</span></div>
-        <h2>Finding someone to talk to…</h2>
-        <p className="rc-muted">Keep this page open. We'll connect you as soon as someone is available.</p>
+        <div className="rc-hero-icon searching"><span /><span /><PhoneGlyph size={38} /></div>
+        <h2>Finding someone…</h2>
+        <p className="rc-muted">Keep DateU open — we'll connect you as soon as someone is free.</p>
         <button className="rc-btn rc-btn-ghost" onClick={cancelSearch}>Cancel</button>
       </div>
     )
   } else if (phase === 'connecting' || phase === 'in-call') {
     body = (
-      <div className="rc-card">
-        {peerCard || <div className="rc-pulse"><span>📞</span></div>}
+      <div className="rc-card rc-live">
+        {peerCard || <div className="rc-hero-icon searching"><span /><span /><PhoneGlyph size={38} /></div>}
         <div className={`rc-timer ${phase === 'in-call' && remainingSec <= 30 ? 'rc-timer-warn' : ''}`}>
           {phase === 'connecting'
             ? (call?.status === 'ringing' && call.callerUid === uid ? 'Ringing…' : 'Connecting…')
@@ -418,10 +440,10 @@ export default function RandomCall() {
         {phase === 'in-call' && <p className="rc-muted rc-small">Call ends automatically when the timer runs out</p>}
         <div className="rc-controls">
           <button className={`rc-round ${muted ? 'rc-round-on' : ''}`} onClick={toggleMute} disabled={phase !== 'in-call'} aria-label={muted ? 'Unmute' : 'Mute'}>
-            {muted ? '🔇' : '🎙️'}
+            <MicGlyph off={muted} />
           </button>
           <button className="rc-round rc-round-end" onClick={() => endSession('hangup')} aria-label="End call">
-            ✕
+            <HangupGlyph />
           </button>
         </div>
       </div>
@@ -452,7 +474,7 @@ export default function RandomCall() {
           <p className="rc-muted">If you both tap Like, we'll open a chat for you two.</p>
           <div className="rc-choice">
             <button className="rc-btn rc-btn-ghost" onClick={() => decide('pass')}>Pass</button>
-            <button className="rc-btn rc-btn-primary" onClick={() => decide('like')}>💖 Like</button>
+            <button className="rc-btn rc-btn-primary" onClick={() => decide('like')}>Like</button>
           </div>
         </>
       )

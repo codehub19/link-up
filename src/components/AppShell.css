@@ -103,13 +103,27 @@ html.app-mode .rounds-action-btn:active {
         padding-bottom: calc(var(--app-tabbar-h, 64px) + env(safe-area-inset-bottom) + 8px);
     }
 
+    html.app-mode .setup-wrap .container.narrow {
+        width: auto;
+        max-width: 560px;
+        margin: 0 auto !important;
+        padding: 0 12px !important;
+        box-sizing: border-box;
+    }
+
+    html.app-mode .setup-card {
+        margin-top: 12px;
+        padding: 22px 18px;
+        border-radius: 22px;
+    }
+
     html.app-mode .setup-top {
         top: calc(var(--app-topbar-h) + env(safe-area-inset-top));
         padding: 10px 16px;
     }
 
     html.app-mode .setup-wrap {
-        padding-top: calc(var(--app-topbar-h) + env(safe-area-inset-top) + 8px);
+        padding-top: calc(var(--app-topbar-h) + env(safe-area-inset-top));
         padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
     }
 

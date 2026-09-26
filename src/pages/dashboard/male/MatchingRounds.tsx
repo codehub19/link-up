@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom'
 import HomeBackground from '../../../components/home/HomeBackground'
 import './Rounds.styles.css'
 import '../dashboard.css' // Ensure generic dashboard styles are loaded
+import EmptyState from '../../../components/ui/EmptyState'
 
 type UserDoc = {
   uid: string
@@ -203,11 +204,12 @@ export default function MatchingRounds() {
           <div className="rounds-hero">
             <h1 className="rounds-title">Upcoming Rounds</h1>
           </div>
-          <div className="rounds-empty-card">
-            <div className="rounds-empty-title">Next Round Coming Soon</div>
-            <p className="rounds-empty-text">We're curating the best matches for you. We'll notify you as soon as the next round goes live!</p>
-            <Link className="rounds-action-btn" to="/dashboard/matches">View My Connections</Link>
-          </div>
+          <EmptyState
+            icon="calendar"
+            title="Next round is coming soon"
+            text="We’re curating the next set of profiles. We’ll notify you the moment the round goes live."
+            actions={[{ label: 'Start a random call', to: '/dashboard/random-call' }, { label: 'My matches', to: '/dashboard/matches', ghost: true }]}
+          />
         </div>
       </>
     )
@@ -235,20 +237,12 @@ export default function MatchingRounds() {
         </div>
 
         {!inRound ? (
-            <div className="rounds-empty-card">
-              <div className="rounds-empty-title">Join this round — it's free</div>
-              <p className="rounds-empty-text">
-                We'll suggest a few compatible profiles for you. Like the ones you're interested in, and if she likes you back, it's a match.
-              </p>
-              <button className="rounds-action-btn" onClick={joinRound} disabled={joining} style={{ border: 'none', cursor: 'pointer' }}>
-                {joining ? 'Joining…' : 'Join Round'}
-              </button>
-              {!premium && (
-                <p className="rounds-empty-text" style={{ marginTop: 16, fontSize: '0.85rem' }}>
-                  ⭐ Want to stand out? <Link to="/dashboard/plans">Premium members</Link> are shown first to women and get more suggestions.
-                </p>
-              )}
-            </div>
+            <EmptyState
+              icon="sparkle"
+              title="Join this round — it’s free"
+              text={<>We’ll suggest a few compatible profiles for you. Like the ones you’re into — if she likes you back, it’s a match.{!premium && <><br /><br />Want to stand out? <Link to="/dashboard/plans">Premium</Link> members are shown first.</>}</>}
+              actions={[{ label: joining ? 'Joining…' : 'Join round', onClick: () => { if (!joining) joinRound() } }]}
+            />
           ) : (
             <>
               <div className="rounds-info-banner">
@@ -258,9 +252,11 @@ export default function MatchingRounds() {
               </div>
 
               {assignedUids.length === 0 ? (
-                <div className="rounds-empty-card" style={{ padding: '2rem' }}>
-                  <p className="rounds-empty-text">No profiles assigned to you yet. Please check back shortly.</p>
-                </div>
+                <EmptyState
+                  icon="sparkle"
+                  title="Your profiles are on the way"
+                  text="We’re picking compatible profiles for you this round. We’ll notify you as soon as they’re ready."
+                />
               ) : girls.length === 0 ? (
                 <div className="rounds-empty-card" style={{ padding: '2rem' }}>
                   <p className="rounds-empty-text">Loading your matches...</p>

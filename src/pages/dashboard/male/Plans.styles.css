@@ -271,3 +271,77 @@
         grid-template-columns: 1fr;
     }
 }
+.plan-per-day {
+    margin-top: 6px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.85rem;
+}
+
+.plans-crown {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 12px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1a1204;
+    background: linear-gradient(135deg, #fbbf24, #f97316);
+    box-shadow: 0 10px 30px rgba(249, 115, 22, 0.3);
+}
+
+/* App look on phones/tablets */
+@media (max-width: 1024px) {
+    html.app-mode .plans-hero {
+        text-align: center !important;
+        margin-bottom: 1.25rem !important;
+    }
+
+    html.app-mode .plans-crown {
+        margin: 4px auto 12px;
+    }
+
+    html.app-mode .plans-subtitle {
+        margin-left: auto !important;
+        margin-right: auto !important;
+        max-width: 420px;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    html.app-mode .plans-grid {
+        gap: 1rem;
+    }
+
+    html.app-mode .plan-card {
+        padding: 1.25rem;
+        border-radius: 20px;
+    }
+
+    html.app-mode .plan-header,
+    html.app-mode .plan-price-block {
+        margin-bottom: 1rem;
+    }
+
+    html.app-mode .plan-features {
+        gap: 0.7rem;
+        margin-bottom: 1.25rem;
+    }
+
+    html.app-mode .plan-btn-primary {
+        background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    }
+}
+
+.plans-footnote {
+    margin: 1.5rem auto 0;
+    max-width: 520px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+
+.plans-footnote a {
+    color: #ff7a93;
+}

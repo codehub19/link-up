@@ -11,6 +11,7 @@ import ProfileMatchCard from '../../components/ProfileMatchCard'
 import HomeBackground from '../../components/home/HomeBackground'
 import './dashboard.css'
 import './Matches.styles.css'
+import EmptyState from '../../components/ui/EmptyState'
 
 type Match = {
   id: string
@@ -89,11 +90,12 @@ export default function MatchesPage() {
         )}
 
         {matches.length === 0 ? (
-          <div className="matches-empty-card">
-            <div className="matches-empty-title">No Matches Yet</div>
-            <p className="matches-empty-text">Join the next matching round to find verified connections!</p>
-            <Link className="matches-action-btn" to={profile?.gender === 'male' ? '/dashboard/male/rounds' : '/dashboard/round'}>View Rounds</Link>
-          </div>
+          <EmptyState
+            icon="heart"
+            title="No matches yet"
+            text="Like profiles in a matching round — when they like you back, you’ll match and can chat right here."
+            actions={[{ label: 'Go to Rounds', to: profile?.gender === 'male' ? '/dashboard/male/rounds' : '/dashboard/round' }, { label: 'Random call', to: '/dashboard/random-call', ghost: true }]}
+          />
         ) : (
           <div className="matches-grid">
             {(() => {

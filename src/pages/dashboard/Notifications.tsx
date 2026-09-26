@@ -16,6 +16,7 @@ import Navbar from "../../components/Navbar";
 import HomeBackground from "../../components/home/HomeBackground";
 import "./Notifications.styles.css";
 import "./dashboard.css"; // Ensure global dash styles
+import EmptyState from '../../components/ui/EmptyState'
 
 type Notification = {
   id: string;
@@ -160,9 +161,11 @@ export default function NotificationsPage() {
             <LoadingHeart size={64} />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="empty-notifications">
-            <p>No notifications in the last 7 days.</p>
-          </div>
+          <EmptyState
+            icon="bell"
+            title="You’re all caught up"
+            text="Matches, likes and news about rounds will show up here."
+          />
         ) : (
           <div>
             {sortedDates.map((date) => (

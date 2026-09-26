@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom'
 import HomeBackground from '../../../components/home/HomeBackground'
 import '../male/Rounds.styles.css'
 import '../dashboard.css'
+import EmptyState from '../../../components/ui/EmptyState'
 
 type UserDoc = {
   uid: string
@@ -191,11 +192,12 @@ export default function MatchingRound() {
           <div className="rounds-hero">
             <h1 className="rounds-title">Upcoming Rounds</h1>
           </div>
-          <div className="rounds-empty-card">
-            <div className="rounds-empty-title">Next Round Coming Soon</div>
-            <p className="rounds-empty-text">We'll notify you when it's live.</p>
-            <Link className="rounds-action-btn" to="/dashboard/connections">View My Connections</Link>
-          </div>
+          <EmptyState
+            icon="calendar"
+            title="Next round is coming soon"
+            text="We’ll send you a notification the moment it goes live. Meanwhile, try a random call."
+            actions={[{ label: 'Start a random call', to: '/dashboard/random-call' }, { label: 'My matches', to: '/dashboard/matches', ghost: true }]}
+          />
         </div>
       </>
     )
@@ -222,14 +224,19 @@ export default function MatchingRound() {
           )}
         </div>
 
-        <div className="rounds-info-banner">
-          Boys who liked you this round. Select and reveal to match!
-        </div>
+        {boyUids.length > 0 && (
+          <div className="rounds-info-banner">
+            Boys who liked you this round. Pick the ones you like — if it’s mutual, it’s a match!
+          </div>
+        )}
 
         {boyUids.length === 0 ? (
-          <div className="rounds-empty-card" style={{ padding: '2rem' }}>
-            <p className="rounds-empty-text">No boys have liked your profile yet this round.</p>
-          </div>
+          <EmptyState
+            icon="heart"
+            title="No likes yet this round"
+            text="When someone likes your profile this round, they’ll show up here and we’ll notify you. A great profile photo and bio help."
+            actions={[{ label: 'Improve my profile', to: '/dashboard/edit-profile' }, { label: 'Random call', to: '/dashboard/random-call', ghost: true }]}
+          />
         ) : boys.length === 0 ? (
           <div className="rounds-empty-card" style={{ padding: '2rem' }}>
             <p className="rounds-empty-text">Loading profiles...</p>

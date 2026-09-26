@@ -446,3 +446,163 @@ textarea.field-input {
 .terms-accept a {
   color: #ff7a93;
 }
+
+/* ==========================================================================
+   Choice lists used by the question steps (Interested in, Goals, Deal
+   breakers, Preferences). These lived only in the dashboard stylesheet, which
+   isn't loaded during sign-up, so the steps showed bare browser controls.
+   ========================================================================== */
+.setup-card .qa-group {
+  border: 0;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setup-card .qa-group legend {
+  padding: 0;
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.setup-card .qa-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.setup-card .qa-option:active {
+  transform: scale(0.99);
+}
+
+.setup-card .qa-option.on {
+  background: rgba(255, 65, 108, 0.12);
+  border-color: rgba(255, 65, 108, 0.6);
+  color: #fff;
+}
+
+.setup-card .qa-option > span {
+  flex: 1;
+  color: inherit;
+}
+
+/* Native radio/checkbox drawn as a custom indicator */
+.setup-card .qa-option input[type="radio"],
+.setup-card .qa-option input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex-shrink: 0;
+  order: 2;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.setup-card .qa-option input[type="checkbox"] {
+  border-radius: 7px;
+}
+
+.setup-card .qa-option input[type="radio"]::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff416c;
+  transform: scale(0);
+  transition: transform 0.12s ease;
+}
+
+.setup-card .qa-option input[type="checkbox"]::before {
+  content: '';
+  width: 11px;
+  height: 6px;
+  border-left: 2.5px solid #fff;
+  border-bottom: 2.5px solid #fff;
+  transform: translateY(-1px) rotate(-45deg) scale(0);
+  transition: transform 0.12s ease;
+}
+
+.setup-card .qa-option input:checked {
+  border-color: #ff416c;
+}
+
+.setup-card .qa-option input[type="checkbox"]:checked {
+  background: #ff416c;
+}
+
+.setup-card .qa-option input[type="radio"]:checked::before {
+  transform: scale(1);
+}
+
+.setup-card .qa-option input[type="checkbox"]:checked::before {
+  transform: translateY(-1px) rotate(-45deg) scale(1);
+}
+
+/* "Interested in" uses buttons with their own indicator */
+.setup-card button.qa-option {
+  justify-content: space-between;
+}
+
+/* Photo slots */
+.setup-card .photo-add {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: #ff7a93;
+  font-size: 2rem;
+  font-weight: 300;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: none;
+  padding: 0;
+}
+
+.setup-card .photo-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
