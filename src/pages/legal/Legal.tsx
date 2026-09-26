@@ -1,8 +1,10 @@
 import React from "react";
 import { PageWrapper } from "./AppLayout";
 import { Link } from "react-router-dom";
+import { useSeo } from '../../utils/seo'
 
 export default function Legal() {
+  useSeo({ title: 'Legal', description: 'Legal information, policies and business details for DateU.', path: '/legal/legal' })
   return (
     <PageWrapper title="Legal Information">
       <p className="text-xl text-gray-300 mb-8 leading-relaxed">

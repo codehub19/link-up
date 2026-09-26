@@ -11,8 +11,10 @@ import FinalCTA from "../components/home/FinalCTA/FinalCTA";
 import Footer from "../components/home/Footer/Footer";
 import { Link } from "react-router-dom";
 import "./home.effects.css";
+import { useSeo } from '../utils/seo'
 
 export default function Home() {
+  useSeo({ path: '/' })
   return (
     <>
       <HomeBackground />

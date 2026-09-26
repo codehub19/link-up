@@ -1,7 +1,9 @@
 import React from "react";
 import { PageWrapper } from "./AppLayout";
+import { useSeo } from '../../utils/seo'
 
 export default function CommunityGuidelines() {
+  useSeo({ title: 'Community Guidelines', description: 'The rules that keep DateU safe and respectful: be genuine, be kind, respect consent, and report anything that feels wrong.', path: '/legal/guidelines' })
   return (
     <PageWrapper title="Community Guidelines">
       <p className="text-xl text-gray-300 mb-8 leading-relaxed">

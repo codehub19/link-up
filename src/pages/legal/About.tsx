@@ -1,7 +1,9 @@
 import React from "react";
 import { PageWrapper } from "./AppLayout";
+import { useSeo } from '../../utils/seo'
 
 export default function About() {
+  useSeo({ title: 'About DateU', description: 'DateU is a campus dating platform built by students at IIT Delhi to help college students meet genuine, verified people — through curated rounds, voice calls and chat.', path: '/about' })
   return (
     <PageWrapper title="About Us">
       <p className="text-xl text-gray-300 mb-8 leading-relaxed">

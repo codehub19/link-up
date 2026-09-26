@@ -2,8 +2,10 @@ import React from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/home/Footer/Footer';
 import HomeBackground from '../../components/home/HomeBackground';
+import { useSeo } from '../../utils/seo'
 
 export default function DownloadPage() {
+  useSeo({ title: 'Get the App', description: 'Install DateU on your phone in seconds — no app store needed.', path: '/download' })
     return (
         <>
             <HomeBackground />

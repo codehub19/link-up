@@ -1,7 +1,9 @@
 import React from "react";
 import { PageWrapper } from "./AppLayout";
+import { useSeo } from '../../utils/seo'
 
 export default function TermsOfService() {
+  useSeo({ title: 'Terms of Service', description: 'The terms that apply when you use DateU.', path: '/legal/terms' })
     return (
         <PageWrapper title="Terms of Service">
             <p className="text-sm text-gray-500 mb-6 font-mono">Last Updated: October 2025</p>

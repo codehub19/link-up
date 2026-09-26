@@ -2,8 +2,10 @@ import React from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/home/Footer/Footer';
 import HomeBackground from '../../components/home/HomeBackground';
+import { useSeo } from '../../utils/seo'
 
 export default function SuccessStoriesPage() {
+  useSeo({ title: 'Stories', description: 'Stories from students who met on DateU.', path: '/success-stories' })
     return (
         <>
             <HomeBackground />

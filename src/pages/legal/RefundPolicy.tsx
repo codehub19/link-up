@@ -1,11 +1,13 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { PageWrapper } from "./AppLayout";
+import { useSeo } from '../../utils/seo'
 
 const H = ({ children }: { children: React.ReactNode }) => <h3 className="text-xl font-bold text-white mb-3 mt-8">{children}</h3>;
 const P = ({ children }: { children: React.ReactNode }) => <p className="text-gray-400 leading-relaxed mb-3">{children}</p>;
 
 export default function RefundPolicy() {
+  useSeo({ title: 'Refund & Cancellation Policy', description: 'DateU refund and cancellation policy for Premium purchases.', path: '/legal/refunds' })
   return (
     <PageWrapper title="Refund & Cancellation Policy">
       <P>Last updated: 25 September 2026</P>

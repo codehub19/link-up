@@ -3,8 +3,10 @@ import { useParams } from 'react-router-dom';
 import { db } from '../../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import LoadingHeart from '../../components/LoadingHeart';
+import { useSeo } from '../../utils/seo'
 
 export default function CertificatePage() {
+  useSeo({ title: 'Certificate', noindex: true })
     const { id } = useParams();
     const [cert, setCert] = useState<any>(null);
     const [loading, setLoading] = useState(true);

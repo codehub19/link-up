@@ -3,8 +3,10 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/home/Footer/Footer';
 import HomeBackground from '../../components/home/HomeBackground';
 import { Link } from 'react-router-dom';
+import { useSeo } from '../../utils/seo'
 
 export default function RoundsPage() {
+  useSeo({ title: 'How Matching Rounds Work', description: 'DateU matching rounds: curated profiles, likes on both sides, and a match only when it’s mutual.', path: '/rounds' })
     return (
         <>
             <HomeBackground />

@@ -18,7 +18,6 @@ export default function Footer() {
               REAL connections, verified students.
             </p>
             <div className="footer-socials">
-              <a href="#" className="social-link" target="_blank" rel="noopener noreferrer">𝕏</a>
               <a href="https://www.instagram.com/dateu_official_/" className="social-link" target="_blank" rel="noopener noreferrer">Instagram</a>
               <a href="https://www.linkedin.com/company/dateu/" className="social-link" target="_blank" rel="noopener noreferrer">LinkedIn</a>
             </div>
@@ -29,6 +28,7 @@ export default function Footer() {
             <h4>Product</h4>
             <ul>
               <li><Link to="/rounds">How it Works</Link></li>
+              <li><Link to="/campus">Colleges</Link></li>
               <li><Link to="/success-stories">Stories</Link></li>
               <li><Link to="/pricing">Premium</Link></li>
               <li><Link to="/download">Download App</Link></li>
@@ -60,7 +60,7 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <p className="copyright">
-            © {currentYear} DateU Inc. All rights reserved.
+            © {currentYear} DateU. All rights reserved.
           </p>
           <div className="bottom-links">
             <span className="status-dot"></span>

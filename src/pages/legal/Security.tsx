@@ -2,8 +2,10 @@ import React from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/home/Footer/Footer';
 import HomeBackground from '../../components/home/HomeBackground';
+import { useSeo } from '../../utils/seo'
 
 export default function Security() {
+  useSeo({ title: 'Security', description: 'How DateU keeps your account and data secure, and how to report a vulnerability.', path: '/legal/security' })
     return (
         <>
             <HomeBackground />

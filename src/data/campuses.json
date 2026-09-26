@@ -1,0 +1,182 @@
+[
+ {
+  "slug": "iit-delhi",
+  "name": "IIT Delhi",
+  "short": "IIT Delhi",
+  "area": "Hauz Khas, New Delhi"
+ },
+ {
+  "slug": "du-north-campus",
+  "name": "Delhi University (North Campus)",
+  "short": "DU North Campus",
+  "area": "North Campus, Delhi"
+ },
+ {
+  "slug": "du-south-campus",
+  "name": "Delhi University (South Campus)",
+  "short": "DU South Campus",
+  "area": "South Campus, New Delhi"
+ },
+ {
+  "slug": "jnu",
+  "name": "Jawaharlal Nehru University",
+  "short": "JNU",
+  "area": "New Delhi"
+ },
+ {
+  "slug": "dtu",
+  "name": "Delhi Technological University",
+  "short": "DTU",
+  "area": "Rohini, Delhi"
+ },
+ {
+  "slug": "nsut",
+  "name": "Netaji Subhas University of Technology",
+  "short": "NSUT",
+  "area": "Dwarka, New Delhi"
+ },
+ {
+  "slug": "iiit-delhi",
+  "name": "IIIT Delhi",
+  "short": "IIIT Delhi",
+  "area": "Okhla, New Delhi"
+ },
+ {
+  "slug": "jamia",
+  "name": "Jamia Millia Islamia",
+  "short": "Jamia",
+  "area": "Jamia Nagar, New Delhi"
+ },
+ {
+  "slug": "ip-university",
+  "name": "Indraprastha University (GGSIPU)",
+  "short": "IP University",
+  "area": "Dwarka, New Delhi"
+ },
+ {
+  "slug": "amity-noida",
+  "name": "Amity University Noida",
+  "short": "Amity Noida",
+  "area": "Sector 125, Noida"
+ },
+ {
+  "slug": "shiv-nadar",
+  "name": "Shiv Nadar University",
+  "short": "Shiv Nadar",
+  "area": "Greater Noida"
+ },
+ {
+  "slug": "sharda",
+  "name": "Sharda University",
+  "short": "Sharda",
+  "area": "Greater Noida"
+ },
+ {
+  "slug": "bennett",
+  "name": "Bennett University",
+  "short": "Bennett",
+  "area": "Greater Noida"
+ },
+ {
+  "slug": "ashoka",
+  "name": "Ashoka University",
+  "short": "Ashoka",
+  "area": "Sonipat"
+ },
+ {
+  "slug": "jindal",
+  "name": "O.P. Jindal Global University",
+  "short": "Jindal",
+  "area": "Sonipat"
+ },
+ {
+  "slug": "srcc",
+  "name": "Shri Ram College of Commerce",
+  "short": "SRCC",
+  "area": "North Campus, Delhi"
+ },
+ {
+  "slug": "st-stephen-s",
+  "name": "St. Stephen's College",
+  "short": "St. Stephen's",
+  "area": "North Campus, Delhi"
+ },
+ {
+  "slug": "hindu-college",
+  "name": "Hindu College",
+  "short": "Hindu College",
+  "area": "North Campus, Delhi"
+ },
+ {
+  "slug": "miranda-house",
+  "name": "Miranda House",
+  "short": "Miranda House",
+  "area": "North Campus, Delhi"
+ },
+ {
+  "slug": "lsr",
+  "name": "Lady Shri Ram College",
+  "short": "LSR",
+  "area": "Lajpat Nagar, New Delhi"
+ },
+ {
+  "slug": "hansraj",
+  "name": "Hansraj College",
+  "short": "Hansraj",
+  "area": "North Campus, Delhi"
+ },
+ {
+  "slug": "kmc",
+  "name": "Kirori Mal College",
+  "short": "KMC",
+  "area": "North Campus, Delhi"
+ },
+ {
+  "slug": "ramjas",
+  "name": "Ramjas College",
+  "short": "Ramjas",
+  "area": "North Campus, Delhi"
+ },
+ {
+  "slug": "venky",
+  "name": "Sri Venkateswara College",
+  "short": "Venky",
+  "area": "South Campus, New Delhi"
+ },
+ {
+  "slug": "aiims-delhi",
+  "name": "AIIMS New Delhi",
+  "short": "AIIMS Delhi",
+  "area": "Ansari Nagar, New Delhi"
+ },
+ {
+  "slug": "nift-delhi",
+  "name": "NIFT Delhi",
+  "short": "NIFT Delhi",
+  "area": "Hauz Khas, New Delhi"
+ },
+ {
+  "slug": "iim-rohtak",
+  "name": "IIM Rohtak",
+  "short": "IIM Rohtak",
+  "area": "Rohtak"
+ },
+ {
+  "slug": "muj",
+  "name": "Manipal University Jaipur",
+  "short": "MUJ",
+  "area": "Jaipur"
+ },
+ {
+  "slug": "galgotias",
+  "name": "Galgotias University",
+  "short": "Galgotias",
+  "area": "Greater Noida"
+ },
+ {
+  "slug": "jiit",
+  "name": "JIIT Noida",
+  "short": "JIIT",
+  "area": "Sector 62, Noida"
+ }
+]

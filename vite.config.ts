@@ -30,6 +30,9 @@ export default defineConfig({
         // cache typical static assets and provide SPA navigation fallback
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         navigateFallback: '/index.html',
+        // Let these real files load instead of the app shell
+        navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/, /^\/og-image\.png$/],
+        globIgnores: ['**/og-image.png'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,

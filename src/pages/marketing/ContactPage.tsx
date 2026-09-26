@@ -2,8 +2,10 @@ import React from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/home/Footer/Footer';
 import HomeBackground from '../../components/home/HomeBackground';
+import { useSeo } from '../../utils/seo'
 
 export default function ContactPage() {
+  useSeo({ title: 'Contact Us', description: 'Get in touch with DateU — support, safety, legal and partnership enquiries.', path: '/contact' })
     return (
         <>
             <HomeBackground />

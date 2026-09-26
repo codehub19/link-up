@@ -5,8 +5,10 @@ import HomeBackground from '../../components/home/HomeBackground';
 import { db } from '../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import { useSeo } from '../../utils/seo'
 
 export default function JobApplicationPage() {
+  useSeo({ title: 'Apply', description: 'Apply to work with DateU.', path: '/careers/apply' })
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);

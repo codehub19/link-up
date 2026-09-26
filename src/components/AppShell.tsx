@@ -34,6 +34,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     root.classList.toggle('standalone', standalone)
     // No bottom tab bar on pushed screens (see MobileNavbar)
     root.classList.toggle('no-tabbar', ['/dashboard/notifications', '/dashboard/edit-profile', '/dashboard/settings', '/dashboard/support-history', '/dashboard/plans', '/dashboard/premium'].includes(pathname) || !pathname.startsWith('/dashboard'))
+    // Signed-in app screens and the admin panel shouldn't appear in search results
+    const privatePage = isAppRoute || pathname.startsWith('/admin')
+    let robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]')
+    if (privatePage) {
+      if (!robots) { robots = document.createElement('meta'); robots.name = 'robots'; document.head.appendChild(robots) }
+      robots.content = 'noindex, nofollow'
+      document.title = 'DateU'
+    }
     document.querySelector('meta[name="viewport"]')?.setAttribute('content', isAppRoute ? VIEWPORT_APP : VIEWPORT_DEFAULT)
     return () => root.classList.remove('app-mode')
   }, [isAppRoute, standalone, pathname])

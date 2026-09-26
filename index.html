@@ -15,7 +15,62 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <title>DateU</title>
+    <title>DateU – Campus Dating for Verified College Students in India</title>
+    <meta name="description" content="DateU is a campus dating app for verified college students in India. Join free matching rounds, meet new people on 5-minute voice calls, and chat with your matches — safe, private and made for students." />
+    <link rel="canonical" href="https://dateu.in/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+
+    <!-- Link previews (WhatsApp, Instagram, X, LinkedIn…). These crawlers don't run
+         JavaScript, so these defaults are what every shared link shows. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DateU" />
+    <meta property="og:url" content="https://dateu.in/" />
+    <meta property="og:title" content="DateU – Campus Dating for Verified College Students" />
+    <meta property="og:description" content="Free matching rounds, 5-minute voice calls and chat — made for college students in India." />
+    <meta property="og:image" content="https://dateu.in/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="DateU – campus dating for verified college students" />
+    <meta property="og:locale" content="en_IN" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DateU – Campus Dating for Verified College Students" />
+    <meta name="twitter:description" content="Free matching rounds, 5-minute voice calls and chat — made for college students in India." />
+    <meta name="twitter:image" content="https://dateu.in/og-image.png" />
+
+    <!-- Structured data: who we are, for Google -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://dateu.in/#org",
+            "name": "DateU",
+            "url": "https://dateu.in/",
+            "logo": "https://dateu.in/icons/icon-512.png",
+            "email": "support@dateu.in",
+            "sameAs": ["https://www.instagram.com/dateu_official_/", "https://www.linkedin.com/company/dateu/"]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://dateu.in/#website",
+            "url": "https://dateu.in/",
+            "name": "DateU",
+            "publisher": { "@id": "https://dateu.in/#org" },
+            "inLanguage": "en-IN"
+          },
+          {
+            "@type": "WebApplication",
+            "name": "DateU",
+            "url": "https://dateu.in/",
+            "applicationCategory": "SocialNetworkingApplication",
+            "operatingSystem": "Android, iOS (web app)",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+            "publisher": { "@id": "https://dateu.in/#org" }
+          }
+        ]
+      }
+    </script>
     <!-- Launch screen: shown instantly (dark, no white flash) until the app has loaded -->
     <style>
       /* Only on body, so the app stylesheet's body background covers the whole page */
@@ -30,6 +85,10 @@
   </head>
   <body>
     <div id="root"><div id="launch"><div class="logo">DateU</div><div class="dots"><span></span><span></span><span></span></div></div></div>
+    <noscript>
+      <h1>DateU – Campus Dating for Verified College Students in India</h1>
+      <p>DateU helps college students meet through free curated matching rounds, 5-minute random voice calls and private chat. Profiles are verified with a college ID. Please enable JavaScript to use DateU.</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

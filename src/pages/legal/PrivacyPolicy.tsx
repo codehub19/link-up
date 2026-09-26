@@ -1,7 +1,9 @@
 import React from "react";
 import { PageWrapper } from "./AppLayout";
+import { useSeo } from '../../utils/seo'
 
 export default function PrivacyPolicy() {
+  useSeo({ title: 'Privacy Policy', description: 'How DateU collects, uses and protects your personal data.', path: '/legal/privacy' })
   return (
     <PageWrapper title="Privacy Policy">
       <p className="text-sm text-gray-500 mb-6 font-mono">Last Updated: October 9, 2025</p>

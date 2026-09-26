@@ -1,7 +1,9 @@
 import React from "react";
 import { PageWrapper } from "./AppLayout";
+import { useSeo } from '../../utils/seo'
 
 export default function Support() {
+  useSeo({ title: 'Help Center', description: 'Answers to common questions about DateU rounds, calls, chat, Premium and your account.', path: '/support' })
   return (
     <PageWrapper title="Support Center">
       <p className="text-gray-300 mb-8">

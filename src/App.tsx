@@ -28,6 +28,9 @@ const CareersPage = lazy(() => import('./pages/marketing/CareersPage'))
 const JobApplicationPage = lazy(() => import('./pages/marketing/JobApplicationPage'))
 const CertificatePage = lazy(() => import('./pages/marketing/CertificatePage'))
 const BlogPage = lazy(() => import('./pages/marketing/BlogPage'))
+const BlogPostPage = lazy(() => import('./pages/marketing/BlogPage').then((m) => ({ default: m.BlogPostPage })))
+const CampusIndexPage = lazy(() => import('./pages/marketing/CampusPages').then((m) => ({ default: m.CampusIndexPage })))
+const CampusPage = lazy(() => import('./pages/marketing/CampusPages').then((m) => ({ default: m.CampusPage })))
 const ContactPage = lazy(() => import('./pages/marketing/ContactPage'))
 const MaleRound = lazy(() => import('./pages/dashboard/male/MatchingRounds'))
 const RoundMatchesAdmin = lazy(() => import('./pages/admin/RoundMatchesAdmin'))
@@ -117,6 +120,9 @@ export default function App() {
           <Route path="/careers/apply" element={<JobApplicationPage />} />
           <Route path="/certificate/:id" element={<CertificatePage />} />
           <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/campus" element={<CampusIndexPage />} />
+          <Route path="/campus/:slug" element={<CampusPage />} />
           <Route path="/contact" element={<ContactPage />} />
 
           {/* Unified wizard */}

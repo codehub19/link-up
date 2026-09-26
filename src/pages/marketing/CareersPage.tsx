@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/home/Footer/Footer';
 import HomeBackground from '../../components/home/HomeBackground';
+import { useSeo } from '../../utils/seo'
 
 export default function CareersPage() {
+  useSeo({ title: 'Careers', description: 'Join the DateU team — open roles and campus ambassador positions.', path: '/careers' })
     return (
         <>
             <HomeBackground />

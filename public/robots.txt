@@ -1,0 +1,12 @@
+# DateU — https://dateu.in
+User-agent: *
+Allow: /
+# Signed-in app screens and admin aren't useful in search results
+Disallow: /dashboard
+Disallow: /setup
+Disallow: /pay
+Disallow: /profile/
+Disallow: /admin
+Disallow: /certificate/
+
+Sitemap: https://dateu.in/sitemap.xml

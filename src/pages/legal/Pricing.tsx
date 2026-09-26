@@ -1,8 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { PageWrapper } from "./AppLayout";
+import { useSeo } from '../../utils/seo'
 
 export default function Pricing() {
+  useSeo({ title: 'Pricing', description: 'DateU is free to join. Matching rounds, random voice calls and chat are free for everyone; optional Premium puts you first.', path: '/pricing' })
   return (
     <PageWrapper title="Pricing">
       <p className="text-gray-300 mb-8 leading-relaxed">
