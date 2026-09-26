@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../state/AuthContext";
+import { useLocation } from "react-router-dom";
 import { requestForToken, updatePrivateProfile } from "../firebase";
 import "./NotificationPrompt.css";
 
@@ -20,13 +21,14 @@ export function NotificationPrompt() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const { user } = useAuth();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     // Only ask when the browser can still show the permission dialog
     setShow(!!user && "Notification" in window && Notification.permission === "default" && !recentlyDismissed());
   }, [user]);
 
-  if (!show) return null;
+  if (!show || pathname.startsWith('/admin')) return null;
 
   const enable = async () => {
     setBusy(true);

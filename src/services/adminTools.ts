@@ -224,12 +224,12 @@ export type AppConfig = {
   announcement?: { active?: boolean; text?: string; link?: string; tone?: 'info' | 'warning' | 'success' }
 }
 
-export async function getConfigDoc<T = Record<string, any>>(path: 'config/app' | 'config/randomCall' | 'serverConfig/turn'): Promise<T> {
+export async function getConfigDoc<T = Record<string, any>>(path: 'config/app' | 'config/randomCall' | 'config/payment' | 'serverConfig/turn'): Promise<T> {
   const snap = await getDoc(doc(db, path))
   return (snap.exists() ? snap.data() : {}) as T
 }
 
-export async function saveConfigDoc(path: 'config/app' | 'config/randomCall' | 'serverConfig/turn', data: Record<string, any>) {
+export async function saveConfigDoc(path: 'config/app' | 'config/randomCall' | 'config/payment' | 'serverConfig/turn', data: Record<string, any>) {
   await setDoc(doc(db, path), { ...data, updatedAt: serverTimestamp() }, { merge: true })
   // Never log secrets
   const safe = path === 'serverConfig/turn' ? { fields: Object.keys(data) } : data

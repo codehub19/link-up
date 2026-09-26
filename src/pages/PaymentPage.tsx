@@ -2,8 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
 import {
-  UPI_ID,
-  UPI_QR_URL,
   ensurePlans,
   getPlanById,
   type Plan
@@ -18,6 +16,9 @@ import { useDialog } from '../components/ui/Dialog'
 import LoadingHeart from '../components/LoadingHeart'
 import './PaymentPage.styles.css'
 import { isIOS } from '../utils/pwa'
+import QRCode from 'qrcode'
+import { DEFAULT_PAYMENT_SETTINGS, PaymentSettings, UTR_PATTERN, subscribePaymentSettings, upiLink } from '../services/paymentSettings'
+import { DuplicateUtrError } from '../services/payments'
 
 declare global {
   interface Window {
@@ -108,9 +109,23 @@ export default function PaymentPage() {
     })()
   }, [planId, amountOverride, plan, loadingPlan])
 
+  const [settings, setSettings] = useState<PaymentSettings>(DEFAULT_PAYMENT_SETTINGS)
+  const [utr, setUtr] = useState('')
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+  useEffect(() => subscribePaymentSettings(setSettings), [])
+  // QR code with the UPI ID and exact amount, so it always matches the admin settings
+  const qrAmount = amountOverride ? Number(amountOverride) : (resolvedPlan?.amount ?? 0)
+  useEffect(() => {
+    if (!qrAmount) { setQrDataUrl(null); return }
+    QRCode.toDataURL(upiLink(settings, qrAmount), { width: 480, margin: 1 })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null))
+  }, [settings, qrAmount])
+
   async function onConfirmPaid() {
     if (!user) { await showAlert('Please login first'); return }
     if (!resolvedPlan) { await showAlert('Plan not loaded yet'); return }
+    if (amount > 0 && !UTR_PATTERN.test(utr)) { await showAlert('Please enter the 12-digit UPI transaction ID (UTR) from your payment app.'); return }
     if (amount > 0 && !proof) { await showAlert('Please attach a payment screenshot'); return }
 
     setSubmitting(true)
@@ -119,12 +134,17 @@ export default function PaymentPage() {
         uid: user.uid,
         planId: resolvedPlan.id,
         amount: amount,
-        upiId: amount > 0 ? UPI_ID : 'REFERRAL',
+        upiId: amount > 0 ? settings.upiId : 'REFERRAL',
+        ...(amount > 0 ? { utr } : {}),
         referralDiscountApplied: isReferral
       }, proof || undefined)
       await showAlert('Payment submitted! We will verify and activate your plan shortly.')
       navigate(profile?.gender === 'male' ? '/dashboard/plans' : '/dashboard/premium')
     } catch (e: any) {
+      if (e instanceof DuplicateUtrError) {
+        await showAlert('This transaction ID has already been submitted. If you paid again, enter the new payment’s ID — or contact support@dateu.in.')
+        return
+      }
       console.error(e)
       await showAlert(e?.message || 'Failed to submit payment')
     } finally {
@@ -134,7 +154,7 @@ export default function PaymentPage() {
 
   const [copied, setCopied] = useState(false)
   function copyUPI() {
-    navigator.clipboard.writeText(UPI_ID).then(() => {
+    navigator.clipboard.writeText(settings.upiId).then(() => {
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1800)
     }).catch(() => { })
@@ -157,7 +177,7 @@ export default function PaymentPage() {
 
   const amount = amountOverride ? Number(amountOverride) : resolvedPlan.amount
 
-  const upiQuery = `pa=${encodeURIComponent(UPI_ID)}&pn=DateU&am=${amount}&cu=INR&tn=${encodeURIComponent('DateU Premium')}`
+  const upiQuery = upiLink(settings, amount).split('?')[1]
   // Each app has its own link; the generic upi:// link doesn't open anything on iPhone
   const upiApps = [
     { name: 'GPay', href: `${isIOS() ? 'gpay' : 'tez'}://upi/pay?${upiQuery}`, bg: '#4285F4' },
@@ -184,7 +204,14 @@ export default function PaymentPage() {
             </div>
           </div>
 
-          {amount > 0 ? (
+          {settings.paused && amount > 0 && (
+            <div className="pay-free" style={{ background: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.4)', color: '#fde68a' }}>
+              <strong style={{ color: '#fbbf24' }}>Payments are paused for a moment</strong>
+              <span>We’re updating our payment details. Please try again in a little while.</span>
+            </div>
+          )}
+
+          {amount > 0 && !settings.paused ? (
             <>
               <section className="pay-step">
                 <div className="pay-step-head"><span className="pay-step-num">1</span>Pay ₹{amount} with UPI</div>
@@ -198,18 +225,36 @@ export default function PaymentPage() {
                 <div className="pay-upi">
                   <div>
                     <div className="pay-upi-label">UPI ID</div>
-                    <div className="pay-upi-id">{UPI_ID}</div>
+                    <div className="pay-upi-id">{settings.upiId}</div>
+                    <div className="pay-upi-label">Pays to {settings.payeeName}</div>
                   </div>
                   <button type="button" className="pay-copy" onClick={copyUPI}>{copied ? 'Copied ✓' : 'Copy'}</button>
                 </div>
                 <details className="pay-qr" open={!isMobile}>
                   <summary>{isMobile ? 'Paying from another phone? Show QR code' : 'Scan the QR code'}</summary>
-                  <img src={UPI_QR_URL} alt="UPI QR code" />
+                  {qrDataUrl ? <img src={qrDataUrl} alt={`UPI QR code for ₹${amount}`} /> : null}
+                  <p className="pay-qr-hint">The amount (₹{amount}) is filled in automatically.</p>
                 </details>
               </section>
 
               <section className="pay-step">
-                <div className="pay-step-head"><span className="pay-step-num">2</span>Upload the payment screenshot</div>
+                <div className="pay-step-head"><span className="pay-step-num">2</span>Confirm your payment</div>
+                <label className="pay-field">
+                  <span>UPI transaction ID (UTR)</span>
+                  <input
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="12-digit number, e.g. 412345678901"
+                    value={utr}
+                    maxLength={12}
+                    onChange={(e) => setUtr(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                  />
+                  <small className={utr && !UTR_PATTERN.test(utr) ? 'bad' : ''}>
+                    {utr && !UTR_PATTERN.test(utr)
+                      ? `${utr.length}/12 digits`
+                      : 'Find it in your UPI app under the payment details (also called UPI Ref No. / Transaction ID).'}
+                  </small>
+                </label>
                 <label className={`pay-upload ${proof ? 'has-file' : ''}`}>
                   <input type="file" accept="image/*" onChange={(e) => setProof(e.target.files?.[0] || null)} />
                   {proofPreview ? (
@@ -227,24 +272,24 @@ export default function PaymentPage() {
                 </label>
               </section>
             </>
-          ) : (
+          ) : amount <= 0 ? (
             <div className="pay-free">
               <strong>100% discount applied</strong>
               <span>You can activate this plan for free with your referral rewards.</span>
             </div>
-          )}
+          ) : null}
 
           <div className="pay-submit-bar">
             <button
               className="btn-confirm-payment"
               onClick={onConfirmPaid}
-              disabled={submitting || (amount > 0 && !proof)}
+              disabled={submitting || settings.paused || (amount > 0 && (!proof || !UTR_PATTERN.test(utr)))}
             >
               {submitting ? 'Submitting…' : amount > 0 ? 'Submit for verification' : 'Activate plan'}
             </button>
             <p>
               {amount > 0
-                ? 'We usually verify payments within a few hours. Premium starts once it’s confirmed.'
+                ? (settings.note || 'We usually verify payments within a few hours. Premium starts once it’s confirmed.')
                 : 'Premium starts right away.'}{' '}
               Non-refundable once activated — <a href="/legal/refunds">refund policy</a>.
             </p>

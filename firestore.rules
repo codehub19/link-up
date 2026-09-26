@@ -102,9 +102,20 @@ service cloud.firestore {
     match /payments/{paymentId} {
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.status == 'pending';
+                    && request.resource.data.status == 'pending'
+                    && (!('utr' in request.resource.data) || request.resource.data.utr.matches('^[0-9]{12}$'));
       allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isAdmin());
       allow update, delete: if isAdmin();
+    }
+
+    // One doc per UPI transaction ID, so the same payment can't be submitted twice.
+    // Create-only: writing an existing UTR is an update, which is denied.
+    match /paymentUtrs/{utr} {
+      allow create: if request.auth != null
+                    && utr.matches('^[0-9]{12}$')
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['uid', 'paymentId', 'createdAt']);
+      allow read, delete: if isAdmin();
     }
 
     // Matching rounds and assignments

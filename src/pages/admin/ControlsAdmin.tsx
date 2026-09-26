@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useDialog } from '../../components/ui/Dialog'
 import { AppConfig, getConfigDoc, saveConfigDoc } from '../../services/adminTools'
+import QRCode from 'qrcode'
+import { DEFAULT_PAYMENT_SETTINGS, upiLink } from '../../services/paymentSettings'
 
 // Mirrors RANDOM_CALL_DEFAULTS in functions/src/randomCall.ts
 const CALL_DEFAULTS = {
@@ -44,10 +46,13 @@ export default function ControlsAdmin() {
   const [calls, setCalls] = useState(CALL_DEFAULTS)
   const [turn, setTurn] = useState<Record<string, any>>({})
   const [turnMode, setTurnMode] = useState<'cloudflare' | 'static'>('cloudflare')
+  const [pay, setPay] = useState<Record<string, any>>({})
+  const [payQr, setPayQr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
 
   useEffect(() => {
+    getConfigDoc('config/payment').then((p) => setPay({ ...DEFAULT_PAYMENT_SETTINGS, ...p })).catch(() => setPay({ ...DEFAULT_PAYMENT_SETTINGS }))
     Promise.all([getConfigDoc<AppConfig>('config/app'), getConfigDoc('config/randomCall'), getConfigDoc('serverConfig/turn')])
       .then(([a, c, t]) => {
         setApp(a)
@@ -57,6 +62,13 @@ export default function ControlsAdmin() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  // Live preview of the QR users will scan (₹1 example amount)
+  useEffect(() => {
+    if (!pay.upiId) { setPayQr(null); return }
+    QRCode.toDataURL(upiLink({ upiId: pay.upiId, payeeName: pay.payeeName || 'DateU' }, 1), { width: 240, margin: 1 })
+      .then(setPayQr).catch(() => setPayQr(null))
+  }, [pay.upiId, pay.payeeName])
 
   const save = async (key: string, fn: () => Promise<void>) => {
     setSaving(key)
@@ -141,6 +153,48 @@ export default function ControlsAdmin() {
                 Save banner
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Payment settings */}
+        <div className="admin-card">
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Payment settings (UPI)</div>
+          <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--admin-text-muted)' }}>
+            Where users send UPI payments. The payment page builds its QR code from these details with the exact amount, so
+            changes apply instantly — no image to upload.
+          </p>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <div className="stack" style={{ gap: 12, flex: '1 1 280px' }}>
+              <label className="stack" style={{ gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>UPI ID</span>
+                <input className="input" placeholder="e.g. dateu@icici" value={pay.upiId || ''} onChange={(e) => setPay({ ...pay, upiId: e.target.value.trim() })} />
+              </label>
+              <label className="stack" style={{ gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Payee name shown in UPI apps</span>
+                <input className="input" placeholder="DateU" value={pay.payeeName || ''} onChange={(e) => setPay({ ...pay, payeeName: e.target.value })} />
+              </label>
+              <label className="stack" style={{ gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Note under the Submit button (optional)</span>
+                <input className="input" placeholder="We usually verify payments within a few hours." value={pay.note || ''} onChange={(e) => setPay({ ...pay, note: e.target.value })} />
+              </label>
+              <Switch checked={!!pay.paused} onChange={(v) => setPay({ ...pay, paused: v })} label="Pause UPI payments" hint="Shows a 'payments paused' message instead of your UPI details" />
+              <div>
+                <button
+                  className="btn btn-primary"
+                  disabled={saving === 'pay' || !/^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(pay.upiId || '')}
+                  onClick={() => save('pay', () => saveConfigDoc('config/payment', { upiId: pay.upiId, payeeName: (pay.payeeName || 'DateU').trim(), note: pay.note || '', paused: !!pay.paused }))}
+                >
+                  Save payment settings
+                </button>
+                {!/^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(pay.upiId || '') && <div style={{ fontSize: 12, color: '#f59e0b', marginTop: 6 }}>Enter a valid UPI ID like name@bank</div>}
+              </div>
+            </div>
+            {payQr && (
+              <div style={{ textAlign: 'center' }}>
+                <img src={payQr} alt="QR preview" style={{ width: 160, height: 160, borderRadius: 12, background: '#fff', padding: 6 }} />
+                <div style={{ fontSize: 12, color: 'var(--admin-text-muted)', marginTop: 6 }}>Preview (₹1). Scan to test.</div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -4,7 +4,7 @@ import { approvePayment, rejectPayment, listPendingPayments, Payment } from '../
 import { SupportQuery, listPendingQueries, resolveQuery } from '../../services/support'
 
 export type EnrichedPayment = Payment & { userName?: string, gender?: string, instagramId?: string }
-import { doc, getDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, limit, orderBy, query } from 'firebase/firestore'
 import { db } from '../../firebase'
 
 export default function PaymentsAdmin() {
@@ -32,7 +32,6 @@ export default function PaymentsAdmin() {
     setBusyId(paymentId)
     try {
       await approvePayment(paymentId) // status-only; backend trigger provisions
-      alert('Approved')
       await refresh()
     } catch (e: any) {
       console.error('approve error', e)
@@ -45,12 +44,19 @@ export default function PaymentsAdmin() {
   async function refresh() {
     setLoading(true)
     try {
-      const pending = await listPendingPayments()
-      const enriched = await Promise.all(pending.map(async p => {
-        const u = await getDoc(doc(db, 'users', p.uid))
-        const udata = u.data() || {}
-        return { ...p, userName: udata?.name || 'User', gender: udata?.gender || '-', instagramId: udata?.instagramId || '' }
+      // Recent payments of every status (pending ones feed the review queue)
+      const snap = await getDocs(query(collection(db, 'payments'), orderBy('createdAt', 'desc'), limit(150)))
+      const recent = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as Payment))
+      const pendingExtra = (await listPendingPayments()).filter((p) => !recent.some((r) => r.id === p.id))
+      const all = [...pendingExtra, ...recent]
+      const names: Record<string, any> = {}
+      await Promise.all([...new Set(all.map((p) => p.uid))].map(async (uid) => {
+        names[uid] = (await getDoc(doc(db, 'users', uid)).catch(() => null))?.data() || {}
       }))
+      const enriched = all.map((p) => {
+        const udata = names[p.uid] || {}
+        return { ...p, userName: udata?.name || 'User', gender: udata?.gender || '-', instagramId: udata?.instagramId || '' }
+      })
       setRows(enriched)
     } finally {
       setLoading(false)
@@ -76,7 +82,7 @@ export default function PaymentsAdmin() {
     refreshQueries()
   }, [])
 
-  const pending = rows
+  const pending = rows.filter((p) => (p.status ?? 'pending') === 'pending')
 
   const filtered = rows.filter(p =>
     (p.userName || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -178,85 +184,11 @@ export default function PaymentsAdmin() {
       ) : (
         <div className="stack" style={{ gap: 24 }}>
 
-          {/* Pending Payments Section */}
-          {pending.length > 0 && (
-            <div className="admin-card">
-              <div className="row" style={{ alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                <h3 style={{ margin: 0 }}>Pending Approval</h3>
-                <span className="badge badge-warning">{pending.length} pending</span>
-              </div>
-
-              <div className="admin-table-wrapper">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>User</th>
-                      <th>Plan</th>
-                      <th style={{ textAlign: 'right' }}>Amount</th>
-                      <th>UPI ID</th>
-                      <th>Submitted</th>
-                      <th>Proof</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pending.map(p => (
-                      <tr key={p.id}>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{p.userName || 'User'} <br /><span style={{ fontSize: 12, color: '#666' }}>{p.uid.substring(0, 8)}...</span></div>
-                        </td>
-                        <td>{p.planId}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                          ₹{p.amount}
-                          {p.referralDiscountApplied && (
-                            <div style={{ fontSize: 10, color: '#facc15', marginTop: 2 }}>
-                              Referral Used
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ fontFamily: 'monospace' }}>{p.upiId || '-'}</td>
-                        <td>{p.createdAt?.toDate?.().toLocaleString?.() || '-'}</td>
-                        <td>
-                          {p.proofUrl ? (
-                            <a href={p.proofUrl} target="_blank" rel="noreferrer" className="btn btn-xs btn-ghost" style={{ fontSize: 12 }}>
-                              View Proof
-                            </a>
-                          ) : <span className="text-muted">-</span>}
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div className="row" style={{ justifyContent: 'flex-end', gap: 6 }}>
-                            <button
-                              className="btn btn-xs btn-primary"
-                              disabled={busyId === p.id}
-                              onClick={() => p.id && approve(p.id)}
-                              style={{ background: '#16a34a', borderColor: '#16a34a' }}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              className="btn btn-xs btn-ghost"
-                              disabled={busyId === p.id}
-                              onClick={async () => {
-                                if (p.id) {
-                                  const reason = window.prompt("Enter rejection reason (optional):");
-                                  if (reason === null) return; // Cancelled
-                                  await rejectPayment(p.id, reason);
-                                  await refresh()
-                                }
-                              }}
-                              style={{ color: '#dc2626' }}
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          {/* Pending payments: review queue */}
+          <PendingQueue rows={pending} busyId={busyId} onApprove={(id) => approve(id)} onReject={async (id, reason) => {
+            setBusyId(id)
+            try { await rejectPayment(id, reason); await refresh() } finally { setBusyId(null) }
+          }} />
 
           {/* All Payments / History Section */}
           <div className="admin-card">
@@ -284,11 +216,12 @@ export default function PaymentsAdmin() {
                           <div>Plan: <b>{p.planId}</b></div>
                           <div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>
                             ₹{p.amount} • {p.createdAt?.toDate ? p.createdAt.toDate().toLocaleDateString() : 'N/A'}
+                            {(p as any).utr && <span style={{ fontFamily: 'monospace', marginLeft: 6 }}>UTR {(p as any).utr}</span>}
                             {p.referralDiscountApplied && <span style={{ color: '#facc15', marginLeft: 6, fontSize: 10, border: '1px solid #facc15', padding: '0 4px', borderRadius: 4 }}>Referral</span>}
                           </div>
                         </td>
                         <td>
-                          <span className={`badge badge - ${p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} `}>
+                          <span className={`badge badge-${p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}`}>
                             {p.status || 'pending'}
                           </span>
                         </td>
@@ -317,6 +250,124 @@ export default function PaymentsAdmin() {
               </div>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+const REJECT_REASONS = [
+  'Amount doesn’t match the plan price',
+  'Transaction ID not found in our account',
+  'Screenshot is unclear or doesn’t show the payment',
+  'Duplicate submission',
+]
+
+function ago(ts: any) {
+  const ms = ts?.toMillis ? ts.toMillis() : 0
+  if (!ms) return ''
+  const m = Math.round((Date.now() - ms) / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m} min ago`
+  const h = Math.round(m / 60)
+  return h < 24 ? `${h} h ago` : `${Math.round(h / 24)} d ago`
+}
+
+/** One card per pending payment: screenshot, UTR and amount side by side, one tap to approve. */
+function PendingQueue({ rows, busyId, onApprove, onReject }: {
+  rows: EnrichedPayment[]
+  busyId: string | null
+  onApprove: (id: string) => void
+  onReject: (id: string, reason: string) => Promise<void>
+}) {
+  const [rejecting, setRejecting] = useState<string | null>(null)
+  const [custom, setCustom] = useState('')
+  const [zoom, setZoom] = useState<string | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
+
+  if (!rows.length) {
+    return (
+      <div className="admin-card" style={{ textAlign: 'center', color: 'var(--admin-text-muted)', padding: 28 }}>
+        ✅ No payments waiting for review.
+      </div>
+    )
+  }
+
+  // Oldest first, so nobody waits too long
+  const sorted = [...rows].sort((a, b) => (a.createdAt?.toMillis?.() ?? 0) - (b.createdAt?.toMillis?.() ?? 0))
+  return (
+    <div className="admin-card">
+      <div className="row" style={{ alignItems: 'center', gap: 12, marginBottom: 6 }}>
+        <h3 style={{ margin: 0 }}>Waiting for review</h3>
+        <span className="badge badge-warning">{rows.length}</span>
+      </div>
+      <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--admin-text-muted)' }}>
+        Check the transaction ID and amount in your bank or UPI app, then approve. Premium starts instantly and the user is notified.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+        {sorted.map((p) => {
+          const id = p.id!
+          const utr = (p as any).utr as string | undefined
+          return (
+            <div key={id} style={{ border: '1px solid var(--admin-border, rgba(255,255,255,0.1))', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700 }}>{p.userName || 'User'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>{p.planId} · {ago(p.createdAt)}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800 }}>₹{p.amount}</div>
+                  {p.referralDiscountApplied && <div style={{ fontSize: 11, color: '#facc15' }}>Referral discount</div>}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 10, background: 'rgba(127,127,127,0.1)' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, color: 'var(--admin-text-muted)' }}>UTR / Transaction ID</div>
+                  <div style={{ fontFamily: 'monospace', fontSize: 15, letterSpacing: 1 }}>{utr || '— not provided —'}</div>
+                </div>
+                {utr && (
+                  <button className="btn btn-xs" onClick={() => { navigator.clipboard.writeText(utr).catch(() => { }); setCopied(id); setTimeout(() => setCopied(null), 1500) }}>
+                    {copied === id ? 'Copied' : 'Copy'}
+                  </button>
+                )}
+              </div>
+
+              {p.proofUrl ? (
+                <button type="button" onClick={() => setZoom(p.proofUrl!)} style={{ padding: 0, border: 0, background: '#000', borderRadius: 10, overflow: 'hidden', cursor: 'zoom-in' }}>
+                  <img src={p.proofUrl} alt="Payment screenshot" loading="lazy" style={{ display: 'block', width: '100%', height: 180, objectFit: 'contain' }} />
+                </button>
+              ) : <div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>No screenshot</div>}
+
+              {rejecting === id ? (
+                <div className="stack" style={{ gap: 6 }}>
+                  {REJECT_REASONS.map((r) => (
+                    <button key={r} className="btn btn-sm" style={{ justifyContent: 'flex-start' }} disabled={busyId === id}
+                      onClick={async () => { await onReject(id, r); setRejecting(null) }}>{r}</button>
+                  ))}
+                  <input className="input" placeholder="Other reason…" value={custom} onChange={(e) => setCustom(e.target.value)} />
+                  <div className="row" style={{ gap: 6 }}>
+                    <button className="btn btn-sm" onClick={() => { setRejecting(null); setCustom('') }}>Cancel</button>
+                    <button className="btn btn-sm" style={{ color: '#dc2626' }} disabled={!custom.trim() || busyId === id}
+                      onClick={async () => { await onReject(id, custom.trim()); setRejecting(null); setCustom('') }}>Reject</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="row" style={{ gap: 8 }}>
+                  <button className="btn btn-primary" style={{ flex: 1, background: '#16a34a', borderColor: '#16a34a' }} disabled={busyId === id} onClick={() => onApprove(id)}>
+                    {busyId === id ? 'Working…' : '✓ Approve'}
+                  </button>
+                  <button className="btn" style={{ color: '#dc2626' }} disabled={busyId === id} onClick={() => setRejecting(id)}>Reject</button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      {zoom && (
+        <div onClick={() => setZoom(null)} style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, cursor: 'zoom-out' }}>
+          <img src={zoom} alt="Payment screenshot" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 12 }} />
         </div>
       )}
     </div>

@@ -630,3 +630,50 @@
         padding-bottom: calc(env(safe-area-inset-bottom) + 24px) !important;
     }
 }
+
+.pay-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pay-field > span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.pay-field input {
+    height: 48px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #1f1f28;
+    color: #fff;
+    font: inherit;
+    font-size: 1.05rem;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+}
+
+.pay-field input:focus {
+    outline: none;
+    border-color: #ff416c;
+}
+
+.pay-field small {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.pay-field small.bad {
+    color: #fbbf24;
+}
+
+.pay-qr-hint {
+    margin: 8px 0 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+}

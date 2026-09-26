@@ -17,6 +17,7 @@ import {
   where,
   updateDoc,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { getFunctions, httpsCallable } from 'firebase/functions'
@@ -35,10 +36,16 @@ export type Payment = {
   createdAt?: any
   updatedAt?: any
   referralDiscountApplied?: boolean
+  /** UPI transaction ID (UTR) the user entered */
+  utr?: string
+}
+
+export class DuplicateUtrError extends Error {
+  constructor() { super('This UPI transaction ID has already been submitted.') }
 }
 
 export async function createPayment(
-  p: Omit<Payment, 'status' | 'createdAt' | 'updatedAt' | 'id' | 'reason' | 'proofUrl'>,
+  p: Omit<Payment, 'status' | 'createdAt' | 'updatedAt' | 'id' | 'reason' | 'proofUrl'> & { utr?: string },
   proofFile?: File
 ) {
   let proofUrl: string | undefined
@@ -47,14 +54,27 @@ export async function createPayment(
     await uploadBytes(r, proofFile, { contentType: proofFile.type || 'image/jpeg' })
     proofUrl = await getDownloadURL(r)
   }
-  const docRef = await addDoc(collection(db, 'payments'), {
+  const payRef = doc(collection(db, 'payments'))
+  const batch = writeBatch(db)
+  batch.set(payRef, {
     ...p,
-    proofUrl,
+    ...(proofUrl ? { proofUrl } : {}),
     status: 'pending',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
-  return docRef.id
+  // Each UPI transaction ID can be used once. The rules only allow creating this
+  // doc, so a reused UTR makes the whole write fail.
+  if (p.utr) {
+    batch.set(doc(db, 'paymentUtrs', p.utr), { uid: p.uid, paymentId: payRef.id, createdAt: serverTimestamp() })
+  }
+  try {
+    await batch.commit()
+  } catch (e: any) {
+    if (p.utr && (e?.code === 'permission-denied' || /permission/i.test(e?.message || ''))) throw new DuplicateUtrError()
+    throw e
+  }
+  return payRef.id
 }
 
 export async function listPendingPayments() {
