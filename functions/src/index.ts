@@ -631,6 +631,7 @@ export const onPaymentApproved = onDocumentUpdated(
 export * from './notifications'
 export * from './randomCall'
 export * from './admin'
+export * from './referralRewards'
 
 /* ----------------------------------------------------------------------------
  * expirePremium (daily): mark ended Premium plans expired. Older plans that were

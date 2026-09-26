@@ -144,6 +144,22 @@ export default function ControlsAdmin() {
           </div>
         </div>
 
+        {/* Referral rewards */}
+        <div className="admin-card">
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Referral rewards</div>
+          <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--admin-text-muted)' }}>
+            When someone joins with an invite code and completes their profile (with a photo), both people get free Premium days.
+            Set days to 0 to turn this off.
+          </p>
+          <div className="admin-grid-2" style={{ gap: 12 }}>
+            <NumField label="Premium days for both people" value={(app as any).referralRewardDays ?? 3} onChange={(v) => setApp({ ...app, referralRewardDays: Number(v || 0) } as any)} />
+            <NumField label="Max rewards per inviter" value={(app as any).referralMaxRewards ?? 10} onChange={(v) => setApp({ ...app, referralMaxRewards: Number(v || 0) } as any)} hint="Stops anyone farming Premium with fake accounts" />
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <button className="btn btn-primary" disabled={saving === 'ref'} onClick={() => save('ref', () => saveConfigDoc('config/app', { referralRewardDays: Number((app as any).referralRewardDays ?? 3), referralMaxRewards: Number((app as any).referralMaxRewards ?? 10) }))}>Save referral rewards</button>
+          </div>
+        </div>
+
         {/* Random calls */}
         <div className="admin-card">
           <div style={{ fontWeight: 600, marginBottom: 14 }}>Random calls</div>

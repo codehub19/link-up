@@ -73,7 +73,7 @@ function ReferralCard({ user }: { user: any }) {
 
       <div style={{ padding: '0 20px 20px' }}>
         <p style={{ fontSize: 14, color: '#ccc', marginBottom: 16 }}>
-          Earn <b style={{ color: '#34d399' }}>5% additional discount</b> on each referral!
+          Invite friends: you both get <b style={{ color: '#34d399' }}>free Premium days</b> when they join, plus <b style={{ color: '#34d399' }}>5% off</b> Premium for each friend who matches.
         </p>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 8 }}>
           <div>

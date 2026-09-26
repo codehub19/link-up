@@ -424,11 +424,17 @@ export default function ChatPage() {
       {chatExpiresMs !== undefined && !chatDisabled && (
         <div className="dm-banner">
           <span>📞 You met on a random call. Free chat ends in <strong>{timeLeft(chatExpiresMs - now)}</strong>.</span>
+          {/* In the last few hours, offer a way to keep the conversation going */}
+          {chatExpiresMs - now < 6 * 3600e3 && (
+            <button type="button" className="dm-pill-btn" onClick={handleUnlock} disabled={unlocking}>
+              {unlocking ? 'Checking…' : 'Keep chatting'}
+            </button>
+          )}
         </div>
       )}
       {chatLocked && !isBanned && (
         <div className="dm-banner warn">
-          <span>⏳ Free chat time has ended.</span>
+          <span>⏳ Your free chat with {selectedPeer?.name?.split(' ')[0] || 'them'} has ended. Get Premium to keep talking.</span>
           <button type="button" className="dm-pill-btn" onClick={handleUnlock} disabled={unlocking}>
             {unlocking ? 'Checking…' : 'Unlock with Premium'}
           </button>

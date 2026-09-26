@@ -67,3 +67,13 @@ export function isDesktopDevice(): boolean {
   if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return false
   return true
 }
+
+// Remember a referral code from an invite link (dateu.in/?ref=CODE) so the
+// sign-up "Referral code" step is pre-filled, even after the Google sign-in.
+try {
+  const ref = new URLSearchParams(window.location.search).get('ref')
+  if (ref && /^[A-Za-z0-9]{3,20}$/.test(ref)) {
+    localStorage.setItem('dateu.referralCode', ref.toUpperCase())
+    sessionStorage.setItem('referralCode', ref.toUpperCase())
+  }
+} catch { }

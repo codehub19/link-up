@@ -13,7 +13,9 @@ export default function Referral({ embedded, onComplete }: Props) {
     const { user, profile, refreshProfile } = useAuth()
     const nav = useNavigate()
 
-    const [code, setCode] = useState(sessionStorage.getItem('referralCode') || '')
+    const [code, setCode] = useState(() => {
+        try { return sessionStorage.getItem('referralCode') || localStorage.getItem('dateu.referralCode') || '' } catch { return '' }
+    })
     const [error, setError] = useState('')
     const [validating, setValidating] = useState(false)
     const [saving, setSaving] = useState(false)
@@ -84,7 +86,7 @@ export default function Referral({ embedded, onComplete }: Props) {
             <div className={embedded ? '' : 'setup-page'}>
                 <section className="setup-card setup-card-glass">
                     <h1 className="setup-title">Referral Code</h1>
-                    <p className="setup-sub">Do you have a referral code? Enter it to unlock benefits.</p>
+                    <p className="setup-sub">Got an invite code from a friend? Enter it and you’ll both get free Premium days once your profile is complete.</p>
 
                     <div className="details-form">
                         <input

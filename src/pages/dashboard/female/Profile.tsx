@@ -130,7 +130,7 @@ function ReferralCard({ user }: { user: any }) {
       {!isActivated ? (
         <div style={{ padding: '0 20px 20px' }}>
           <p style={{ fontSize: 14, color: '#ddd', marginBottom: 16 }}>
-            Earn <b style={{ color: '#f472b6' }}>₹5</b> for every friend who matches! (Max ₹50).
+            Invite friends: you both get <b style={{ color: '#f472b6' }}>free Premium days</b> when they join, and you earn <b style={{ color: '#f472b6' }}>₹5</b> for every friend who matches (max ₹50).
             <br />Enter your UPI ID to start.
           </p>
           <input
