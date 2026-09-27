@@ -12,8 +12,8 @@ export default function FinalCTA() {
     } else {
       const isNew = await login();
       if (typeof isNew === 'boolean') {
-        if (isNew) navigate("/setup/profile");
-        else navigate("/dashboard");
+        if (isNew) navigate("/setup/profile", { replace: true });
+        else navigate("/dashboard", { replace: true });
       }
     }
   };

@@ -14,6 +14,7 @@ import {
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { useDialog } from '../../components/ui/Dialog'
+import { useCall } from '../../state/CallContext'
 import './Friends.css'
 
 type Person = { uid: string; name?: string; photoUrl?: string; college?: string; dob?: string; gender?: string; interests?: string[]; bio?: string; friendsAudience?: 'all' | 'same'; collegeId?: { verified?: boolean }; banned?: boolean }
@@ -42,6 +43,7 @@ function Avatar({ p, size = 56 }: { p?: Person; size?: number }) {
 /** Friends: students meeting students — no dating, no swiping. */
 export default function FriendsPage() {
   const { user, profile, refreshProfile } = useAuth()
+  const { callPerson } = useCall()
   const nav = useNavigate()
   const { showConfirm } = useDialog()
   const me: any = profile || {}
@@ -289,6 +291,9 @@ export default function FriendsPage() {
                     <span className="fr-row-text"><strong>{p?.name || 'Student'}</strong><small>{p?.college || ''}</small></span>
                   </button>
                   <div className="fr-row-actions">
+                    <button type="button" className="fr-btn sm ghost icon" aria-label={`Call ${first(p?.name)}`} onClick={() => callPerson(uid, { name: p?.name, photoUrl: p?.photoUrl })}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                    </button>
                     <Link className="fr-btn sm" to={`/dashboard/chat?with=${encodeURIComponent(uid)}`}>Message</Link>
                     <button type="button" className="fr-btn sm ghost icon" aria-label="Remove friend" onClick={async () => {
                       if (await showConfirm(`Remove ${first(p?.name)} from your friends?`)) removeFriend(user.uid, uid)

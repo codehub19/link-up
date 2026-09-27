@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import InterestsSelect from '../../components/InterestsSelect'
 import CollegeSelect from '../../components/CollegeSelect'
 import { useNavigate } from 'react-router-dom'
+import { goBackOr } from '../../utils/nav'
 import { compressImage } from '../../utils/compressImage'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import PhoneVerification from '../../components/PhoneVerification'
@@ -188,7 +189,7 @@ export default function EditProfile() {
       })
       await refreshProfile()
       toast.success('Profile updated')
-      nav(`/dashboard/${profile?.gender}/profile`)
+      goBackOr(nav, `/dashboard/${profile?.gender}/profile`)
     } catch (e: any) {
       toast.error(e.message ?? 'Failed to update')
     } finally {
@@ -217,7 +218,7 @@ export default function EditProfile() {
       <div className="edit-profile-wrap">
         <div className="edit-profile-container">
           <div className="edit-profile-header">
-            <button className="edit-profile-back-btn" onClick={() => nav(`/dashboard/${profile?.gender}/profile`)}>
+            <button className="edit-profile-back-btn" onClick={() => goBackOr(nav, `/dashboard/${profile?.gender}/profile`)}>
               <span>←</span> Back
             </button>
             <h1 className="edit-profile-title text-gradient">Edit Profile</h1>

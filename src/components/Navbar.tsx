@@ -79,6 +79,8 @@ export default function Navbar() {
     "/dashboard/plans": ["Premium", profileTab],
     "/dashboard/premium": ["Premium", profileTab],
     "/pay": ["Payment", profileTab],
+    "/dashboard/random-call": ["Random call", "/dashboard/chat"],
+    "/dashboard/dating-profile": ["Dating profile", "/dashboard"],
   };
   // Help and legal pages opened from inside the app get a back button too
   // (the installed iPhone app has no browser back button)
@@ -95,7 +97,9 @@ export default function Navbar() {
       "/contact": ["Contact", "/dashboard/settings"],
     } as Record<string, [string, string]>);
   }
-  const pushed = PUSHED[loc.pathname] || (loc.pathname.startsWith("/profile/") ? ["Profile", "/dashboard/matches"] as [string, string] : null);
+  const pushed = PUSHED[loc.pathname]
+    || (loc.pathname.startsWith("/profile/") ? ["Profile", "/dashboard/matches"] as [string, string] : null)
+    || (loc.pathname.startsWith("/dashboard/events/") ? ["Event", "/dashboard/events"] as [string, string] : null);
   const pushedTitle = pushed?.[0];
   const pushedParent = pushed?.[1] || "/dashboard";
 
@@ -182,8 +186,8 @@ export default function Navbar() {
                 <button
                   onClick={async () => {
                     const isNew = await login();
-                    if (isNew) navigate("/setup/profile");
-                    else navigate("/dashboard");
+                    if (isNew) navigate("/setup/profile", { replace: true });
+                    else navigate("/dashboard", { replace: true });
                   }}
                   className="nav-btn nav-btn-primary"
                 >

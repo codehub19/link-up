@@ -15,6 +15,7 @@ import { reportUser } from '../../../services/chatModeration'
 import { blockUser, unblockUser, subscribeAmIBlockedBy, subscribeBlockedUids } from '../../../services/blocks'
 import { unlockRandomChat } from '../../../services/randomCall'
 import { useDialog } from '../../../components/ui/Dialog'
+import { useCall } from '../../../state/CallContext'
 import '../../../styles/chat.css'
 
 type UserDoc = { uid: string; name?: string; photoUrl?: string; instagramId?: string; bio?: string; interests?: string[]; college?: string; collegeId?: { verified?: boolean } }
@@ -91,6 +92,7 @@ export default function ChatPage() {
   const withUid = new URLSearchParams(location.search).get('with') || undefined
   const split = useSplitView()
   const { showAlert, showConfirm } = useDialog()
+  const { callPerson } = useCall()
 
   const [threads, setThreads] = useState<ThreadDoc[]>([])
   const [threadsLoaded, setThreadsLoaded] = useState(false)
@@ -417,7 +419,7 @@ export default function ChatPage() {
         </button>
         {!chatDisabled && (
           <button type="button" className="dm-icon-btn" aria-label="Voice call"
-            onClick={() => nav(`/dashboard/random-call?with=${encodeURIComponent(peerUid!)}`)}>
+            onClick={() => callPerson(peerUid!, { name: selectedPeer?.name, photoUrl: selectedPeer?.photoUrl })}>
             <PhoneIcon />
           </button>
         )}
@@ -490,7 +492,7 @@ export default function ChatPage() {
               <button type="button" onClick={() => { setShowMenu(false); setShowProfile(true) }}>View profile</button>
             )}
             {!chatDisabled && peerUid && (
-              <button type="button" onClick={() => { setShowMenu(false); nav(`/dashboard/random-call?with=${encodeURIComponent(peerUid)}`) }}>Voice call</button>
+              <button type="button" onClick={() => { setShowMenu(false); callPerson(peerUid, { name: selectedPeer?.name, photoUrl: selectedPeer?.photoUrl }) }}>Voice call</button>
             )}
             <button type="button" onClick={() => { setShowMenu(false); setShowReport(true) }}>Report</button>
             <button type="button" className={iBlockedThem ? '' : 'danger'} onClick={toggleBlock}>{iBlockedThem ? 'Unblock' : 'Block'}</button>
@@ -502,7 +504,22 @@ export default function ChatPage() {
   )
 
   const chatList = (
-    <ChatList items={list} onSelect={openChat} roundsPath={roundsPath} loading={!threadsLoaded} />
+    <ChatList
+      items={list}
+      onSelect={openChat}
+      roundsPath={roundsPath}
+      loading={!threadsLoaded}
+      top={
+        <button type="button" className="dm-randomcall" onClick={() => nav('/dashboard/random-call')}>
+          <span className="dm-randomcall-icon" aria-hidden="true"><PhoneIcon /></span>
+          <span className="dm-randomcall-text">
+            <strong>Random call</strong>
+            <small>Talk to someone new on a quick voice call</small>
+          </span>
+          <svg className="dm-randomcall-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+        </button>
+      }
+    />
   )
 
   // Phones: the conversation is its own full screen

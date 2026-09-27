@@ -17,7 +17,7 @@ export default function JoinButton({ label = 'Join DateU — it’s free', class
         setBusy(true)
         try {
           const isNew = await login()
-          nav(isNew ? '/setup/profile' : '/dashboard')
+          nav(isNew ? '/setup/profile' : '/dashboard', { replace: true })
         } catch { } finally { setBusy(false) }
       }}
     >

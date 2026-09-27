@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../state/AuthContext'
+import { isPushedRoute } from '../config/appRoutes'
 import './MobileNavbar.css'
 
 type Tab = { to: string; label: string; match: string[]; icon: JSX.Element }
@@ -13,8 +14,14 @@ const Icon = ({ d, children }: { d?: string; children?: React.ReactNode }) => (
     </svg>
 )
 
-const CallIcon = () => (
-    <Icon d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0 1 22 16.92z" />
+const EventsIcon = () => (
+    <Icon>
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+        <path d="M12 14.2l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 16.3l2-.3z" />
+    </Icon>
 )
 const HeartIcon = () => (
     <Icon d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.682 4.318 12.682a4.5 4.5 0 010-6.364z" />
@@ -70,7 +77,7 @@ export default function MobileNavbar() {
     const { user, profile } = useAuth()
     const loc = useLocation()
     // Screens opened from another screen (like native "pushed" screens) don't show the tab bar
-    const pushed = ['/dashboard/notifications', '/dashboard/edit-profile', '/dashboard/settings', '/dashboard/support-history', '/dashboard/plans', '/dashboard/premium'].includes(loc.pathname)
+    const pushed = isPushedRoute(loc.pathname)
     const inApp = loc.pathname.startsWith('/dashboard') && !!profile?.isProfileComplete && !pushed
     const unreadChats = useHasUnreadChats(user?.uid, inApp)
     const friendRequests = useHasFriendRequests(user?.uid, inApp)
@@ -82,8 +89,8 @@ export default function MobileNavbar() {
     const tabs: Tab[] = [
         { to: isMale ? '/dashboard/male/rounds' : '/dashboard/round', label: 'Dating', match: ['/dashboard/male/rounds', '/dashboard/round', '/dashboard/matches'], icon: <HeartIcon /> },
         { to: '/dashboard/friends', label: 'Friends', match: ['/dashboard/friends'], icon: <FriendsIcon /> },
-        { to: '/dashboard/random-call', label: 'Call', match: ['/dashboard/random-call'], icon: <CallIcon /> },
-        { to: '/dashboard/chat', label: 'Chat', match: ['/dashboard/chat'], icon: <ChatIcon /> },
+        { to: '/dashboard/events', label: 'Events', match: ['/dashboard/events'], icon: <EventsIcon /> },
+        { to: '/dashboard/chat', label: 'Chat', match: ['/dashboard/chat', '/dashboard/random-call'], icon: <ChatIcon /> },
         {
             to: isMale ? '/dashboard/male/profile' : '/dashboard/female/profile',
             label: 'Profile',

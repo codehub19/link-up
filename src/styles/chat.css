@@ -1227,3 +1227,68 @@
 .dm-pill-btn:disabled {
   opacity: 0.45;
 }
+
+/* Random call entry at the top of the chat list */
+.dm .dm-randomcall {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 24px);
+  margin: 4px 12px 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 65, 108, 0.25);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 65, 108, 0.16), rgba(255, 75, 43, 0.06));
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dm .dm-randomcall:active {
+  transform: scale(0.99);
+}
+
+.dm-randomcall-icon {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, #ff416c, #ff4b2b);
+  box-shadow: 0 6px 18px rgba(255, 65, 108, 0.35);
+}
+
+.dm-randomcall-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dm-randomcall-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dm-randomcall-text strong {
+  font-size: 0.98rem;
+}
+
+.dm-randomcall-text small {
+  color: var(--muted, #a6a7bb);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dm-randomcall-chev {
+  flex: 0 0 auto;
+  color: var(--muted, #a6a7bb);
+}

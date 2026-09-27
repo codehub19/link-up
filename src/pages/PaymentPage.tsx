@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom'
+import { goBackOr } from '../utils/nav'
 import { useAuth } from '../state/AuthContext'
 import {
   ensurePlans,
@@ -139,7 +140,7 @@ export default function PaymentPage() {
         referralDiscountApplied: isReferral
       }, proof || undefined)
       await showAlert('Payment submitted! We will verify and activate your plan shortly.')
-      navigate(profile?.gender === 'male' ? '/dashboard/plans' : '/dashboard/premium')
+      goBackOr(navigate, profile?.gender === 'male' ? '/dashboard/plans' : '/dashboard/premium')
     } catch (e: any) {
       if (e instanceof DuplicateUtrError) {
         await showAlert('This transaction ID has already been submitted. If you paid again, enter the new payment’s ID — or contact support@dateu.in.')

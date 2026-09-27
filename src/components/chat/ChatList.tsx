@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export type ChatListItem = {
@@ -39,11 +39,14 @@ export default function ChatList({
   onSelect,
   roundsPath,
   loading,
+  top,
 }: {
   items: ChatListItem[]
   onSelect: (peerUid: string) => void
   roundsPath: string
   loading?: boolean
+  /** Shown above the conversations (e.g. the random-call entry) */
+  top?: React.ReactNode
 }) {
   const [q, setQ] = useState('')
   const shown = useMemo(() => {
@@ -69,6 +72,8 @@ export default function ChatList({
           </label>
         )}
       </div>
+
+      {top}
 
       {items.length === 0 ? (
         loading ? null : (

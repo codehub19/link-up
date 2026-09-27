@@ -29,8 +29,8 @@ export default function Hero() {
                 onClick={async () => {
                   const isNew = await login();
                   if (typeof isNew === 'boolean') {
-                    if (isNew) navigate("/setup/profile");
-                    else navigate("/dashboard");
+                    if (isNew) navigate("/setup/profile", { replace: true });
+                    else navigate("/dashboard", { replace: true });
                   }
                 }}
                 className="btn-modern btn-glow"

@@ -20,6 +20,9 @@ onMessage(messaging, (payload) => {
   const body = payload.notification?.body || payload.data?.body;
   const icon = payload.notification?.icon || "/icons/icon-192.png";
 
+  // Calls ring on the in-app call screen instead
+  if (/is calling you/.test(title)) return;
+
   if (Notification.permission === "granted") {
     new Notification(title, {
       body: body,

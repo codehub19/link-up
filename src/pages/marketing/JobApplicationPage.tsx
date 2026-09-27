@@ -39,7 +39,7 @@ export default function JobApplicationPage() {
             });
             setSuccess(true);
             setTimeout(() => {
-                navigate('/careers');
+                navigate('/careers', { replace: true });
             }, 3000); // Redirect after 3 seconds
         } catch (error) {
             console.error("Error submitting application", error);

@@ -159,7 +159,7 @@ export default function SettingsPage() {
       await requestAccountDeletion(user.uid, finalReason)
       await showAlert('Your request has been submitted. Your account will be permanently deleted within 30 days. You will be logged out now.')
       await logout()
-      nav('/')
+      nav('/', { replace: true })
     } catch (e) {
       console.error(e)
       showAlert('Failed to submit deletion request.')
@@ -282,7 +282,7 @@ export default function SettingsPage() {
   const handleLogout = async () => {
     if (await showConfirm('Are you sure you want to log out?')) {
       await logout()
-      nav('/')
+      nav('/', { replace: true })
     }
   }
 

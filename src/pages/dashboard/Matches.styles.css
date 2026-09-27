@@ -89,6 +89,9 @@
 
 /* --- Card Actions --- */
 .match-card-action-btn {
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
     display: inline-flex;
     align-items: center;
     justify-content: center;

@@ -5,7 +5,8 @@ import Protected from './components/Protected'
 import SetupGuard from './components/SetupGuard'
 import { useAuth } from './state/AuthContext'
 import AdminGuard from './pages/admin/AdminGuard'
-import IncomingCall from './components/IncomingCall'
+import { CallProvider } from './state/CallContext'
+import CallScreen from './components/call/CallScreen'
 import AppStatus from './components/AppStatus'
 import AppShell from './components/AppShell'
 
@@ -95,8 +96,9 @@ export default function App() {
   return (
     <Suspense fallback={null}>
       <AppStatus>
+      <CallProvider>
       <AppShell>
-      {user && <IncomingCall />}
+      {user && <CallScreen />}
       <Routes>
         <Route element={<AnimatedRoutesLayout />}>
           <Route path="/" element={<Home />} />
@@ -332,6 +334,7 @@ export default function App() {
         </Route>
       </Routes>
       </AppShell>
+      </CallProvider>
       </AppStatus>
     </Suspense>
   )

@@ -4,6 +4,7 @@ import { isDesktopDevice, isStandalone } from '../utils/pwa'
 import { InstallSheet, OfflineBanner } from './AppExtras'
 import MobileNavbar from './MobileNavbar'
 import { useAuth } from '../state/AuthContext'
+import { isPushedRoute } from '../config/appRoutes'
 import './AppShell.css'
 
 // The logged-in app is built for phones and tablets. The website (home, pricing,
@@ -33,7 +34,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     root.classList.toggle('app-mode', isAppRoute)
     root.classList.toggle('standalone', standalone)
     // No bottom tab bar on pushed screens (see MobileNavbar)
-    root.classList.toggle('no-tabbar', ['/dashboard/notifications', '/dashboard/edit-profile', '/dashboard/settings', '/dashboard/support-history', '/dashboard/plans', '/dashboard/premium'].includes(pathname) || !pathname.startsWith('/dashboard'))
+    root.classList.toggle('no-tabbar', isPushedRoute(pathname) || !pathname.startsWith('/dashboard'))
     // Signed-in app screens and the admin panel shouldn't appear in search results
     const privatePage = isAppRoute || pathname.startsWith('/admin')
     let robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]')

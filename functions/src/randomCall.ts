@@ -386,7 +386,7 @@ export const startMatchCall = onCall({ region: REGION }, async (req) => {
   })
 
   const callerName = String(meSnap.data()?.name || 'Your match').split(' ')[0]
-  await sendPushToUsers([peerUid], `📞 ${callerName} is calling you`, 'Open DateU to answer', `/dashboard/random-call?call=${callRef.id}`)
+  await sendPushToUsers([peerUid], `📞 ${callerName} is calling you`, 'Open DateU to answer', '/dashboard/chat')
     .catch((e) => logger.warn('match call push failed', e))
 
   return { callId: callRef.id, maxCallSeconds: cfg.matchCallMaxSeconds }

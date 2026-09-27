@@ -12,6 +12,7 @@ import HomeBackground from '../../components/home/HomeBackground'
 import './dashboard.css'
 import './Matches.styles.css'
 import EmptyState from '../../components/ui/EmptyState'
+import { useCall } from '../../state/CallContext'
 
 type Match = {
   id: string
@@ -36,6 +37,7 @@ type UserDoc = {
 
 export default function MatchesPage() {
   const { user, profile } = useAuth()
+  const { callPerson } = useCall()
   const [matches, setMatches] = useState<Match[]>([])
   const [users, setUsers] = useState<Record<string, UserDoc>>({})
 
@@ -123,9 +125,9 @@ export default function MatchesPage() {
                         <Link className="match-card-action-btn" to={`/dashboard/chat?with=${encodeURIComponent(u.uid)}`}>
                           Start Chat
                         </Link>
-                        <Link className="match-card-action-btn match-card-action-secondary" to={`/dashboard/random-call?with=${encodeURIComponent(u.uid)}`}>
+                        <button type="button" className="match-card-action-btn match-card-action-secondary" onClick={() => callPerson(u.uid, { name: u.name, photoUrl: u.photoUrl })}>
                           📞 Call
-                        </Link>
+                        </button>
                       </div>
                     }
                   />
