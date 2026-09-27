@@ -4,6 +4,7 @@ import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
 import EditCollegeId from './EditCollegeId'
 import { useAuth } from '../../state/AuthContext'
+import { isDatingReady } from '../../firebase'
 import { formatHeight, labelFor } from '../../utils/profileLabels'
 import './dashboard.css'
 import './male/Profile.styles.css'
@@ -40,16 +41,18 @@ export default function ProfileTab({ referral }: { referral?: React.ReactNode })
   const age = ageFrom(p.dob)
   const photos: string[] = (p.photoUrls?.length ? p.photoUrls : p.photoUrl ? [p.photoUrl] : []).filter(Boolean)
 
+  const dating = isDatingReady(p)
+  const checks = dating ? 4 : 3
   // What's missing, so we can nudge people to finish their profile
   const missing = useMemo(() => {
     const m: string[] = []
     if (photos.length < 2) m.push('add at least 2 photos')
     if (!p.bio) m.push('write a short bio')
     if (!p.interests?.length) m.push('pick your interests')
-    if (!p.height) m.push('add your height')
+    if (dating && !p.height) m.push('add your height')
     return m
-  }, [photos.length, p.bio, p.interests, p.height])
-  const completion = Math.round(((4 - missing.length) / 4) * 100)
+  }, [photos.length, p.bio, p.interests, p.height, dating])
+  const completion = Math.round(((checks - missing.length) / checks) * 100)
 
   const premiumUntil = toMs(p.premiumUntil)
   const premiumActive = premiumUntil > Date.now()
@@ -168,20 +171,38 @@ export default function ProfileTab({ referral }: { referral?: React.ReactNode })
           {!!p.interests?.length && (
             <div className="pt-tags">{p.interests.map((i: string) => <span key={i}>{i}</span>)}</div>
           )}
-          <dl className="pt-facts">
-            <div><dt>Height</dt><dd>{formatHeight(p.height) || '—'}</dd></div>
-            <div><dt>Looking for</dt><dd>{labelFor('lookingFor', p.lookingFor) || '—'}</dd></div>
-            <div><dt>Open to</dt><dd>{p.datingPreference === 'college_only' ? 'College students' : 'Everyone'}</dd></div>
-            {p.loveLanguage && <div><dt>Love language</dt><dd>{labelFor('loveLanguage', p.loveLanguage)}</dd></div>}
-          </dl>
+          {dating && (
+            <dl className="pt-facts">
+              <div><dt>Height</dt><dd>{formatHeight(p.height) || '—'}</dd></div>
+              <div><dt>Looking for</dt><dd>{labelFor('lookingFor', p.lookingFor) || '—'}</dd></div>
+              <div><dt>Open to</dt><dd>{p.datingPreference === 'college_only' ? 'College students' : 'Everyone'}</dd></div>
+              {p.loveLanguage && <div><dt>Love language</dt><dd>{labelFor('loveLanguage', p.loveLanguage)}</dd></div>}
+            </dl>
+          )}
         </section>
 
         {referral}
 
         <div className="pt-list">
-          <button type="button" className="pt-row" onClick={() => nav('/dashboard/matches')}>
-            <span className="pt-row-icon"><Icon><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" /></Icon></span>
-            <span className="pt-row-body"><span className="pt-row-title">My matches</span></span>
+          {dating ? (
+            <button type="button" className="pt-row" onClick={() => nav('/dashboard/matches')}>
+              <span className="pt-row-icon"><Icon><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" /></Icon></span>
+              <span className="pt-row-body"><span className="pt-row-title">My matches</span></span>
+              <Chevron />
+            </button>
+          ) : (
+            <button type="button" className="pt-row" onClick={() => nav('/dashboard/dating-profile')}>
+              <span className="pt-row-icon"><Icon><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" /></Icon></span>
+              <span className="pt-row-body">
+                <span className="pt-row-title">Try dating</span>
+                <span className="pt-row-sub">Optional — add a few details to join matching rounds</span>
+              </span>
+              <Chevron />
+            </button>
+          )}
+          <button type="button" className="pt-row" onClick={() => nav('/dashboard/events')}>
+            <span className="pt-row-icon"><Icon><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></Icon></span>
+            <span className="pt-row-body"><span className="pt-row-title">My events</span></span>
             <Chevron />
           </button>
           {isStudent && (

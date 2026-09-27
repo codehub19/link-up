@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
 import { useAuth } from '../../state/AuthContext'
@@ -10,27 +11,14 @@ import Gender from './Gender'
 import Details from './Details'
 import Referral from './Referral'
 import Interests from './Interests'
-import Preferences from './Preferences'
-import Questions1 from './Questions1'
-import Questions2 from './Questions2'
 import Bio from './Bio'
 import Photos from './Photos'
 
-import RelationshipGoals from './RelationshipGoals'
-import DealBreakers from './DealBreakers'
-import LookingFor from './LookingFor'
-import Height from './Height'
+// Sign-up asks only what everyone needs (friends, events, chat, calls).
+// Dating details are asked in the Dating tab when someone wants to try it.
+type StepId = 'terms' | 'gender' | 'details' | 'referral' | 'interests' | 'bio' | 'photos' | 'done'
 
-type StepId =
-  | 'terms' | 'gender' | 'details' | 'referral' | 'looking-for' | 'height' | 'interests' | 'preferences'
-  | 'relationship-goals' | 'deal-breakers'
-  | 'q1' | 'q2' | 'bio' | 'photos' | 'done'
-
-const ORDER: StepId[] = [
-  'terms', 'gender', 'details', 'referral', 'looking-for', 'height', 'interests', 'preferences',
-  'relationship-goals', 'deal-breakers',
-  'q1', 'q2', 'bio', 'photos', 'done'
-]
+const ORDER: StepId[] = ['terms', 'gender', 'details', 'referral', 'interests', 'bio', 'photos', 'done']
 
 function derive(raw: any | null): StepId {
   const p = normalizeProfile(raw)
@@ -41,22 +29,7 @@ function derive(raw: any | null): StepId {
   const isCollege = !p.userType || p.userType === 'college'
   if (!p.name || (isCollege && !p.college) || !p.dob || !s.profile) return 'details'
   if (!s.referral) return 'referral'
-
-  // New Steps
-  if (!p.datingPreference || !s.lookingFor) return 'looking-for'
-  if (!p.height || !s.height) return 'height'
-
   if (!p.interests?.length || !s.interests) return 'interests'
-
-  // Preferences
-  if ((p.ageRangeMin === undefined) || !s.preferences) return 'preferences'
-  // New Steps
-  if (!p.lookingFor || !s.relationshipGoals) return 'relationship-goals'
-  // Deal breakers can be empty, so relies on setupStatus flag
-  if (!s.dealBreakers) return 'deal-breakers'
-
-  if (!p.communicationImportance || !p.conflictApproach || !p.sundayStyle || !s.q1) return 'q1'
-  if (!p.travelPreference || !p.loveLanguage || !s.q2) return 'q2'
   if (!p.bio || !s.bio) return 'bio'
   if (!p.photoUrl || !s.photos) return 'photos'
   return 'done'
@@ -98,23 +71,16 @@ export default function ProfileWizard() {
     case 'gender': body = <Gender {...shared} />; break
     case 'details': body = <Details {...shared} />; break
     case 'referral': body = <Referral {...shared} />; break
-    case 'looking-for': body = <LookingFor {...shared} />; break
-    case 'height': body = <Height {...shared} />; break
     case 'interests': body = <Interests {...shared} />; break
-    case 'preferences': body = <Preferences {...shared} />; break
-    case 'relationship-goals': body = <RelationshipGoals {...shared} />; break
-    case 'deal-breakers': body = <DealBreakers {...shared} />; break
-    case 'q1': body = <Questions1 {...shared} />; break
-    case 'q2': body = <Questions2 {...shared} />; break
     case 'bio': body = <Bio {...shared} />; break
     case 'photos': body = <Photos {...shared} />; break
     case 'done':
       body = (
         <section className="setup-card">
-          <h1 className="setup-title">All Set 🎉</h1>
-          <p className="setup-sub">Your profile is complete. Head to the dashboard.</p>
+          <h1 className="setup-title">You’re in 🎉</h1>
+          <p className="setup-sub">Your profile is ready. Make friends, join events and chat — and try dating whenever you like.</p>
           <div className="setup-card-footer">
-            <a className="btn-primary-lg" href="/dashboard">Go to Dashboard</a>
+            <Link className="btn-primary-lg" to="/dashboard" replace>Let’s go</Link>
           </div>
         </section>
       )

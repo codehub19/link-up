@@ -1,6 +1,8 @@
 import Navbar from '../../../components/Navbar'
 import FemaleTabs from '../../../components/FemaleTabs'
 import { useAuth } from '../../../state/AuthContext'
+import { isDatingReady } from '../../../firebase'
+import DatingIntro from '../../../components/dating/DatingIntro'
 import { useEffect, useState } from 'react'
 import { getActiveRound } from '../../../services/rounds'
 import { getBoysWhoLikedGirl } from '../../../services/likes'
@@ -181,6 +183,9 @@ export default function MatchingRound() {
   const handleCarouselChange = () => {
     setExpandedIdx(null); // Always close expanded profile on carousel change
   };
+
+  // Dating is opt-in: until it's set up, the Dating tab explains it
+  if (!isDatingReady(profile)) return <DatingIntro />
 
   if (roundId === null) {
     return (

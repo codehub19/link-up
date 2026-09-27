@@ -66,6 +66,7 @@ const SupportHistory = lazy(() => import('./pages/dashboard/SupportHistory'))
 const JobApplications = lazy(() => import('./pages/admin/JobApplications'))
 const RandomCall = lazy(() => import('./pages/dashboard/RandomCall'))
 const PremiumPage = lazy(() => import('./pages/dashboard/Premium'))
+const DatingSetup = lazy(() => import('./pages/dashboard/DatingSetup'))
 const ReportsAdmin = lazy(() => import('./pages/admin/ReportsAdmin'))
 const UsersAdmin = lazy(() => import('./pages/admin/UsersAdmin'))
 const UserDetailAdmin = lazy(() => import('./pages/admin/UserDetailAdmin'))
@@ -231,6 +232,15 @@ export default function App() {
             element={
               <Protected>
                 <RandomCall />
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/dashboard/dating-profile"
+            element={
+              <Protected>
+                <DatingSetup />
               </Protected>
             }
           />

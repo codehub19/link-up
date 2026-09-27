@@ -3,7 +3,7 @@ import {
   getDoc, updateDoc, Timestamp, addDoc
 } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
-import { db } from '../firebase'
+import { db, isDatingReady } from '../firebase'
 import { isSubscriptionActive } from './subscriptions'
 
 /** Premium doesn't guarantee matches; it gives priority. Premium men get this many times more suggestions. */
@@ -191,7 +191,7 @@ export async function syncApprovedMalesToActiveRound() {
     const us = await getDoc(doc(db, 'users', uid))
     if (!us.exists()) continue
     const u = us.data() as any
-    if (u.gender === 'male' && u.isProfileComplete === true && !u.banned) maleUids.push(uid)
+    if (u.gender === 'male' && isDatingReady(u) && !u.banned) maleUids.push(uid)
   }
 
   const roundRef = doc(db, 'matchingRounds', active.id)
@@ -399,7 +399,7 @@ export async function smartAutoMatchBoys(roundId: string, countPerUser: number =
   // Pre-filter: Must be valid profiles
   const allGirls = snapGirls.docs
     .map(d => ({ uid: d.id, ...d.data() } as any))
-    .filter(g => g.isProfileComplete === true) // Only complete profiles
+    .filter(g => isDatingReady(g) && !g.banned) // Only people who turned on dating
 
   const assignedMap = roundData.assignedGirlsToBoys || {}
   let changes = 0

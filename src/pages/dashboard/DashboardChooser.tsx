@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../state/AuthContext'
+import { isDatingReady } from '../../firebase'
 import { useEffect, useState } from 'react'
 
 export default function DashboardChooser() {
@@ -21,6 +22,9 @@ export default function DashboardChooser() {
         return setDest('/setup/profile')
       }
 
+      // Dating is optional: people who haven't turned it on start in Friends
+      if (!isDatingReady(profile)) return setDest('/dashboard/friends')
+
       if (profile.gender === 'male') {
         if (!user) return setDest('/setup/gender')
         // Rounds are free for everyone, so men land on the round like women do
@@ -34,7 +38,7 @@ export default function DashboardChooser() {
       }
     }
     run()
-  }, [user?.uid, profile?.gender, profile?.isProfileComplete, loading])
+  }, [user?.uid, profile?.gender, profile?.isProfileComplete, profile?.datingProfileComplete, profile?.datingEnabled, loading])
 
   if (loading || dest === null) return null
   return <Navigate to={dest} replace />

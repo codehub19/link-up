@@ -1,0 +1,133 @@
+.di-wrap {
+  max-width: 440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 8px 4px 24px;
+}
+
+.di-hero {
+  width: 96px;
+  height: 96px;
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 65, 108, 0.25), rgba(255, 75, 43, 0.12));
+  border: 1px solid rgba(255, 65, 108, 0.3);
+  box-shadow: 0 16px 40px rgba(255, 65, 108, 0.2);
+  margin-bottom: 4px;
+}
+
+.di-heart {
+  font-size: 48px;
+  animation: di-beat 2.4s ease-in-out infinite;
+}
+
+@keyframes di-beat {
+  0%, 60%, 100% { transform: scale(1); }
+  70% { transform: scale(1.12); }
+  80% { transform: scale(1); }
+  90% { transform: scale(1.08); }
+}
+
+.di-title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.di-sub {
+  margin: 0;
+  color: var(--muted, #a6a7bb);
+  line-height: 1.5;
+  font-size: 0.98rem;
+}
+
+.di-steps {
+  list-style: none;
+  margin: 8px 0 4px;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.di-steps li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.di-step-icon {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 1.2rem;
+}
+
+.di-steps strong {
+  display: block;
+  font-size: 0.98rem;
+  margin-bottom: 2px;
+}
+
+.di-steps small {
+  display: block;
+  color: var(--muted, #a6a7bb);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.di-btn {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff416c, #ff4b2b);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(255, 65, 108, 0.35);
+  margin-top: 6px;
+}
+
+.di-btn:active {
+  transform: scale(0.98);
+}
+
+.di-link {
+  border: 0;
+  background: none;
+  color: #ff7a93;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.di-note {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.8rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .di-heart { animation: none; }
+}

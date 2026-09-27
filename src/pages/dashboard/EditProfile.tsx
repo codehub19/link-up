@@ -3,7 +3,7 @@ import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
 import { useAuth } from '../../state/AuthContext'
 import { doc, updateDoc } from 'firebase/firestore'
-import { db, uploadProfilePhoto } from '../../firebase'
+import { db, uploadProfilePhoto, isDatingReady } from '../../firebase'
 import { toast } from 'sonner'
 import InterestsSelect from '../../components/InterestsSelect'
 import CollegeSelect from '../../components/CollegeSelect'
@@ -54,6 +54,7 @@ export default function EditProfile() {
   const { loading, user, profile, refreshProfile } = useAuth()
   const nav = useNavigate()
   // Profile field states
+  const dating = isDatingReady(profile)
   const [name, setName] = useState(profile?.name ?? '')
   const [bio, setBio] = useState(profile?.bio ?? '')
   const [interests, setInterests] = useState<string[]>(profile?.interests ?? [])
@@ -177,15 +178,18 @@ export default function EditProfile() {
         interests,
         photoUrl: filteredUrls[0], // first photo as main
         photoUrls: filteredUrls,
-        height,
         college,
-        // Only students can limit matches to other students
-        ...(profile?.userType !== 'general' ? { datingPreference: collegeOnly ? 'college_only' : 'open_to_all' } : {}),
-        loveLanguage,
-        travelPreference,
-        sundayStyle,
-        communicationImportance,
-        conflictApproach,
+        // Dating details are only edited here once dating is set up
+        ...(dating ? {
+          height,
+          // Only students can limit matches to other students
+          ...(profile?.userType !== 'general' ? { datingPreference: collegeOnly ? 'college_only' : 'open_to_all' } : {}),
+          loveLanguage,
+          travelPreference,
+          sundayStyle,
+          communicationImportance,
+          conflictApproach,
+        } : {}),
       })
       await refreshProfile()
       toast.success('Profile updated')
@@ -292,22 +296,24 @@ export default function EditProfile() {
                 </div>
 
                 <div className="edit-section-title">Details</div>
-                <div className="field">
-                  <span className="field-label">Height</span>
-                  <div className="range-slider-container" style={{ padding: '0 0.5rem' }}>
-                    <HeightSlider
-                      value={height}
-                      onChange={setHeight}
-                    />
+                {dating && (
+                  <div className="field">
+                    <span className="field-label">Height</span>
+                    <div className="range-slider-container" style={{ padding: '0 0.5rem' }}>
+                      <HeightSlider
+                        value={height}
+                        onChange={setHeight}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <label className="field">
                   <span className="field-label">College</span>
                   <CollegeSelect value={college} onChange={setCollege} placeholder="Search your college" />
                 </label>
 
-                {profile?.userType !== 'general' && (
+                {dating && profile?.userType !== 'general' && (
                   <div className="field">
                     <span className="field-label">Who would you like to meet?</span>
                     <div className="edit-segment" role="radiogroup">
@@ -317,12 +323,16 @@ export default function EditProfile() {
                   </div>
                 )}
 
-                <div className="edit-section-title">Personality & Preferences</div>
-                {radioGroup('Communication Importance', communicationImportance, setCommunicationImportance, COM, 'com')}
-                {radioGroup('Conflict Style', conflictApproach, setConflictApproach, CONFLICT, 'conflict')}
-                {radioGroup('Ideal Sunday', sundayStyle, setSundayStyle, SUNDAY, 'sunday')}
-                {radioGroup('Travel Preference', travelPreference, setTravelPreference, TRAVEL, 'travel')}
-                {radioGroup('Love Language', loveLanguage, setLoveLanguage, LOVE, 'love')}
+                {dating && (
+                  <>
+                    <div className="edit-section-title">Personality & Preferences</div>
+                    {radioGroup('Communication Importance', communicationImportance, setCommunicationImportance, COM, 'com')}
+                    {radioGroup('Conflict Style', conflictApproach, setConflictApproach, CONFLICT, 'conflict')}
+                    {radioGroup('Ideal Sunday', sundayStyle, setSundayStyle, SUNDAY, 'sunday')}
+                    {radioGroup('Travel Preference', travelPreference, setTravelPreference, TRAVEL, 'travel')}
+                    {radioGroup('Love Language', loveLanguage, setLoveLanguage, LOVE, 'love')}
+                  </>
+                )}
               </div>
 
               <div className="edit-actions">

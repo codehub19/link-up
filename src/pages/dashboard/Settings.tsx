@@ -3,7 +3,7 @@ import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
 import { useAuth } from '../../state/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { updateProfileAndStatus, requestAccountDeletion, db, getDoc, doc, updateDoc, arrayRemove, getPrivateProfile } from '../../firebase'
+import { updateProfileAndStatus, requestAccountDeletion, db, getDoc, doc, updateDoc, arrayRemove, getPrivateProfile, hasDatingDetails } from '../../firebase'
 import './dashboard.css'
 import './Settings.styles.css'
 import LoadingSpinner from '../../components/LoadingSpinner'
@@ -176,6 +176,8 @@ export default function SettingsPage() {
   const premiumActive = premiumUntilMs > Date.now()
   const premiumPath = profile?.gender === 'male' ? '/dashboard/plans' : '/dashboard/premium'
 
+  const datingSetUp = !!profile?.datingProfileComplete || hasDatingDetails(profile)
+
   const sections: Section[] = [
     {
       title: 'Account',
@@ -195,16 +197,31 @@ export default function SettingsPage() {
         },
       ]
     },
-    {
-      title: 'Discovery',
+    datingSetUp ? {
+      title: 'Dating',
       items: [
         {
+          label: 'Show me in dating rounds',
+          type: 'toggle' as const,
+          checked: profile?.datingEnabled !== false,
+          action: async () => {
+            if (!user) return
+            await updateProfileAndStatus(user.uid, { datingEnabled: profile?.datingEnabled === false })
+            await refreshProfile()
+          }
+        },
+        {
           label: 'Age Range',
-          type: 'slider',
+          type: 'slider' as const,
           value: `${ageRange[0]} - ${ageRange[1]}`,
           range: ageRange, // Custom handling in UI
           min: 18, max: 60
         },
+      ]
+    } : {
+      title: 'Dating',
+      items: [
+        { label: 'Set up dating', value: 'Off', action: () => nav('/dashboard/dating-profile') },
       ]
     },
     ...(profile?.userType !== 'general' ? [{

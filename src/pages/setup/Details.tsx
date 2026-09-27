@@ -24,10 +24,9 @@ export default function Details({ embedded, onComplete }: Props) {
   const [userType, setUserType] = useState<'college' | 'general'>(
     profile?.userType || 'college'
   )
-  const [datingPreference, setDatingPreference] = useState<'college_only' | 'open_to_all'>(
-    // Older profiles may hold men/women/everyone here; treat anything else as the default
+  // Who to date is asked later, when someone turns on dating (see the Dating tab)
+  const datingPreference: 'college_only' | 'open_to_all' =
     profile?.datingPreference === 'open_to_all' ? 'open_to_all' : 'college_only'
-  )
 
   const [saving, setSaving] = useState(false)
 
@@ -139,34 +138,6 @@ export default function Details({ embedded, onComplete }: Props) {
                 <span className="field-label">College</span>
                 <CollegeSelect value={college} onChange={setCollege} placeholder="Search your college" />
               </label>
-            )}
-
-            {/* Dating Preference - Only for Students */}
-            {isCollegeUser && (
-              <div className="field">
-                <span className="field-label">Who would you like to date?</span>
-                <div className="row" style={{ gap: 12 }}>
-                  <button
-                    className={`btn ${datingPreference === 'college_only' ? 'primary' : 'ghost'}`}
-                    style={{ flex: 1, fontSize: 13 }}
-                    onClick={() => setDatingPreference('college_only')}
-                  >
-                    College Students Only
-                  </button>
-                  <button
-                    className={`btn ${datingPreference === 'open_to_all' ? 'primary' : 'ghost'}`}
-                    style={{ flex: 1, fontSize: 13 }}
-                    onClick={() => setDatingPreference('open_to_all')}
-                  >
-                    Open to Everyone
-                  </button>
-                </div>
-                <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
-                  {datingPreference === 'college_only'
-                    ? "You will only be matched with other verified college students."
-                    : "You may be matched with students or working professionals."}
-                </p>
-              </div>
             )}
 
             <label className="field">

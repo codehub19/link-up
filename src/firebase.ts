@@ -152,6 +152,8 @@ export type UserProfile = {
     completedAt?: any
   }
   isProfileComplete?: boolean
+  /** Finished the dating details in the Dating tab */
+  datingProfileComplete?: boolean
   isAdmin?: boolean
   createdAt?: any
   updatedAt?: any
@@ -263,7 +265,8 @@ export function computeIsProfileComplete(p?: UserProfile | null): boolean {
   if (!p) return false
   const s = p.setupStatus || {}
 
-  // Common checks
+  // Basics everyone fills in at sign-up. Dating details are asked separately,
+  // when someone turns on dating (see isDatingReady).
   const basic = !!(
     p.acceptedTermsAt &&
     p.acceptedTermsVersion &&
@@ -272,16 +275,9 @@ export function computeIsProfileComplete(p?: UserProfile | null): boolean {
     p.dob &&
     s.profile &&
     p.interests?.length &&
-    p.communicationImportance &&
-    p.conflictApproach &&
-    p.sundayStyle &&
-    p.travelPreference &&
-    p.loveLanguage &&
     p.bio &&
     p.photoUrl &&
-    s.photos &&
-    (p.ageRangeMin !== undefined) &&
-    (p.distancePreference !== undefined)
+    s.photos
   )
 
   if (!basic) return false
@@ -293,6 +289,27 @@ export function computeIsProfileComplete(p?: UserProfile | null): boolean {
 
   // General user checks (no college required)
   return true
+}
+
+/** Everything the dating rounds need (asked in the Dating tab, not at sign-up). */
+export function hasDatingDetails(p?: UserProfile | null): boolean {
+  if (!p) return false
+  // The fields the old all-in-one sign-up required, so existing members stay in the rounds
+  return !!(
+    p.ageRangeMin !== undefined &&
+    p.communicationImportance &&
+    p.conflictApproach &&
+    p.sundayStyle &&
+    p.travelPreference &&
+    p.loveLanguage
+  )
+}
+
+/** Has turned on dating: can join rounds and be matched. */
+export function isDatingReady(p?: any): boolean {
+  if (!p || p.isProfileComplete !== true) return false
+  if (p.datingEnabled === false) return false
+  return p.datingProfileComplete === true || hasDatingDetails(p)
 }
 
 export function nextSetupRoute(p?: UserProfile | null): string | null {
