@@ -67,6 +67,9 @@ const JobApplications = lazy(() => import('./pages/admin/JobApplications'))
 const RandomCall = lazy(() => import('./pages/dashboard/RandomCall'))
 const PremiumPage = lazy(() => import('./pages/dashboard/Premium'))
 const DatingSetup = lazy(() => import('./pages/dashboard/DatingSetup'))
+const EventsPage = lazy(() => import('./pages/dashboard/events/Events'))
+const EventDetail = lazy(() => import('./pages/dashboard/events/EventDetail'))
+const EventsAdmin = lazy(() => import('./pages/admin/EventsAdmin'))
 const ReportsAdmin = lazy(() => import('./pages/admin/ReportsAdmin'))
 const UsersAdmin = lazy(() => import('./pages/admin/UsersAdmin'))
 const UserDetailAdmin = lazy(() => import('./pages/admin/UserDetailAdmin'))
@@ -236,6 +239,9 @@ export default function App() {
             }
           />
 
+          <Route path="/dashboard/events" element={<Protected><EventsPage /></Protected>} />
+          <Route path="/dashboard/events/:id" element={<Protected><EventDetail /></Protected>} />
+
           <Route
             path="/dashboard/dating-profile"
             element={
@@ -335,6 +341,7 @@ export default function App() {
             <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
             <Route path="/admin/controls" element={<ControlsAdmin />} />
             <Route path="/admin/calls" element={<CallsAdmin />} />
+            <Route path="/admin/events" element={<EventsAdmin />} />
             <Route path="/admin/subscriptions" element={<SubscriptionsAdmin />} />
             <Route path="/admin/audit" element={<AuditLogAdmin />} />
           </Route>

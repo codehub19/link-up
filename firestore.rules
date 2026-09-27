@@ -486,6 +486,69 @@ service cloud.firestore {
       }
     }
 
+    // Events (fests, find-a-buddy nights, meetups). Admins create them; members register.
+    // attendeeCount moves by exactly one, together with the member's own attendee doc.
+    function eventDoc(eventId) {
+      return /databases/$(database)/documents/events/$(eventId);
+    }
+    function attendeeDoc(eventId, uid) {
+      return /databases/$(database)/documents/events/$(eventId)/attendees/$(uid);
+    }
+
+    match /events/{eventId} {
+      allow read: if request.auth != null
+                  && (resource.data.status in ['published', 'cancelled'] || isAdmin());
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendeeCount'])
+        && (
+          (request.resource.data.attendeeCount == resource.data.get('attendeeCount', 0) + 1
+            && !exists(attendeeDoc(eventId, request.auth.uid))
+            && existsAfter(attendeeDoc(eventId, request.auth.uid))
+            && (resource.data.get('capacity', 0) == 0 || request.resource.data.attendeeCount <= resource.data.capacity))
+          || (request.resource.data.attendeeCount == resource.data.get('attendeeCount', 0) - 1
+            && exists(attendeeDoc(eventId, request.auth.uid))
+            && !existsAfter(attendeeDoc(eventId, request.auth.uid)))
+        )
+      );
+
+      // Who's going: visible to people who are going too (and admins)
+      match /attendees/{uid} {
+        allow read: if request.auth != null
+                    && (request.auth.uid == uid || exists(attendeeDoc(eventId, request.auth.uid)) || isAdmin());
+        allow create: if request.auth != null
+                      && request.auth.uid == uid
+                      && !isBanned()
+                      && get(eventDoc(eventId)).data.status == 'published'
+                      && request.time < get(eventDoc(eventId)).data.endAt
+                      && getAfter(eventDoc(eventId)).data.get('attendeeCount', 0) == get(eventDoc(eventId)).data.get('attendeeCount', 0) + 1
+                      && request.resource.data.uid == uid
+                      && request.resource.data.keys().hasOnly(['uid', 'name', 'photoUrl', 'college', 'gender', 'userType', 'lookingForBuddy', 'note', 'createdAt'])
+                      && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 140));
+        allow update: if request.auth != null
+                      && request.auth.uid == uid
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lookingForBuddy', 'note', 'name', 'photoUrl', 'college'])
+                      && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 140));
+        allow delete: if isAdmin() || (
+                        request.auth != null
+                        && request.auth.uid == uid
+                        && getAfter(eventDoc(eventId)).data.get('attendeeCount', 0) == get(eventDoc(eventId)).data.get('attendeeCount', 0) - 1
+                      );
+      }
+    }
+
+    // "Host an event with DateU" requests from members and fest organisers
+    match /eventSuggestions/{id} {
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['uid', 'name', 'title', 'details', 'when', 'where', 'contact', 'createdAt', 'status'])
+                    && request.resource.data.title is string && request.resource.data.title.size() <= 120
+                    && request.resource.data.get('details', '').size() <= 1000
+                    && request.resource.data.status == 'new';
+      allow read, update, delete: if isAdmin();
+    }
+
     // Certificates
     match /certificates/{certId} {
       allow read: if true; // Public verification
