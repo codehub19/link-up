@@ -391,6 +391,8 @@ export async function updateProfileAndStatus(
       isProfileComplete: true,
       'setupStatus.completedAt': serverTimestamp(),
       updatedAt: serverTimestamp(),
+      // DateU is for making friends: students show up in Friends unless they turn it off
+      ...(prof?.userType !== 'general' && prof?.friendsVisible === undefined ? { friendsVisible: true, friendsAudience: 'all' } : {}),
     })
 
     // Send Welcome Notification
@@ -398,7 +400,7 @@ export async function updateProfileAndStatus(
       const { addDoc, collection } = await import('firebase/firestore')
       await addDoc(collection(db, 'notifications'), {
         title: "Welcome to DateU!",
-        body: "Please allow notifications and install the app for the best experience. 🔔",
+        body: "Say hi to students in Friends, check out Events, and allow notifications so you never miss a message. 🔔",
         userUid: uid,
         createdAt: serverTimestamp(),
         targetType: 'personal',
@@ -473,6 +475,8 @@ export async function finalizeIfComplete(uid: string) {
       isProfileComplete: true,
       'setupStatus.completedAt': serverTimestamp(),
       updatedAt: serverTimestamp(),
+      // DateU is for making friends: students show up in Friends unless they turn it off
+      ...(prof?.userType !== 'general' && prof?.friendsVisible === undefined ? { friendsVisible: true, friendsAudience: 'all' } : {}),
     })
 
     // Send Welcome Notification
@@ -480,7 +484,7 @@ export async function finalizeIfComplete(uid: string) {
       const { addDoc, collection } = await import('firebase/firestore')
       await addDoc(collection(db, 'notifications'), {
         title: "Welcome to DateU!",
-        body: "Please allow notifications and install the app for the best experience. 🔔",
+        body: "Say hi to students in Friends, check out Events, and allow notifications so you never miss a message. 🔔",
         userUid: uid,
         createdAt: serverTimestamp(),
         targetType: 'personal',

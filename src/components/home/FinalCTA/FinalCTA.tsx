@@ -23,17 +23,17 @@ export default function FinalCTA() {
 
       <div className="container final-cta-box">
         <div className="final-cta-text">
-          <h2>Ready to meet someone authentic?</h2>
-          <p>Join the next curated round—intentional discovery without the noise.</p>
+          <h2>Your next friend is on campus.</h2>
+          <p>Join DateU, say hi to new people and never go to a fest alone again.</p>
           <div className="heart-burst-wrap">
             <button className="btn btn-primary btn-lg heart-burst-btn" onClick={go}>
-              <span className="heart-burst-emoji">💖</span>
+              <span className="heart-burst-emoji">👋</span>
               {user ? "Enter Dashboard" : "Join Now"}
             </button>
             <div className="heart-burst">
               {[...Array(6)].map((_, i) => (
                 <span key={i} className={`heart-burst-heart heart-burst-heart${i + 1}`}>
-                  💖
+                  ✨
                 </span>
               ))}
             </div>

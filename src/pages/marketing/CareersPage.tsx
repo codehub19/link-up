@@ -22,7 +22,7 @@ export default function CareersPage() {
                         <span style={{ color: '#fb7185' }}>Connection</span>
                     </h1>
                     <p style={{ fontSize: '1.25rem', color: '#d1d5db', maxWidth: '672px', margin: '0 auto', lineHeight: '1.6' }}>
-                        We're a team of students from IIT Delhi fixing modern dating. Join us in building a platform where intention meets innovation.
+                        We're a team of students from IIT Delhi making it easy for students to meet new people. Join us in building the social app for campus life.
                     </p>
                 </div>
 

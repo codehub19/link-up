@@ -496,8 +496,8 @@ service cloud.firestore {
     }
 
     match /events/{eventId} {
-      allow read: if request.auth != null
-                  && (resource.data.status in ['published', 'cancelled'] || isAdmin());
+      // Published events are public, so shared event links work for anyone
+      allow read: if resource.data.status in ['published', 'cancelled'] || isAdmin();
       allow create, delete: if isAdmin();
       allow update: if isAdmin() || (
         request.auth != null

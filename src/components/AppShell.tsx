@@ -86,7 +86,7 @@ function AppWelcome() {
     <div className="app-welcome">
       <div className="app-welcome-top">
         <div className="app-welcome-logo">DateU</div>
-        <p>Meet people from your campus — dates, friends and real conversations.</p>
+        <p>Make new friends on campus — events, calls and real conversations.</p>
       </div>
       <div className="app-welcome-bottom">
         <button
@@ -127,7 +127,7 @@ function DesktopGate({ onAdminPreview }: { onAdminPreview?: () => void }) {
         <div>
           <h1>DateU lives on your phone</h1>
           <p>
-            The DateU app is designed for phones and tablets — rounds, calls and chat all work best in your hand.
+            The DateU app is designed for phones and tablets — friends, events, calls and chat all work best in your hand.
           </p>
           <ol>
             <li>Open <strong>{url}</strong> on your phone or tablet</li>

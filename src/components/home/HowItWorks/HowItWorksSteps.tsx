@@ -4,20 +4,20 @@ import "./HowItWorksSteps.styles.css";
 const STEPS = [
     {
         num: "01",
-        title: "Get Verified",
-        desc: "Upload your College ID. Our AI + Human review ensures only real students get in.",
+        title: "Create your profile",
+        desc: "Sign in with Google, add a photo, your college and what you’re into. Takes a minute.",
         icon: "🆔"
     },
     {
         num: "02",
-        title: "Join a Round",
-        desc: "Matches drop in limited 'Rounds'. Everyone is active at the same time.",
-        icon: "🔥"
+        title: "Meet people",
+        desc: "Say hi to students in Friends, join an event, or hop on a quick voice call.",
+        icon: "👋"
     },
     {
         num: "03",
-        title: "Real Dates",
-        desc: "Move from chat to campus meetups. We encourage getting offline.",
+        title: "Hang out",
+        desc: "Chat, make plans and meet up on campus. Try dating too, whenever you like.",
         icon: "☕"
     }
 ];

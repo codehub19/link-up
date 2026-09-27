@@ -402,7 +402,7 @@ export default function ChatPage() {
     ? <span className="dm-head-sub typing">typing…</span>
     : peerOnline
       ? <span className="dm-head-sub online">Online</span>
-      : <span className="dm-head-sub">{selectedPeer?.college || (selectedPeer?.instagramId ? `@${selectedPeer.instagramId}` : 'Tap for profile')}</span>
+      : <span className="dm-head-sub">{selectedPeer?.college || 'Tap for profile'}</span>
 
   const conversation = selectedId && (
     <div className="dm-convo">

@@ -13,9 +13,9 @@ export default function Footer() {
           <div className="footer-brand">
             <h2 className="footer-logo text-gradient">DateU</h2>
             <p className="footer-desc">
-              Dating for the modern campus.
+              Make new friends on campus.
               <br />
-              REAL connections, verified students.
+              Real people, verified students.
             </p>
             <div className="footer-socials">
               <a href="https://www.instagram.com/dateu_official_/" className="social-link" target="_blank" rel="noopener noreferrer">Instagram</a>

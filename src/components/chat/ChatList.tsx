@@ -84,10 +84,10 @@ export default function ChatList({
               </svg>
             </div>
             <h3>No chats yet</h3>
-            <p>Chats with your matches and friends show up here — match in a round, connect on a random call, or add friends.</p>
+            <p>Chats with your friends show up here. Say hi to someone in Friends, join an event, or try a random call.</p>
             <div className="dm-list-empty-actions">
-              <Link className="dm-pill-btn" to={roundsPath}>Go to Rounds</Link>
-              <Link className="dm-pill-btn ghost" to="/dashboard/friends">Find friends</Link>
+              <Link className="dm-pill-btn" to="/dashboard/friends">Find friends</Link>
+              <Link className="dm-pill-btn ghost" to="/dashboard/events">See events</Link>
             </div>
           </div>
         )

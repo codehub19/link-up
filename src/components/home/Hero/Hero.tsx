@@ -13,15 +13,15 @@ export default function Hero() {
         <div className="hero-content">
           <div className="hero-badge">
             <span className="live-dot"></span>
-            <span>Now Live at Top Universities</span>
+            <span>Made for college students</span>
           </div>
 
           <h1 className="hero-title display-text">
-            Real connections, <br />
+            Make new friends, <br />
             <span className="text-gradient">on campus.</span>
           </h1>
 
-          Date, make friends, or just talk. DateU connects verified college students through curated dating rounds, 5-minute voice calls and a students-only Friends space.
+          DateU is where students meet new people — find friends on your campus, join events and fest meetups, and talk on quick voice calls. Dating is there too, if you want it.
 
           <div className="hero-actions">
             {!user ? (
@@ -35,7 +35,7 @@ export default function Hero() {
                 }}
                 className="btn-modern btn-glow"
               >
-                Start Matching
+                Start making friends
               </button>
             ) : (
               <Link to="/dashboard" className="btn-modern btn-glow">
@@ -49,18 +49,18 @@ export default function Hero() {
 
           <div className="hero-stats">
             <div className="stat-item">
-              <strong>10k+</strong>
-              <span>Students</span>
+              <strong>👋</strong>
+              <span>Friends</span>
             </div>
             <div className="stat-sep"></div>
             <div className="stat-item">
-              <strong>92%</strong>
-              <span>Verified</span>
+              <strong>🎪</strong>
+              <span>Events</span>
             </div>
             <div className="stat-sep"></div>
             <div className="stat-item">
-              <strong>4.9</strong>
-              <span>Rating</span>
+              <strong>📞</strong>
+              <span>Voice calls</span>
             </div>
           </div>
         </div>

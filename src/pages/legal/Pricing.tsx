@@ -4,11 +4,11 @@ import { PageWrapper } from "./AppLayout";
 import { useSeo } from '../../utils/seo'
 
 export default function Pricing() {
-  useSeo({ title: 'Pricing', description: 'DateU is free to join. Matching rounds, random voice calls and chat are free for everyone; optional Premium puts you first.', path: '/pricing' })
+  useSeo({ title: 'Pricing', description: 'DateU is free to join. Friends, events, chat, random voice calls and dating rounds are free for everyone; optional Premium puts you first.', path: '/pricing' })
   return (
     <PageWrapper title="Pricing">
       <p className="text-gray-300 mb-8 leading-relaxed">
-        DateU is free to join and free to use. Matching rounds, random voice calls and chat are open to everyone.
+        DateU is free to join and free to use. Friends, events, chat, random voice calls and dating rounds are open to everyone.
         Premium is optional: it puts you first, so more people see you — it improves your chances, but it doesn't
         guarantee a match, because every match depends on both people choosing each other.
       </p>

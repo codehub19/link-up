@@ -127,8 +127,13 @@ export default function EventDetail() {
   }
 
   const share = async () => {
-    const url = `${window.location.origin}/dashboard/events/${event.id}`
-    const text = buddy ? `Find your ${buddyLabel} for ${event.title} on DateU` : `${event.title} — join me on DateU`
+    // Public link: opens for anyone, even without an account
+    const url = `${window.location.origin}/events/${event.id}`
+    const when = formatEventWhen(event)
+    const where = event.venue ? ` · ${event.venue}` : ''
+    const text = buddy
+      ? `${t.emoji} ${event.title}\n${when}${where}\n\nI’m going! Find your ${buddyLabel} and come along on DateU 👋`
+      : `${t.emoji} ${event.title}\n${when}${where}\n\nI’m going — join me on DateU and let’s go together 👋`
     try {
       if (navigator.share) await navigator.share({ title: event.title, text, url })
       else { await navigator.clipboard.writeText(url); toast.success('Link copied') }

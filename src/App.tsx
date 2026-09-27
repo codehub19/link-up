@@ -33,6 +33,8 @@ const BlogPostPage = lazy(() => import('./pages/marketing/BlogPage').then((m) =>
 const CampusIndexPage = lazy(() => import('./pages/marketing/CampusPages').then((m) => ({ default: m.CampusIndexPage })))
 const CampusPage = lazy(() => import('./pages/marketing/CampusPages').then((m) => ({ default: m.CampusPage })))
 const ContactPage = lazy(() => import('./pages/marketing/ContactPage'))
+const PublicEventsPage = lazy(() => import('./pages/marketing/PublicEvents').then((m) => ({ default: m.PublicEventsPage })))
+const PublicEventPage = lazy(() => import('./pages/marketing/PublicEvents').then((m) => ({ default: m.PublicEventPage })))
 const MaleRound = lazy(() => import('./pages/dashboard/male/MatchingRounds'))
 const RoundMatchesAdmin = lazy(() => import('./pages/admin/RoundMatchesAdmin'))
 const NotificationsPage = lazy(() => import('./pages/dashboard/Notifications'))
@@ -131,6 +133,8 @@ export default function App() {
           <Route path="/campus" element={<CampusIndexPage />} />
           <Route path="/campus/:slug" element={<CampusPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/events" element={<PublicEventsPage />} />
+          <Route path="/events/:id" element={<PublicEventPage />} />
 
           {/* Unified wizard */}
           <Route

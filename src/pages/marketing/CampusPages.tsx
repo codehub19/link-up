@@ -13,8 +13,8 @@ const ALL = campuses as Campus[]
 /** /campus — every college landing page, for people and for search engines. */
 export function CampusIndexPage() {
   useSeo({
-    title: 'College Dating in Delhi NCR',
-    description: 'Find DateU at your college — IIT Delhi, DU, JNU, DTU, NSUT, Jamia, Amity and more. Meet verified students from your campus and nearby colleges.',
+    title: 'Make Friends at College in Delhi NCR',
+    description: 'Find DateU at your college — IIT Delhi, DU, JNU, DTU, NSUT, Jamia, Amity and more. Make new friends, find event buddies and meet verified students from your campus.',
     path: '/campus',
   })
   return (
@@ -24,7 +24,7 @@ export function CampusIndexPage() {
       <main className="mk">
         <div className="mk-wrap">
           <span className="mk-eyebrow">Colleges</span>
-          <h1>Dating for <span>your campus</span></h1>
+          <h1>Friends at <span>your campus</span></h1>
           <p className="mk-lead">
             DateU is built for college students. Pick your college to see how DateU works there — or just sign up
             and choose it during setup.
@@ -46,18 +46,18 @@ export function CampusIndexPage() {
   )
 }
 
-/** /campus/:slug — "Dating at <college>" landing page. */
+/** /campus/:slug — "Make friends at <college>" landing page. */
 export function CampusPage() {
   const { slug } = useParams()
   const c = ALL.find((x) => x.slug === slug)
   const faq = c ? [
     {
       q: `Is DateU only for ${c.short} students?`,
-      a: `No. You can choose to meet only verified college students, or open up to everyone. ${c.short} students often match with students from nearby colleges in ${c.area.split(',').pop()?.trim()} too.`,
+      a: `No. You can meet students from ${c.short} and from nearby colleges in ${c.area.split(',').pop()?.trim()} — switch between “My college” and “All colleges” in Friends.`,
     },
     {
       q: 'Is DateU free?',
-      a: 'Yes. Joining, matching rounds, random voice calls and chatting with your matches are free. Premium is optional — it puts you first in rounds and gives you more calls.',
+      a: 'Yes. Friends, events, chat, voice calls and dating rounds are all free. Premium is optional — it puts you first and gives you more calls.',
     },
     {
       q: 'How do you verify students?',
@@ -70,9 +70,9 @@ export function CampusPage() {
   ] : []
 
   useSeo({
-    title: c ? `Dating at ${c.short} – Meet Verified ${c.short} Students` : 'College not found',
+    title: c ? `Make Friends at ${c.short} – Meet ${c.short} Students` : 'College not found',
     description: c
-      ? `Looking for a dating app for ${c.name} students? DateU helps you meet verified students from ${c.short} and nearby colleges through free matching rounds, 5-minute voice calls and chat.`
+      ? `New at ${c.name} or want to widen your circle? DateU helps you make friends with verified students from ${c.short} and nearby colleges — find study buddies, event partners and people to hang out with.`
       : undefined,
     path: c ? `/campus/${c.slug}` : undefined,
     noindex: !c,
@@ -110,31 +110,31 @@ export function CampusPage() {
             <Link to="/">Home</Link> › <Link to="/campus">Colleges</Link> › {c.short}
           </nav>
           <span className="mk-eyebrow">{c.area}</span>
-          <h1>Dating at <span>{c.short}</span></h1>
+          <h1>Make friends at <span>{c.short}</span></h1>
           <p className="mk-lead">
-            Meet genuine, verified students from {c.name} and nearby colleges. No endless swiping — DateU gives you a
-            few curated profiles each round, quick voice calls with new people, and a chat when it’s mutual.
+            Meet genuine, verified students from {c.name} and nearby colleges. Find people who share your interests,
+            go to fests and events together, and talk on quick voice calls. Dating is there too, if you want it.
           </p>
           <div className="mk-cta-row">
             <JoinButton label={`Join DateU at ${c.short}`} />
-            <Link to="/rounds" className="mk-btn ghost">How it works</Link>
+            <Link to="/#how-it-works" className="mk-btn ghost">How it works</Link>
           </div>
 
           <div className="mk-grid">
             <div className="mk-card">
               <div className="mk-card-icon">🎓</div>
               <h3>Verified students</h3>
-              <p>Upload your {c.short} ID once to get a verified badge. Choose to meet only verified college students if you like.</p>
+              <p>Upload your {c.short} ID once to get a verified badge, so people know you’re a real student.</p>
             </div>
             <div className="mk-card">
-              <div className="mk-card-icon">💞</div>
-              <h3>Curated rounds</h3>
-              <p>Each round you get a handful of compatible profiles. Like the ones you’re into — it’s a match only if they like you back.</p>
+              <div className="mk-card-icon">👋</div>
+              <h3>Friends on campus</h3>
+              <p>Browse {c.short} students who share your interests and send a friend request with a quick hello.</p>
             </div>
             <div className="mk-card">
               <div className="mk-card-icon">📞</div>
               <h3>5-minute voice calls</h3>
-              <p>Talk to someone new — no photos, no pressure. If you both tap like, you get a free 24-hour chat.</p>
+              <p>Talk to someone new — no photos, no pressure. If you both tap like, you can keep chatting.</p>
             </div>
           </div>
 
@@ -143,8 +143,8 @@ export function CampusPage() {
             <ol>
               <li><strong>Sign up with Google</strong> and pick {c.name} as your college.</li>
               <li><strong>Build your profile</strong> — a few photos, a short bio and your interests.</li>
-              <li><strong>Join the next round</strong> and like the profiles you’re curious about, or start a random voice call any time.</li>
-              <li><strong>Match and chat.</strong> Plan a coffee near {c.area.split(',')[0]} and take it from there.</li>
+              <li><strong>Say hi</strong> to {c.short} students in Friends, join an event, or start a random voice call any time.</li>
+              <li><strong>Hang out.</strong> Chat, make plans and meet up near {c.area.split(',')[0]}.</li>
             </ol>
           </div>
 
@@ -166,7 +166,7 @@ export function CampusPage() {
 
           <div className="mk-final">
             <h2>Your campus, your people.</h2>
-            <p>Join free and be part of the next round at {c.short}.</p>
+            <p>Join free and meet new people at {c.short}.</p>
             <JoinButton />
           </div>
         </div>

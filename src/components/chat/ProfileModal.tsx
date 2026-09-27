@@ -43,7 +43,6 @@ export default function ProfileModal({
             {user.collegeId?.verified && <VerifiedBadge />}
           </div>
           {user.college && <div className="dm-modal-sub">{user.college}</div>}
-          {user.instagramId && <div className="dm-modal-sub">@{user.instagramId}</div>}
         </div>
         {user.bio && <p className="dm-modal-bio">{user.bio}</p>}
         {!!user.interests?.length && (

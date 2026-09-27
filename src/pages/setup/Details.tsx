@@ -16,7 +16,6 @@ export default function Details({ embedded, onComplete }: Props) {
   // Pre-fill the name from the Google account
   const [name, setName] = useState(profile?.name || user?.displayName || '')
   const [insta, setInsta] = useState(profile?.instagramId || '')
-  const [instaTouched, setInstaTouched] = useState(false)
   const [college, setCollege] = useState(profile?.college || '')
   const [dob, setDob] = useState(profile?.dob || '')
 
@@ -33,11 +32,10 @@ export default function Details({ embedded, onComplete }: Props) {
   // Validation
   const isCollegeUser = userType === 'college'
   const validName = !!name.trim()
-  const validInsta = !!insta.trim()
   const validDob = !!dob
   const validCollege = isCollegeUser ? !!college : true
 
-  const valid = validName && validInsta && validDob && validCollege
+  const valid = validName && validDob && validCollege
 
   const save = async () => {
     if (!user || !valid) return
@@ -112,7 +110,7 @@ export default function Details({ embedded, onComplete }: Props) {
 
             <label className="field">
               <span className="field-label">
-                Instagram <span style={{ color: 'red' }}>*</span>
+                Instagram <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional · not shown on your profile)</span>
               </span>
               <div className="ig-field">
                 <span>@</span>
@@ -120,16 +118,9 @@ export default function Details({ embedded, onComplete }: Props) {
                   className="field-input"
                   value={insta.replace(/^@/, '')}
                   onChange={e => setInsta(e.target.value)}
-                  onBlur={() => setInstaTouched(true)}
                   placeholder="yourhandle"
-                  required
                 />
               </div>
-              {instaTouched && !insta.trim() && (
-                <span style={{ color: '#ff6b84', fontSize: 13 }}>
-                  Instagram handle is required
-                </span>
-              )}
             </label>
 
             {/* College Field - Only for Students */}

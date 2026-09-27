@@ -278,7 +278,7 @@ export default function EditProfile() {
                 </label>
 
                 <label className="field">
-                  <span className="field-label">Instagram</span>
+                  <span className="field-label">Instagram <small style={{ opacity: 0.6, fontWeight: 400 }}>(optional · not shown on your profile)</small></span>
                   <div className="ig-field">
                     <span>@</span>
                     <input value={insta.replace(/^@/, '')} onChange={(e) => setInsta(e.target.value)} placeholder="username" />

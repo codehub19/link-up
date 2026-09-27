@@ -189,7 +189,7 @@ export function formatEventWhen(e: AppEvent) {
 export function downloadIcs(e: AppEvent) {
   const f = (t: any) => new Date(ms(t)).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
   const esc = (s = '') => s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;')
-  const url = `${window.location.origin}/dashboard/events/${e.id}`
+  const url = `${window.location.origin}/events/${e.id}`
   const ics = [
     'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//DateU//Events//EN', 'BEGIN:VEVENT',
     `UID:${e.id}@dateu.in`, `DTSTAMP:${f(Date.now())}`, `DTSTART:${f(e.startAt)}`, `DTEND:${f(e.endAt)}`,

@@ -98,7 +98,7 @@ export default function Navbar() {
     } as Record<string, [string, string]>);
   }
   const pushed = PUSHED[loc.pathname]
-    || (loc.pathname.startsWith("/profile/") ? ["Profile", "/dashboard/matches"] as [string, string] : null)
+    || (loc.pathname.startsWith("/profile/") ? ["Profile", "/dashboard/friends"] as [string, string] : null)
     || (loc.pathname.startsWith("/dashboard/events/") ? ["Event", "/dashboard/events"] as [string, string] : null);
   const pushedTitle = pushed?.[0];
   const pushedParent = pushed?.[1] || "/dashboard";

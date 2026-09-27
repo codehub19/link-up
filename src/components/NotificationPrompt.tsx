@@ -54,7 +54,7 @@ export function NotificationPrompt() {
       <div className="notif-prompt-icon" aria-hidden="true">🔔</div>
       <div className="notif-prompt-text">
         <strong>Turn on notifications</strong>
-        <span>Know instantly when you get a match, a call or a message.</span>
+        <span>Know instantly when someone says hi, calls or messages you.</span>
       </div>
       <div className="notif-prompt-actions">
         <button className="notif-prompt-later" onClick={dismiss}>Later</button>

@@ -18,6 +18,7 @@ import {
   subscribeIncomingCalls,
   subscribeQueueEntry,
   subscribeRandomCall,
+  prefetchIceServers,
 } from '../services/randomCall'
 import { playConnected, playEnded, startRingback, startRingtone, unlockAudio } from '../utils/callSounds'
 
@@ -31,7 +32,7 @@ import { playConnected, playEnded, startRingback, startRingtone, unlockAudio } f
 export type CallPhase = 'idle' | 'incoming' | 'searching' | 'connecting' | 'in-call' | 'ended'
 export type CallPeer = { uid: string; name?: string; photoUrl?: string; college?: string; dob?: string }
 
-const CONNECT_TIMEOUT_MS = 30_000
+const CONNECT_TIMEOUT_MS = 35_000
 // Calls to a match ring on the other person's phone first, so allow longer
 const RING_TIMEOUT_MS = 45_000
 // Ignore rings older than this (e.g. the caller closed the app without hanging up)
@@ -50,6 +51,8 @@ type CallState = {
   minimized: boolean
   connectedAt: number | null
   wasConnected: boolean
+  /** Connection dropped and is being restored */
+  reconnecting: boolean
   notice: string | null
   /** Set when the server says a phone number must be verified for random calls */
   needsPhone: boolean
@@ -96,6 +99,7 @@ const INITIAL: Omit<CallState, 'needsPhone' | 'now'> = {
   minimized: false,
   connectedAt: null,
   wasConnected: false,
+  reconnecting: false,
   notice: null,
   joining: false,
 }
@@ -167,6 +171,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (c.id === cur.callId || c.id === incomingRef.current?.id) continue
         if (cur.phase === 'idle' || cur.phase === 'ended') {
           incomingRef.current = c
+          prefetchIceServers()
           set({ ...INITIAL, phase: 'incoming', callId: null, isMatchCall: true, peer: { uid: c.callerUid } })
           loadPeer(c.callerUid).then((p) => {
             if (p && incomingRef.current?.id === c.id) set({ peer: p })
@@ -203,6 +208,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       return
     }
     unlockAudio()
+    prefetchIceServers()
     incomingRef.current = null
     set({ ...INITIAL, phase: 'connecting', isMatchCall: true, outgoing: true, peer: { uid: peerUid, ...hint } })
     loadPeer(peerUid).then((p) => { if (p && stateRef.current.peer?.uid === peerUid) set({ peer: p }) })
@@ -229,6 +235,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (cur.phase !== 'idle' && cur.phase !== 'ended') { set({ minimized: false }); return }
     unlockAudio()
     incomingRef.current = null
+    prefetchIceServers()
     set({ ...INITIAL, phase: 'searching', joining: true })
     try {
       const res = await joinRandomCallQueue()
@@ -302,9 +309,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     const session = new RandomCallSession(call.id, uid, peerUid, call.callerUid === uid, (st) => {
       if (st === 'connected') {
         if (stateRef.current.phase !== 'in-call') playConnected()
-        set((p) => ({ connectedAt: p.connectedAt ?? Date.now(), wasConnected: true, phase: 'in-call' }))
+        set((p) => ({ connectedAt: p.connectedAt ?? Date.now(), wasConnected: true, reconnecting: false, phase: 'in-call' }))
+      } else if (st === 'reconnecting') {
+        set({ reconnecting: true })
       } else if (st === 'failed' && sessionRef.current === session) {
-        endSession('failed', stateRef.current.isMatchCall ? 'The connection dropped.' : "The connection dropped. Let's try someone else.")
+        const wasLive = stateRef.current.wasConnected
+        endSession('failed', wasLive
+          ? 'The connection dropped. Check your internet and call again.'
+          : 'Couldn’t connect. Your network may be blocking calls — try switching between Wi-Fi and mobile data.')
       }
     })
     sessionRef.current = session
@@ -331,10 +343,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     endSession(undefined, notice)
   }, [s.call?.status, s.call?.endReason, endSession])
 
-  // No answer / couldn't connect
+  // No answer / couldn't connect. The clock restarts once the call is answered, so a
+  // long ring doesn't eat into the time needed to connect.
+  const answered = s.call?.status === 'active'
   useEffect(() => {
     if (s.phase !== 'connecting') return
-    const match = s.isMatchCall
+    const ringing = s.isMatchCall && !answered
     const t = setTimeout(() => {
       if (stateRef.current.phase !== 'connecting') return
       if (!sessionRef.current) {
@@ -345,10 +359,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         playEnded()
         return
       }
-      endSession('no_answer', match ? 'No answer. Try again later.' : "Couldn't connect this time. Try another call.")
-    }, match ? RING_TIMEOUT_MS : CONNECT_TIMEOUT_MS)
+      endSession(ringing ? 'no_answer' : 'failed', ringing
+        ? 'No answer. Try again later.'
+        : 'Couldn’t connect. Your network may be blocking calls — try switching between Wi-Fi and mobile data.')
+    }, ringing ? RING_TIMEOUT_MS : CONNECT_TIMEOUT_MS)
     return () => clearTimeout(t)
-  }, [s.phase, s.isMatchCall, endSession, set, uid])
+  }, [s.phase, s.isMatchCall, answered, endSession, set, uid])
 
   // Clock
   useEffect(() => {

@@ -3,25 +3,25 @@ import { PageWrapper } from "./AppLayout";
 import { useSeo } from '../../utils/seo'
 
 export default function About() {
-  useSeo({ title: 'About DateU', description: 'DateU is a campus dating platform built by students at IIT Delhi to help college students meet genuine, verified people — through curated rounds, voice calls and chat.', path: '/about' })
+  useSeo({ title: 'About DateU', description: 'DateU is a social app built by students at IIT Delhi to help college students make new friends and connections — through Friends, events, voice calls and chat.', path: '/about' })
   return (
     <PageWrapper title="About Us">
       <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-        DateU is proudly built by a team of students from <strong>IIT Delhi</strong> who got tired of the same old dating apps. We wanted to change the game.
+        DateU is proudly built by a team of students from <strong>IIT Delhi</strong> who wanted meeting new people in college to be easy.
       </p>
 
       <div className="space-y-12">
         <section>
           <h3 className="text-2xl font-bold text-white mb-4">Our Mission</h3>
           <p className="text-gray-400 leading-relaxed">
-            Our mission is simple: to create a safe, welcoming, and user-friendly platform that helps people find meaningful relationships. We believe dating should be about quality connections, not just endless swiping.
+            Our mission is simple: to make it easy for students to make new friends and connections — study buddies, people to go to fests with, and friends for life. Dating is there as an optional extra, but DateU is about socialising.
           </p>
         </section>
 
         <section>
           <h3 className="text-2xl font-bold text-white mb-4">Our Story</h3>
           <p className="text-gray-400 leading-relaxed">
-            It started in the dorms of IIT Delhi. We were bored of the typical dating app experience—ghosting, endless swiping, and superficial matches. We wanted to do something different. We wanted to build a platform that fosters real connections, designed by students, for students.
+            It started in the dorms of IIT Delhi. We noticed how hard it is to meet people outside your own class or hostel, and how many students skip events because they have nobody to go with. So we built a place to find friends, plans and people to go with — designed by students, for students.
           </p>
         </section>
 

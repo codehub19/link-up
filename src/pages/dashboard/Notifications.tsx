@@ -153,7 +153,7 @@ export default function NotificationsPage() {
       <div className="dashboard-container">
         <div className="notifications-hero">
           <h1 className="notifications-title text-gradient">Notifications</h1>
-          <p className="notifications-subtitle">Stay updated with your latest matches and activity.</p>
+          <p className="notifications-subtitle">Friend requests, events, calls and more.</p>
         </div>
 
         {loading ? (
@@ -164,7 +164,7 @@ export default function NotificationsPage() {
           <EmptyState
             icon="bell"
             title="You’re all caught up"
-            text="Matches, likes and news about rounds will show up here."
+            text="Friend requests, event updates and news will show up here."
           />
         ) : (
           <div>

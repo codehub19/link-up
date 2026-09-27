@@ -122,9 +122,13 @@ function envTurnServers(): RTCIceServer[] {
 }
 
 // TURN credentials from the getTurnCredentials function are short-lived; reuse for 50 min.
+// An empty answer (not configured, or the request failed) is only cached briefly.
 let turnCache: { at: number; servers: RTCIceServer[] } | null = null
 async function serverTurnServers(): Promise<RTCIceServer[]> {
-  if (turnCache && Date.now() - turnCache.at < 50 * 60 * 1000) return turnCache.servers
+  if (turnCache) {
+    const maxAge = turnCache.servers.length ? 50 * 60 * 1000 : 30 * 1000
+    if (Date.now() - turnCache.at < maxAge) return turnCache.servers
+  }
   try {
     const fn = httpsCallable<unknown, { iceServers: RTCIceServer[] }>(functions, 'getTurnCredentials')
     const res = await fn({})
@@ -135,21 +139,40 @@ async function serverTurnServers(): Promise<RTCIceServer[]> {
   return turnCache.servers
 }
 
+/** Fetch relay credentials early (e.g. while the phone is ringing) so the call connects faster. */
+export function prefetchIceServers() {
+  serverTurnServers().catch(() => { })
+}
+
 async function iceServers(): Promise<RTCIceServer[]> {
   return [
-    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
     ...envTurnServers(),
     ...(await serverTurnServers()),
   ]
 }
 
-export type CallConnectionState = 'connecting' | 'connected' | 'failed' | 'closed'
+/** True when a relay (TURN) server is available for calls. */
+export async function hasRelayServer() {
+  return envTurnServers().length > 0 || (await serverTurnServers()).length > 0
+}
+
+export type CallConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'failed' | 'closed'
+
+// How long a dropped connection may try to recover before we give up
+const RECOVER_MS = 8_000
+const MAX_RESTARTS = 2
 
 export class RandomCallSession {
   private pc: RTCPeerConnection | null = null
   private localStream: MediaStream | null = null
   private unsubs: Array<() => void> = []
   private closed = false
+  private connected = false
+  private restarts = 0
+  private recoverTimer: ReturnType<typeof setTimeout> | undefined
+  private lastOffer = ''
+  private lastAnswer = ''
   readonly remoteAudio = new Audio()
 
   constructor(
@@ -160,25 +183,36 @@ export class RandomCallSession {
     private onState: (s: CallConnectionState) => void
   ) {
     this.remoteAudio.autoplay = true
+    ;(this.remoteAudio as any).playsInline = true
   }
 
   async start() {
-    this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-    const pc = new RTCPeerConnection({ iceServers: await iceServers() })
+    this.localStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      video: false,
+    })
+    if (this.closed) { this.localStream.getTracks().forEach((t) => t.stop()); return }
+    const pc = new RTCPeerConnection({ iceServers: await iceServers(), iceCandidatePoolSize: 4 })
     this.pc = pc
 
     this.localStream.getTracks().forEach((t) => pc.addTrack(t, this.localStream!))
 
     pc.ontrack = (e) => {
-      this.remoteAudio.srcObject = e.streams[0]
+      this.remoteAudio.srcObject = e.streams[0] || new MediaStream([e.track])
       this.remoteAudio.play().catch(() => { })
     }
-    pc.onconnectionstatechange = () => {
+
+    // connectionState isn't available everywhere (older Safari), so watch ICE too
+    const onChange = () => {
       if (this.closed) return
-      const s = pc.connectionState
-      if (s === 'connected') this.onState('connected')
-      else if (s === 'failed') this.onState('failed')
+      const cs = pc.connectionState
+      const ice = pc.iceConnectionState
+      if (cs === 'connected' || ice === 'connected' || ice === 'completed') this.markConnected()
+      else if (cs === 'failed' || ice === 'failed') this.recover(true)
+      else if (cs === 'disconnected' || ice === 'disconnected') this.recover(false)
     }
+    pc.onconnectionstatechange = onChange
+    pc.oniceconnectionstatechange = onChange
 
     const callRef = doc(db, 'randomCalls', this.callId)
     const candidatesCol = collection(db, 'randomCalls', this.callId, 'candidates')
@@ -207,31 +241,80 @@ export class RandomCallSession {
     if (this.isCaller) {
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
+      this.lastOffer = offer.sdp || ''
       await updateDoc(callRef, { offer: { type: offer.type, sdp: offer.sdp } })
     }
 
+    // Signalling. A new offer (after an ICE restart) is answered again.
+    let busy = false
     this.unsubs.push(
       onSnapshot(callRef, async (snap) => {
         const call = snap.data() as RandomCallDoc | undefined
-        if (!call || this.closed) return
+        if (!call || this.closed || busy) return
+        busy = true
         try {
-          if (this.isCaller && call.answer && !pc.currentRemoteDescription) {
+          if (this.isCaller && call.answer?.sdp && call.answer.sdp !== this.lastAnswer && pc.signalingState === 'have-local-offer') {
+            this.lastAnswer = call.answer.sdp
             await pc.setRemoteDescription(call.answer)
             flush()
           }
-          if (!this.isCaller && call.offer && !pc.currentRemoteDescription) {
+          if (!this.isCaller && call.offer?.sdp && call.offer.sdp !== this.lastOffer) {
+            const first = !this.lastOffer
+            this.lastOffer = call.offer.sdp
             await pc.setRemoteDescription(call.offer)
             flush()
             const answer = await pc.createAnswer()
             await pc.setLocalDescription(answer)
-            await updateDoc(callRef, { answer: { type: answer.type, sdp: answer.sdp }, status: 'active', startedAt: serverTimestamp() })
+            await updateDoc(callRef, first
+              ? { answer: { type: answer.type, sdp: answer.sdp }, status: 'active', startedAt: serverTimestamp() }
+              : { answer: { type: answer.type, sdp: answer.sdp } })
           }
         } catch (e) {
-          console.error('Random call signaling failed', e)
-          this.onState('failed')
+          console.error('Call signalling failed', e)
+          this.recover(true)
+        } finally {
+          busy = false
         }
       })
     )
+  }
+
+  private markConnected() {
+    if (this.recoverTimer) { clearTimeout(this.recoverTimer); this.recoverTimer = undefined }
+    this.connected = true
+    this.onState('connected')
+  }
+
+  /**
+   * The connection dropped (e.g. switching Wi-Fi → mobile data). Give it a moment to
+   * come back by itself, then restart ICE (the caller sends a fresh offer). Only
+   * report 'failed' when that doesn't work either.
+   */
+  private recover(hardFail: boolean) {
+    if (this.closed || this.recoverTimer) return
+    if (this.connected) this.onState('reconnecting')
+    const attempt = async () => {
+      this.recoverTimer = undefined
+      const pc = this.pc
+      if (this.closed || !pc) return
+      const ok = pc.connectionState === 'connected' || pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed'
+      if (ok) { this.markConnected(); return }
+      if (this.restarts >= MAX_RESTARTS) { this.onState('failed'); return }
+      this.restarts++
+      if (this.isCaller) {
+        try {
+          const offer = await pc.createOffer({ iceRestart: true })
+          await pc.setLocalDescription(offer)
+          this.lastOffer = offer.sdp || ''
+          await updateDoc(doc(db, 'randomCalls', this.callId), { offer: { type: offer.type, sdp: offer.sdp } })
+        } catch (e) {
+          console.error('ICE restart failed', e)
+        }
+      }
+      // Wait for the restart to take effect, then check again
+      this.recoverTimer = setTimeout(attempt, RECOVER_MS * 1.5)
+    }
+    this.recoverTimer = setTimeout(attempt, hardFail ? 500 : RECOVER_MS)
   }
 
   setMuted(muted: boolean) {
@@ -242,6 +325,7 @@ export class RandomCallSession {
   async close(reason?: string) {
     if (this.closed) return
     this.closed = true
+    if (this.recoverTimer) clearTimeout(this.recoverTimer)
     this.unsubs.forEach((u) => u())
     this.unsubs = []
     this.localStream?.getTracks().forEach((t) => t.stop())

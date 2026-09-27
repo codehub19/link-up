@@ -16,8 +16,8 @@ const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-IN', { day: 'n
 /** /blog — list of articles. */
 export default function BlogPage() {
   useSeo({
-    title: 'Blog – Dating & Campus Life Tips for Students',
-    description: 'Tips on meeting people in college, staying safe on dating apps, better profiles and first-date ideas — from the DateU team.',
+    title: 'Blog – Friendship & Campus Life Tips for Students',
+    description: 'Tips on making friends in college, meeting new people, staying safe online and campus life — from the DateU team.',
     path: '/blog',
   })
   return (
@@ -28,7 +28,7 @@ export default function BlogPage() {
         <div className="mk-wrap">
           <span className="mk-eyebrow">Blog</span>
           <h1>The DateU <span>Blog</span></h1>
-          <p className="mk-lead">Dating and campus-life tips for students.</p>
+          <p className="mk-lead">Making friends, meeting people and campus-life tips for students.</p>
           <div className="mk-grid">
             {ALL.map((p) => (
               <Link key={p.slug} to={`/blog/${p.slug}`} className="mk-card" style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -95,7 +95,7 @@ export function BlogPostPage() {
 
           <div className="mk-final">
             <h2>Meet people from your campus</h2>
-            <p>Free matching rounds, 5-minute voice calls and chat — made for college students.</p>
+            <p>Make friends on campus, find event buddies and talk on quick voice calls — made for college students.</p>
             <JoinButton />
           </div>
 

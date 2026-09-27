@@ -6,10 +6,10 @@ export default function ProblemSolution() {
         <section className="section problem-section">
             <div className="container">
                 <div className="section-header">
-                    <span className="badge-pill">The Reality Check</span>
-                    <h2 className="section-title">Why the old apps failed you.</h2>
+                    <span className="badge-pill">Why DateU</span>
+                    <h2 className="section-title">Making friends shouldn’t be this hard.</h2>
                     <p className="lead-text">
-                        We built DateU because we were tired of the same endless cycle.
+                        New city, new college, same few people. We built DateU so meeting new people on campus is easy.
                     </p>
                 </div>
 
@@ -17,29 +17,29 @@ export default function ProblemSolution() {
                     {/* OLD WAY */}
                     <div className="comp-card old-way">
                         <div className="comp-header">
-                            <h3>The Swipe Apps</h3>
+                            <h3>The usual way</h3>
                             <span className="icon-x">✕</span>
                         </div>
                         <ul className="comp-list">
                             <li>
                                 <span className="li-icon">👻</span>
                                 <div>
-                                    <strong>Ghost Town</strong>
-                                    <p>Matches that never talk.</p>
+                                    <strong>Same circle</strong>
+                                    <p>You only meet people from your class or hostel.</p>
                                 </div>
                             </li>
                             <li>
                                 <span className="li-icon">🤖</span>
                                 <div>
-                                    <strong>Bot Infested</strong>
-                                    <p>Fake profiles everywhere.</p>
+                                    <strong>Awkward to start</strong>
+                                    <p>No easy way to say hi to someone new.</p>
                                 </div>
                             </li>
                             <li>
                                 <span className="li-icon">♾️</span>
                                 <div>
-                                    <strong>Endless Loop</strong>
-                                    <p>Designed to keep you swiping.</p>
+                                    <strong>Going alone</strong>
+                                    <p>Fests and events are less fun without people to go with.</p>
                                 </div>
                             </li>
                         </ul>
@@ -53,24 +53,24 @@ export default function ProblemSolution() {
                         </div>
                         <ul className="comp-list">
                             <li>
-                                <span className="li-icon">❤️</span>
+                                <span className="li-icon">👋</span>
                                 <div>
-                                    <strong>Real Rounds</strong>
-                                    <p>Limited batches, high intent.</p>
+                                    <strong>Friends on campus</strong>
+                                    <p>Find students who share your interests and say hi.</p>
                                 </div>
                             </li>
                             <li>
                                 <span className="li-icon">🛡️</span>
                                 <div>
-                                    <strong>Verified Community</strong>
-                                    <p>Real profiles, ID checked.</p>
+                                    <strong>Students only</strong>
+                                    <p>Real, verified college students.</p>
                                 </div>
                             </li>
                             <li>
                                 <span className="li-icon">⚡</span>
                                 <div>
-                                    <strong>Meaningful</strong>
-                                    <p>Designed to get you offline.</p>
+                                    <strong>Go together</strong>
+                                    <p>Find a partner or group for fests, garba nights and treks.</p>
                                 </div>
                             </li>
                         </ul>

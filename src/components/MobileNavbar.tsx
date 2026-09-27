@@ -87,10 +87,10 @@ export default function MobileNavbar() {
 
     const isMale = profile?.gender === 'male'
     const tabs: Tab[] = [
-        { to: isMale ? '/dashboard/male/rounds' : '/dashboard/round', label: 'Dating', match: ['/dashboard/male/rounds', '/dashboard/round', '/dashboard/matches'], icon: <HeartIcon /> },
         { to: '/dashboard/friends', label: 'Friends', match: ['/dashboard/friends'], icon: <FriendsIcon /> },
         { to: '/dashboard/events', label: 'Events', match: ['/dashboard/events'], icon: <EventsIcon /> },
         { to: '/dashboard/chat', label: 'Chat', match: ['/dashboard/chat', '/dashboard/random-call'], icon: <ChatIcon /> },
+        { to: isMale ? '/dashboard/male/rounds' : '/dashboard/round', label: 'Dating', match: ['/dashboard/male/rounds', '/dashboard/round', '/dashboard/matches'], icon: <HeartIcon /> },
         {
             to: isMale ? '/dashboard/male/profile' : '/dashboard/female/profile',
             label: 'Profile',

@@ -8,7 +8,7 @@ export default function FeaturesBento() {
                 <div className="section-header margin-bottom">
                     <h2 className="section-title text-gradient">Everything you need.</h2>
                     <p className="lead-text">
-                        Designed for safety, quality, and real connections.
+                        One app to meet new people, make plans and stay in touch.
                     </p>
                 </div>
 
@@ -16,10 +16,10 @@ export default function FeaturesBento() {
                     {/* Card 1: Curated Rounds (Large, Featured) */}
                     <div className="bento-card span-8 span-md-12 feature-glow">
                         <div className="bento-content">
-                            <div className="bento-icon">⚡</div>
-                            <h3>Curated Matching Rounds</h3>
+                            <div className="bento-icon">👋</div>
+                            <h3>Friends on your campus</h3>
                             <p>
-                                No more endless swiping. Get a limited selection of high-quality matches released in "Rounds". This creates urgency and focus, leading to 92% deeper conversations.
+                                Discover students from your college and nearby campuses, see what you have in common, and send a friend request with a quick hello. Study buddies, gym partners, people to explore the city with.
                             </p>
                             <div className="bento-visual visual-rounds">
                                 {/* CSS-only mini rep of a round card */}
@@ -36,7 +36,7 @@ export default function FeaturesBento() {
                             <div className="bento-icon">🛡️</div>
                             <h3>Verified Badges</h3>
                             <p>
-                                Students get a "Verified Student" badge. General users are ID-checked. Know exactly who you're talking to.
+                                Students verify their college ID and get a badge, so you know who you're talking to.
                             </p>
                             <div className="bento-visual visual-shield">
                                 <div className="shield-icon">✓</div>
@@ -47,9 +47,9 @@ export default function FeaturesBento() {
                     {/* Card 3: Quality (Medium) */}
                     <div className="bento-card span-4 span-md-6">
                         <div className="bento-content">
-                            <div className="bento-icon">💬</div>
-                            <h3>Quality &gt; Quantity</h3>
-                            <p>Focus on people, not profiles.</p>
+                            <div className="bento-icon">🎪</div>
+                            <h3>Events &amp; fests</h3>
+                            <p>Find your garba partner, fest crew or trek buddy.</p>
                         </div>
                     </div>
 
@@ -65,9 +65,9 @@ export default function FeaturesBento() {
                     {/* Card 5: Bot Deterrence (Medium) */}
                     <div className="bento-card span-4 span-md-12">
                         <div className="bento-content">
-                            <div className="bento-icon">🤖</div>
-                            <h3>No Bots Allowed</h3>
-                            <p>Advanced detection systems.</p>
+                            <div className="bento-icon">📞</div>
+                            <h3>Voice calls &amp; chat</h3>
+                            <p>Quick random calls to meet someone new, then chat. Dating rounds are optional.</p>
                         </div>
                     </div>
                 </div>

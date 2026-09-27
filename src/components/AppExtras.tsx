@@ -51,7 +51,7 @@ export function InstallSheet() {
         <div className="app-sheet-handle" />
         <img className="app-sheet-icon" src="/icons/icon-192.png" alt="" />
         <h3>Get the DateU app</h3>
-        <p>Full screen, faster, and you'll never miss a match, call or message.</p>
+        <p>Full screen, faster, and you'll never miss a friend request, call or message.</p>
         {ios ? (
           <ol className="app-sheet-steps">
             <li>Tap the <strong>Share</strong> button <span aria-hidden="true">⬆︎</span> in Safari</li>

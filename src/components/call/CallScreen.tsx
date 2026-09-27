@@ -112,7 +112,7 @@ export default function CallScreen() {
   else if (c.phase === 'connecting') {
     if (c.isMatchCall && c.outgoing) status = !c.call ? 'Calling…' : c.call.status === 'ringing' ? 'Ringing…' : 'Connecting…'
     else status = 'Connecting…'
-  } else if (c.phase === 'in-call') status = random ? `${clock(c.remainingSec)} left` : clock(c.elapsedSec)
+  } else if (c.phase === 'in-call') status = c.reconnecting ? 'Reconnecting…' : random ? `${clock(c.remainingSec)} left` : clock(c.elapsedSec)
   else if (c.phase === 'ended') status = c.wasConnected ? `Call ended · ${clock(c.elapsedSec)}` : 'Call ended'
 
   /* ------------ Minimised bubble ------------ */

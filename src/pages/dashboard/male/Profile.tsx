@@ -119,7 +119,7 @@ function ReferralCard({ user }: { user: any }) {
               if (referralDiscount > 0) { nav('/dashboard/plans?redeem=true'); return }
               if (!user?.referralCode) return
               const link = `${window.location.origin}/?ref=${user.referralCode}`
-              const text = `Join me on DateU, the campus dating app. Use my code ${user.referralCode} when you sign up:`
+              const text = `Join me on DateU 👋 — the app to make new friends on campus, find people for fests and events, and meet new people. Use my code ${user.referralCode} when you sign up:`
               // Native share sheet on phones; copy the link elsewhere
               if (navigator.share) {
                 try { await navigator.share({ title: 'DateU', text, url: link }) } catch { }

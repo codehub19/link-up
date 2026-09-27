@@ -3,20 +3,24 @@ import "./FAQ.styles.css";
 
 const FAQS = [
   {
-    q: "How are rounds curated?",
-    a: "We theme and cap them. Limited supply nudges thoughtfulness and reduces message spam.",
+    q: "Is DateU a dating app?",
+    a: "DateU is for making new friends and connections on campus. Friends, events, chat and voice calls are the heart of it. Dating is an optional extra you can turn on in the Dating tab — or ignore completely.",
   },
   {
-    q: "Is my social handle public?",
-    a: "No—mutual interest first. This protects your privacy and lowers cold spam.",
+    q: "How do I make friends on DateU?",
+    a: "Open Friends, browse students from your college or nearby campuses, and send a friend request with a short hello. Once they accept, you can chat and call.",
   },
   {
-    q: "Do I have to be a student?",
-    a: "No! DateU is open to everyone. Students verify their ID to get a badge and can choose to hide from non-students for total privacy.",
+    q: "What are events?",
+    a: "Fests, garba nights, treks, study groups and meetups. Tap “I’m going”, see who else is going, and find a partner or group to go with.",
   },
   {
-    q: "Why not infinite swipes?",
-    a: "Because behavioral drain & novelty chasing reduce actual connection quality.",
+    q: "Is it free?",
+    a: "Yes. Friends, events, chat, calls and dating rounds are free. Premium is optional and just puts you first.",
+  },
+  {
+    q: "Is my Instagram or phone number shown?",
+    a: "No. Your profile shows your first name, photos, college and interests — never your phone number, email or social handles.",
   },
 ];
 

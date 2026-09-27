@@ -12,6 +12,7 @@ const pages = [
   ['/rounds', '0.8', 'monthly'],
   ['/pricing', '0.7', 'monthly'],
   ['/campus', '0.8', 'weekly'],
+  ['/events', '0.8', 'daily'],
   ['/blog', '0.7', 'weekly'],
   ['/about', '0.6', 'monthly'],
   ['/download', '0.6', 'monthly'],
