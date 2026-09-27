@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { isDesktopDevice, isStandalone } from '../utils/pwa'
 import { InstallSheet, OfflineBanner } from './AppExtras'
 import MobileNavbar from './MobileNavbar'
+import PullToRefresh from './PullToRefresh'
 import { useAuth } from '../state/AuthContext'
 import { isPushedRoute } from '../config/appRoutes'
 import './AppShell.css'
@@ -10,6 +11,13 @@ import './AppShell.css'
 // The logged-in app is built for phones and tablets. The website (home, pricing,
 // legal pages) and the admin panel stay available on desktop.
 const APP_PREFIXES = ['/dashboard', '/setup', '/pay', '/profile']
+
+// Screens with pull-to-refresh (lists and feeds that change)
+const PTR_ROUTES = [
+  /^\/dashboard\/(friends|events|chat|notifications|matches|round|male\/rounds|male\/profile|female\/profile|random-call)$/,
+  /^\/dashboard\/events\/[^/]+$/,
+  /^\/profile\/[^/]+$/,
+]
 
 const ADMIN_PREVIEW_KEY = 'dateu.adminDesktopPreview'
 function adminPreviewOn() {
@@ -22,7 +30,14 @@ const VIEWPORT_APP = VIEWPORT_DEFAULT + ', maximum-scale=1, user-scalable=no'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, refreshProfile } = useAuth()
+  // Pull-to-refresh reloads the current screen (fresh data, like reopening it)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const onRefresh = useCallback(async () => {
+    await refreshProfile().catch(() => { })
+    setRefreshKey((k) => k + 1)
+  }, [refreshProfile])
+  const ptrEnabled = !!user && PTR_ROUTES.some((r) => r.test(pathname))
   const isAppRoute = APP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))
   const [isDesktop] = useState(isDesktopDevice)
   const [adminPreview, setAdminPreview] = useState(adminPreviewOn)
@@ -68,11 +83,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {children}
+      <Fragment key={refreshKey}>{children}</Fragment>
+      <PullToRefresh enabled={ptrEnabled} onRefresh={onRefresh} />
       {/* Rendered outside the page transition so it stays still while screens slide */}
       <MobileNavbar />
       {isAppRoute && <OfflineBanner />}
-      {isAppRoute && user && !isDesktop && <InstallSheet />}
+      {/* Phone browsers (not the installed app): suggest installing — soon on the website, a bit later in the app */}
+      {!isDesktop && !standalone && !pathname.startsWith('/admin') && (
+        <InstallSheet key={isAppRoute ? 'app' : 'site'} delayMs={isAppRoute ? 12_000 : 6_000} />
+      )}
     </>
   )
 }

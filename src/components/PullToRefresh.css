@@ -1,0 +1,36 @@
+.ptr {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + var(--app-topbar-h, 56px) - 30px);
+  left: 50%;
+  z-index: 1500;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e1e28;
+  color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+
+.ptr.ready,
+.ptr.spinning {
+  color: #ff416c;
+}
+
+.ptr.spinning svg {
+  animation: ptr-spin 0.8s linear infinite;
+}
+
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ptr.spinning svg {
+    animation-duration: 2s;
+  }
+}

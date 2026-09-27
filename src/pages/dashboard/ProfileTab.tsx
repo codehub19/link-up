@@ -5,6 +5,8 @@ import HomeBackground from '../../components/home/HomeBackground'
 import EditCollegeId from './EditCollegeId'
 import { useAuth } from '../../state/AuthContext'
 import { isDatingReady } from '../../firebase'
+import { isStandalone } from '../../utils/pwa'
+import { openInstallSheet } from '../../components/AppExtras'
 import { formatHeight, labelFor } from '../../utils/profileLabels'
 import './dashboard.css'
 import './male/Profile.styles.css'
@@ -211,6 +213,16 @@ export default function ProfileTab({ referral }: { referral?: React.ReactNode })
               <span className="pt-row-body">
                 <span className="pt-row-title">Friends</span>
                 <span className="pt-row-sub">{p.friendsVisible ? 'You’re visible to other students' : 'Turn on to make friends on campus'}</span>
+              </span>
+              <Chevron />
+            </button>
+          )}
+          {!isStandalone() && (
+            <button type="button" className="pt-row" onClick={openInstallSheet}>
+              <span className="pt-row-icon"><Icon><rect x="5" y="2" width="14" height="20" rx="2" /><line x1="12" y1="18" x2="12.01" y2="18" /></Icon></span>
+              <span className="pt-row-body">
+                <span className="pt-row-title">Install the app</span>
+                <span className="pt-row-sub">Full screen, faster, with notifications</span>
               </span>
               <Chevron />
             </button>
