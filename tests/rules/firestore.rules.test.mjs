@@ -139,3 +139,16 @@ test('photo reviews are admin-only', async () => {
   await assertFails(getDoc(doc(as('a'), 'photoReviews/p1')))
   await assertSucceeds(getDoc(doc(as('admin'), 'photoReviews/p1')))
 })
+
+test('rounds are admin-only; calls: you can only write your own connection report', async () => {
+  await seed(async (db) => {
+    await setDoc(doc(db, 'users/admin'), person({ isAdmin: true }))
+    await setDoc(doc(db, 'matchingRounds/r1'), { isActive: true, participatingMales: [], assignedGirlsToBoys: { x: ['y'] } })
+    await setDoc(doc(db, 'randomCalls/c1'), { participants: ['a', 'b'], callerUid: 'a', calleeUid: 'b', status: 'active' })
+  })
+  await assertFails(getDoc(doc(as('a'), 'matchingRounds/r1')))
+  await assertFails(updateDoc(doc(as('a'), 'matchingRounds/r1'), { participatingMales: ['a'] }))
+  await assertSucceeds(getDoc(doc(as('admin'), 'matchingRounds/r1')))
+  await assertSucceeds(updateDoc(doc(as('a'), 'randomCalls/c1'), { 'media.a': { ok: true, relay: false } }))
+  await assertFails(updateDoc(doc(as('a'), 'randomCalls/c1'), { 'media.b': { ok: false } }))
+})

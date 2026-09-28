@@ -2,8 +2,8 @@ import {
   collection, getDocs, query, where, doc, setDoc, serverTimestamp, writeBatch,
   getDoc, updateDoc, Timestamp, addDoc
 } from 'firebase/firestore'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { db, isDatingReady } from '../firebase'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions } from '../firebase'
 import { isSubscriptionActive } from './subscriptions'
 
 /** Premium doesn't guarantee matches; it gives priority. Premium men get this many times more suggestions. */
@@ -43,11 +43,11 @@ export async function createAndSetupRound() {
     'phases.girls': { startAt, endAt, isComplete: false }
   })
 
-  // 4. Sync Males
-  const syncRes = await syncApprovedMalesToActiveRound()
+  // 4. Sync Males (server)
+  const syncRes = await syncActiveRound()
 
-  // 5. Smart Match Boys (Phase 1)
-  const matchRes = await smartAutoMatchBoys(roundId)
+  // 5. Smart Match Boys (Phase 1, server)
+  const matchRes = await runRoundMatching(roundId, 'boys', 'smart')
 
   // 6. Send Notification
   sendRoundNotification().catch(e => console.error("Notification failed", e))
@@ -66,7 +66,6 @@ async function sendRoundNotification() {
       title, body, userUid: null, createdAt: serverTimestamp(), targetType: 'all', roundId: null
     })
 
-    const functions = getFunctions(undefined, "asia-south2")
     const sendPush = httpsCallable(functions, "sendPushNotification")
     await sendPush({ userUids, title, body })
   } catch (e) {
@@ -178,354 +177,30 @@ export async function getAssignedBoysForGirl(roundId: string, girlUid: string): 
 
 // ... other imports and functions ...
 
-export async function syncApprovedMalesToActiveRound() {
-  const active = await getActiveRound()
-  if (!active) throw new Error('No active round')
-
-  // Rounds are free: keep everyone who joined, and auto-enrol Premium men.
-  const premium = await getPremiumUids()
-  const candidates = new Set<string>([...(active.participatingMales || []), ...premium])
-
-  const maleUids: string[] = []
-  for (const uid of candidates) {
-    const us = await getDoc(doc(db, 'users', uid))
-    if (!us.exists()) continue
-    const u = us.data() as any
-    if (u.gender === 'male' && isDatingReady(u) && !u.banned) maleUids.push(uid)
-  }
-
-  const roundRef = doc(db, 'matchingRounds', active.id)
-  await setDoc(roundRef, {
-    participatingMales: premiumFirst(maleUids, (u) => u, premium),
-    updatedAt: serverTimestamp(),
-  }, { merge: true })
-
-  return {
-    activeRoundId: active.id,
-    totalMales: maleUids.length,
-    premiumMales: maleUids.filter((u) => premium.has(u)).length,
-  }
-}
-
-export async function addMaleToActiveRound(uid: string) {
-  const active = await getActiveRound()
-  if (!active) throw new Error('No active round')
-  const roundRef = doc(db, 'matchingRounds', active.id)
-  const roundSnap = await getDoc(roundRef)
-  const existing: string[] = (roundSnap.data() as any)?.participatingMales || []
-  if (existing.includes(uid)) return { changed: false }
-  const merged = [...existing, uid]
-  await setDoc(roundRef, { participatingMales: merged, updatedAt: serverTimestamp() }, { merge: true })
+/** Join the active round (the server checks eligibility). */
+export async function addMaleToActiveRound(_uid?: string) {
+  await httpsCallable(functions, 'joinMatchingRound')({})
   return { changed: true }
 }
 
-export async function autoMatchUsers(roundId: string, phase: 'boys' | 'girls', countPerUser: number = 3) {
-  const roundRef = doc(db, 'matchingRounds', roundId)
-  const roundSnap = await getDoc(roundRef)
-  if (!roundSnap.exists()) throw new Error('Round not found')
+/* ---- Server-side round actions ---- */
 
-  const roundData = roundSnap.data() as any
-  const assignedMap = phase === 'boys'
-    ? (roundData.assignedGirlsToBoys || {})
-    : (roundData.assignedBoysToGirls || {})
+export type MyRound = { round: { id: string; phases: any; phase: string | null } | null; inRound?: boolean; assigned?: string[] }
 
-  let sources: string[] = [] // Users who need assignments
-  let targets: string[] = [] // Pool of candidates
-
-  if (phase === 'boys') {
-    // Phase Boys: Assign Girls (targets) to Boys (sources)
-    sources = roundData.participatingMales || []
-
-    // Fetch all girls (optimize: maybe cache or pass in?)
-    // For now, fetch all female users
-    const q = query(collection(db, 'users'), where('gender', '==', 'female'))
-    const snap = await getDocs(q)
-    targets = snap.docs.map(d => d.id)
-
-  } else {
-    // Phase Girls: Assign Boys (targets) to Girls (sources)
-    // Who are the girls? We don't have explicit 'participatingFemales' usually.
-    // Use all girls who liked someone? Or just all girls?
-    // Request says "random allocation... girls to boys". 
-    // Let's assume we want to assign candidates to ALL known girls.
-    const q = query(collection(db, 'users'), where('gender', '==', 'female'))
-    const snap = await getDocs(q)
-    sources = snap.docs.map(d => d.id)
-
-    // Targets are the participating boys usually
-    targets = roundData.participatingMales || []
-  }
-
-  // Shuffle Targets
-  const shuffle = (array: string[]) => {
-    let currentIndex = array.length, randomIndex;
-    while (currentIndex != 0) {
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex--;
-      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-    }
-    return array;
-  }
-
-  const premium = await getPremiumUids()
-
-  // Perform Assignment
-  let changes = 0
-  const newAssignments = { ...assignedMap }
-
-  for (const sourceUid of sources) {
-    // Skip if already has assignments (optional, but safer to not overwrite manual work)
-    if (newAssignments[sourceUid] && newAssignments[sourceUid].length > 0) continue;
-
-    // Pick N random targets
-    // We shuffle a COPY of targets every time to ensure randomness per user
-    // (Inefficient for huge lists, but fine for <1000 users)
-    const shuffledTargets = shuffle([...targets])
-    // Girls phase: Premium men take the first slots. Boys phase: Premium men get more suggestions.
-    const ordered = phase === 'girls' ? premiumFirst(shuffledTargets, (u) => u, premium) : shuffledTargets
-    const count = phase === 'boys' && premium.has(sourceUid) ? countPerUser * PREMIUM_SUGGESTION_MULTIPLIER : countPerUser
-    const selected = ordered.slice(0, count)
-
-    newAssignments[sourceUid] = selected
-    changes++
-  }
-
-  if (changes > 0) {
-    const updateField = phase === 'boys' ? 'assignedGirlsToBoys' : 'assignedBoysToGirls'
-    await updateDoc(roundRef, {
-      [updateField]: newAssignments,
-      updatedAt: serverTimestamp()
-    })
-  }
-
-  return { assignedUsersCount: changes }
+/** The active round as this member sees it (their own suggestions only). */
+export async function getMyRound(): Promise<MyRound> {
+  const res = await httpsCallable(functions, 'getMyRound')({})
+  return res.data as MyRound
 }
 
-// --- SMART MATCHING ---
-
-// Helper: Calculate Age
-function getAge(dob?: string): number {
-  if (!dob) return 21; // Default age if missing
-  const birth = new Date(dob);
-  const now = new Date();
-  let age = now.getFullYear() - birth.getFullYear();
-  const m = now.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
-    age--;
-  }
-  return age;
+/** Admin: run matching on the server. */
+export async function runRoundMatching(roundId: string, phase: 'boys' | 'girls', mode: 'smart' | 'random' = 'smart', countPerUser = 3) {
+  const res = await httpsCallable(functions, 'runRoundMatching')({ roundId, phase, mode, countPerUser })
+  return res.data as { changes: number }
 }
 
-// Helper: Calculate Score
-function calculateMatchScore(source: any, candidate: any): number {
-  let score = 0;
-
-  // --- 1. HARD FILTERS (Dealbreakers) ---
-
-  // A. Age Range Check
-  const srcAge = getAge(source.dob);
-  const candAge = getAge(candidate.dob);
-  const minAge = source.ageRangeMin || 18;
-  const maxAge = source.ageRangeMax || 35;
-
-  if (candAge < minAge || candAge > maxAge) {
-    return -10000; // Hard Exclude: Outside Age Preference
-  }
-
-  // B. Dating Preference / User Type
-  // If Source wants "College Only" and Candidate is NOT college -> Reject
-  if (source.datingPreference === 'college_only' && candidate.userType !== 'college') {
-    return -10000;
-  }
-  // If Candidate wants "College Only" and Source is NOT college -> Reject
-  if (candidate.datingPreference === 'college_only' && source.userType !== 'college') {
-    return -10000;
-  }
-
-  // --- 2. BASE COMPATIBILITY ---
-
-  // User Type Match (College + College = Vibe)
-  if (source.userType === 'college' && candidate.userType === 'college') {
-    score += 20;
-  }
-
-  // College Match (Same College = Huge Bonus)
-  if (source.college && candidate.college && source.college === candidate.college) {
-    score += 50;
-  }
-
-  // --- 3. INTERESTS & PERSONALITY ---
-
-  // Interests Overlap
-  const srcInterests = (source.interests || []) as string[];
-  const candInterests = (candidate.interests || []) as string[];
-  const intersection = srcInterests.filter(i => candInterests.includes(i));
-  score += (intersection.length * 5); // +5 per interest
-
-  // Detailed Personality Compatibility (Vibe Check)
-  // Love Language (Same = Good)
-  if (source.loveLanguage && candidate.loveLanguage && source.loveLanguage === candidate.loveLanguage) {
-    score += 15;
-  }
-  // Sunday Style (Same = Good)
-  if (source.sundayStyle && candidate.sundayStyle && source.sundayStyle === candidate.sundayStyle) {
-    score += 10;
-  }
-  // Travel Preference (Same = Good)
-  if (source.travelPreference && candidate.travelPreference && source.travelPreference === candidate.travelPreference) {
-    score += 10;
-  }
-
-  // --- 4. RANDOM NOISE ---
-  // A little chaos to prevent identical rankings every time
-  score += Math.random() * 5;
-
-  return score;
-}
-
-export async function smartAutoMatchBoys(roundId: string, countPerUser: number = 3) {
-  const roundRef = doc(db, 'matchingRounds', roundId)
-  const roundSnap = await getDoc(roundRef)
-  if (!roundSnap.exists()) throw new Error('Round not found')
-  const roundData = roundSnap.data() as any
-
-  // Sources: Participating Males (Premium first so they're processed first)
-  const premium = await getPremiumUids()
-  const maleUids: string[] = premiumFirst(roundData.participatingMales || [], (u: string) => u, premium)
-
-  // Targets: All Females
-  const qGirls = query(collection(db, 'users'), where('gender', '==', 'female'))
-  const snapGirls = await getDocs(qGirls)
-  // Pre-filter: Must be valid profiles
-  const allGirls = snapGirls.docs
-    .map(d => ({ uid: d.id, ...d.data() } as any))
-    .filter(g => isDatingReady(g) && !g.banned) // Only people who turned on dating
-
-  const assignedMap = roundData.assignedGirlsToBoys || {}
-  let changes = 0
-
-  for (const boyUid of maleUids) {
-    if (assignedMap[boyUid] && assignedMap[boyUid].length > 0) continue; // Skip if already assigned
-
-    const boySnap = await getDoc(doc(db, 'users', boyUid))
-    if (!boySnap.exists()) continue
-    const boyProfile = boySnap.data()
-
-    // 1. Fetch Past Matches (History Check)
-    // We want to avoid re-matching with the same person
-    const historyQ = query(
-      collection(db, 'matches'),
-      where('participants', 'array-contains', boyUid)
-    )
-    const historySnap = await getDocs(historyQ)
-    const pastMatchUids = new Set<string>()
-    historySnap.forEach(h => {
-      const data = h.data()
-      // If participants = [boy, girl], add girl to set
-      if (data.girlUid) pastMatchUids.add(data.girlUid)
-      // Generic fallback
-      const other = data.participants.find((p: string) => p !== boyUid)
-      if (other) pastMatchUids.add(other)
-    })
-
-    // 2. Score Candidates
-    const scored = allGirls.map(g => {
-      // Exclude if previously matched
-      if (pastMatchUids.has(g.uid)) return { uid: g.uid, score: -99999 }
-
-      return {
-        uid: g.uid,
-        score: calculateMatchScore(boyProfile, g)
-      }
-    }).filter(x => x.score > -500) // Filter hard excludes (Dealbreakers)
-
-    // 3. Sort Descending
-    scored.sort((a, b) => b.score - a.score)
-
-    // 4. Pick Top N (Premium men get more suggestions)
-    const count = premium.has(boyUid) ? countPerUser * PREMIUM_SUGGESTION_MULTIPLIER : countPerUser
-    const selected = scored.slice(0, count).map(x => x.uid)
-
-    if (selected.length > 0) {
-      assignedMap[boyUid] = selected
-      changes++
-    }
-  }
-
-  if (changes > 0) {
-    await updateDoc(roundRef, {
-      assignedGirlsToBoys: assignedMap,
-      updatedAt: serverTimestamp()
-    })
-  }
-  return { changes }
-}
-
-export async function smartAutoMatchGirls(roundId: string, countPerUser: number = 3) {
-  const roundRef = doc(db, 'matchingRounds', roundId)
-  const roundSnap = await getDoc(roundRef)
-  if (!roundSnap.exists()) throw new Error('Round not found')
-  const roundData = roundSnap.data() as any
-
-  // 1. Get Likes for this round
-  const likesQ = query(collection(db, 'likes'), where('roundId', '==', roundId))
-  const likesSnap = await getDocs(likesQ)
-
-  // Group likes by girl
-  const girlsLikesMap: Record<string, string[]> = {} // girlUid -> [boyUid, boyUid]
-  const premium = await getPremiumUids()
-  likesSnap.docs.forEach(d => {
-    const data = d.data()
-    // Likes are written as { likingUserUid, likedUserUid } (older docs used from/to)
-    const girlUid = data.likedUserUid ?? data.to
-    const boyUid = data.likingUserUid ?? data.likerUid ?? data.from
-    if (!girlUid || !boyUid) return
-    if (!girlsLikesMap[girlUid]) girlsLikesMap[girlUid] = []
-    if (!girlsLikesMap[girlUid].includes(boyUid)) girlsLikesMap[girlUid].push(boyUid)
-  })
-
-  const assignedMap = roundData.assignedBoysToGirls || {}
-  let changes = 0
-
-  // Iterate over girls who received likes
-  for (const girlUid of Object.keys(girlsLikesMap)) {
-    if (assignedMap[girlUid] && assignedMap[girlUid].length > 0) continue; // Skip
-
-    const candidates = girlsLikesMap[girlUid]
-    const girlSnap = await getDoc(doc(db, 'users', girlUid))
-    if (!girlSnap.exists()) continue;
-    const girlProfile = girlSnap.data()
-
-    // Fetch and Score Candidates
-    const scoredBoys = []
-    for (const bUid of candidates) {
-      const bSnap = await getDoc(doc(db, 'users', bUid))
-      if (bSnap.exists()) {
-        const score = calculateMatchScore(girlProfile, bSnap.data())
-        // Keep even if score is low? No, if it's a Dealbreaker (score < -100), we should probably block it
-        // even if he liked her. (e.g. He lied about age, or she changed preferences)
-        if (score > -500) {
-          scoredBoys.push({ uid: bUid, score })
-        }
-      }
-    }
-
-    // Premium men first, then by compatibility
-    scoredBoys.sort((a, b) => Number(premium.has(b.uid)) - Number(premium.has(a.uid)) || b.score - a.score)
-    const selected = scoredBoys.slice(0, countPerUser).map(x => x.uid)
-
-    // Only assign if valid candidates exist
-    if (selected.length > 0) {
-      assignedMap[girlUid] = selected
-      changes++
-    }
-  }
-
-  if (changes > 0) {
-    await updateDoc(roundRef, {
-      assignedBoysToGirls: assignedMap,
-      updatedAt: serverTimestamp()
-    })
-  }
-  return { changes }
+/** Admin: add Premium men to the active round and drop ineligible people (server). */
+export async function syncActiveRound() {
+  const res = await httpsCallable(functions, 'syncActiveRound')({})
+  return res.data as { activeRoundId: string; totalMales: number; premiumMales: number }
 }

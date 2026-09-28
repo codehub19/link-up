@@ -405,8 +405,8 @@ export const checkInstagramUsername = onRequest(
 export const joinMatchingRound = onCall({ region: REGION }, async (req) => {
   const auth = req.auth
   if (!auth) throw new HttpsError('unauthenticated', 'Sign in required')
-  const { roundId } = (req.data || {}) as { roundId?: string }
-  if (!roundId) throw new HttpsError('invalid-argument', 'roundId is required')
+  const roundId = ((req.data || {}) as { roundId?: string }).roundId || await getActiveRoundId()
+  if (!roundId) throw new HttpsError('failed-precondition', 'No active round right now')
 
   const userRef = db.collection('users').doc(auth.uid)
   const userSnap = await userRef.get()
@@ -416,6 +416,9 @@ export const joinMatchingRound = onCall({ region: REGION }, async (req) => {
   if (gender !== 'male' && gender !== 'female') {
     throw new HttpsError('failed-precondition', 'Gender missing')
   }
+  if (userSnap.data()?.banned || userSnap.data()?.underReview) throw new HttpsError('permission-denied', 'Account under review')
+  const roundSnap = await db.collection('matchingRounds').doc(roundId).get()
+  if (!roundSnap.exists || roundSnap.get('isActive') !== true) throw new HttpsError('failed-precondition', 'This round is not open')
 
   const field = gender === 'male' ? 'participatingMales' : 'participatingFemales'
   await db.collection('matchingRounds').doc(roundId).update({
@@ -675,3 +678,4 @@ export const expirePremium = onSchedule({ schedule: '15 0 * * *', timeZone: 'Asi
 export * from './discovery'
 export * from './groups'
 export * from './emailAlerts'
+export * from './rounds'

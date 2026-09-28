@@ -195,26 +195,9 @@ service cloud.firestore {
 
     // Matching rounds and assignments
     match /matchingRounds/{roundId} {
-      allow read: if request.auth != null;
-
-      // Allow admin to write
-      allow write: if isAdmin();
-
-      // Allow users to add themselves to participatingMales or participatingFemales if not already present
-      allow update: if request.auth != null
-        && (
-          (
-            request.resource.data.participatingMales == resource.data.participatingMales.concat([request.auth.uid])
-            && resource.data.participatingMales != null
-            && !(request.auth.uid in resource.data.participatingMales)
-          )
-          ||
-          (
-            request.resource.data.participatingFemales == resource.data.participatingFemales.concat([request.auth.uid])
-            && resource.data.participatingFemales != null
-            && !(request.auth.uid in resource.data.participatingFemales)
-          )
-        );
+      // The round holds everyone's suggestions, so only admins read it. Members get
+      // their own part from the getMyRound function and join with joinMatchingRound.
+      allow read, write: if isAdmin();
 
       match /assignments/{girlUid} {
         allow read: if request.auth != null && (request.auth.uid == girlUid || isAdmin());
@@ -516,9 +499,12 @@ service cloud.firestore {
                       request.auth != null
                       && request.auth.uid in resource.data.participants
                       && request.resource.data.diff(resource.data).affectedKeys()
-                           .hasOnly(['offer', 'answer', 'status', 'startedAt', 'endedAt', 'endedBy', 'endReason', 'decisions'])
+                           .hasOnly(['offer', 'answer', 'status', 'startedAt', 'endedAt', 'endedBy', 'endReason', 'decisions', 'media'])
                       && request.resource.data.get('decisions', {}).get(otherParticipant(resource.data.participants), null)
                            == resource.data.get('decisions', {}).get(otherParticipant(resource.data.participants), null)
+                      // Connection report ({ ok, relay }): only your own entry
+                      && request.resource.data.get('media', {}).get(otherParticipant(resource.data.participants), null)
+                           == resource.data.get('media', {}).get(otherParticipant(resource.data.participants), null)
                     );
       allow create, delete: if false;
 

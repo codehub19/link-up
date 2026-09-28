@@ -20,9 +20,8 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { db, storage } from '../firebase'
-import { getActiveRound } from './rounds'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions, storage } from '../firebase'
 
 export type Payment = {
   id?: string
@@ -98,10 +97,8 @@ export async function approvePayment(paymentId: string) {
 
   // Join round logic...
   try {
-    const fns = getFunctions()
-    const join = httpsCallable(fns, 'joinMatchingRound')
-    const active = await getActiveRound()
-    if (active?.id) await join({ roundId: active.id })
+    const join = httpsCallable(functions, 'joinMatchingRound')
+    await join({}) // the server picks the active round
   } catch {
     // ignore
   }

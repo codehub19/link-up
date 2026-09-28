@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { createRound, listRounds, setActiveRound, syncApprovedMalesToActiveRound, setPhaseTimes, getPhaseTimes } from '../../services/rounds'
+import { createRound, listRounds, setActiveRound, syncActiveRound, setPhaseTimes, getPhaseTimes } from '../../services/rounds'
 import { Timestamp } from 'firebase/firestore'
 import { Link } from 'react-router-dom'
 
@@ -57,7 +57,7 @@ export default function RoundsAdmin() {
     setSyncMsg(null)
     setSyncing(true)
     try {
-      const res = await syncApprovedMalesToActiveRound()
+      const res = await syncActiveRound()
       setSyncMsg(`Synced. Total males in round: ${res.totalMales}.`)
       await refresh()
     } catch (e: any) {

@@ -4,8 +4,7 @@ import { useAuth } from '../../../state/AuthContext'
 import { isDatingReady } from '../../../firebase'
 import DatingIntro from '../../../components/dating/DatingIntro'
 import { useEffect, useState } from 'react'
-import { getActiveRound } from '../../../services/rounds'
-import { getAssignedGirlsForBoy } from '../../../services/assignments'
+import { getMyRound } from '../../../services/rounds'
 import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore'
 import { db, callJoinMatchingRound } from '../../../firebase'
 import { getActiveSubscription, formatPremiumUntil, type ActiveSubscription } from '../../../services/subscriptions'
@@ -71,28 +70,28 @@ export default function MatchingRounds() {
   const [joining, setJoining] = useState(false)
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
+  // Your part of the active round comes from the server (the round itself is private)
   useEffect(() => {
-    const run = async () => {
-      const active = await getActiveRound()
-      if (!active) {
+    if (!user) return
+    getMyRound().then((r) => {
+      if (!r.round) {
         setRoundId(null)
         setRoundObj(null)
+        setAssignedUids([])
         return
       }
-      setRoundId(active.id || active.roundId)
-      setRoundObj(active)
-    }
-    run()
-  }, [])
+      setRoundId(r.round.id)
+      setRoundObj(r.round)
+      setInRound(!!r.inRound)
+      setAssignedUids(r.assigned || [])
+    }).catch(() => { setRoundId(null); setRoundObj(null) })
+  }, [user])
 
   useEffect(() => {
     if (!user) return
     getActiveSubscription(user.uid).then(setPremium).catch(() => setPremium(null))
   }, [user])
 
-  useEffect(() => {
-    setInRound(!!user && Array.isArray(roundObj?.participatingMales) && roundObj.participatingMales.includes(user.uid))
-  }, [roundObj, user])
 
   const joinRound = async () => {
     if (!roundId) return
@@ -108,17 +107,6 @@ export default function MatchingRounds() {
     }
   }
 
-  useEffect(() => {
-    const run = async () => {
-      if (!roundId || !user) {
-        setAssignedUids([])
-        return
-      }
-      const assigned = await getAssignedGirlsForBoy(roundId, user.uid)
-      setAssignedUids(assigned || [])
-    }
-    run()
-  }, [roundId, user])
 
   useEffect(() => {
     const run = async () => {

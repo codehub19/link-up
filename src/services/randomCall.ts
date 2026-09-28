@@ -281,8 +281,33 @@ export class RandomCallSession {
 
   private markConnected() {
     if (this.recoverTimer) { clearTimeout(this.recoverTimer); this.recoverTimer = undefined }
+    const first = !this.connected
     this.connected = true
     this.onState('connected')
+    if (first) this.reportMedia(true)
+  }
+
+  /** The call timed out before audio connected. */
+  reportFailed() { if (!this.connected) this.reportMedia(false) }
+
+  private reported = false
+  /** Record whether audio actually connected (and via relay) so admins can see the connect rate. */
+  private async reportMedia(ok: boolean) {
+    if (this.reported) return
+    this.reported = true
+    let relay: boolean | null = null
+    try {
+      const stats = await this.pc?.getStats()
+      stats?.forEach((r: any) => {
+        if (r.type === 'candidate-pair' && (r.nominated || r.selected) && r.state === 'succeeded') {
+          const local = stats.get(r.localCandidateId) as any
+          if (local) relay = local.candidateType === 'relay'
+        }
+      })
+    } catch { /* stats not available */ }
+    updateDoc(doc(db, 'randomCalls', this.callId), {
+      [`media.${this.myUid}`]: { ok, relay, restarts: this.restarts, at: serverTimestamp() },
+    }).catch(() => { })
   }
 
   /**
@@ -299,7 +324,7 @@ export class RandomCallSession {
       if (this.closed || !pc) return
       const ok = pc.connectionState === 'connected' || pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed'
       if (ok) { this.markConnected(); return }
-      if (this.restarts >= MAX_RESTARTS) { this.onState('failed'); return }
+      if (this.restarts >= MAX_RESTARTS) { if (!this.connected) this.reportMedia(false); this.onState('failed'); return }
       this.restarts++
       if (this.isCaller) {
         try {

@@ -244,11 +244,11 @@ export default function CurationAdmin() {
               className="btn btn-primary"
               style={{ background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', border: 'none' }}
               onClick={async () => {
-                if (!window.confirm(`Auto-assign 3 random candidates to all unassigned ${phase === 'boys' ? 'boys' : 'girls'}?`)) return;
+                if (!window.confirm(`Suggest the best 3 matches to everyone in the ${phase === 'boys' ? 'boys' : 'girls'} round who has none yet? (Runs on the server; respects age range, college-only, blocks and past matches.)`)) return;
                 try {
-                  const { autoMatchUsers } = await import('../../services/rounds'); // Lazy import to avoid circular dep if any
-                  const res = await autoMatchUsers(activeRound.id, phase);
-                  alert(`Successfully auto-matched ${res.assignedUsersCount} users!`);
+                  const { runRoundMatching } = await import('../../services/rounds');
+                  const res = await runRoundMatching(activeRound.id, phase, 'smart');
+                  alert(`Done — suggestions added for ${res.changes} people.`);
                   // Force refresh (a bit hacky, but effective)
                   window.location.reload();
                 } catch (e: any) {

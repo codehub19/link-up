@@ -18,6 +18,8 @@ function duration(c: any) {
 }
 
 function outcome(c: any) {
+  const media = Object.values(c.media || {}) as any[]
+  if (c.startedAt && media.length && !media.some((m) => m?.ok)) return '⚠️ No audio (network)'
   if (c.type === 'match') return c.endReason === 'declined' ? 'Declined' : c.startedAt ? 'Answered' : c.status === 'ended' ? 'Missed' : '—'
   if (c.connected) return '💞 Mutual like'
   const d = Object.values(c.decisions || {})
@@ -59,6 +61,18 @@ export default function CallsAdmin() {
   const today = new Date().toDateString()
   const todays = calls.filter((c) => new Date(toMillis(c.createdAt)).toDateString() === today)
 
+  // Connect rate: of the calls that were answered, how many got audio through
+  const connectStats = useMemo(() => {
+    const answered = calls.filter((c) => c.startedAt && c.media)
+    const connected = answered.filter((c) => Object.values(c.media || {}).some((m: any) => m?.ok))
+    const relayed = connected.filter((c) => Object.values(c.media || {}).some((m: any) => m?.relay))
+    return {
+      answered: answered.length,
+      rate: answered.length ? Math.round((connected.length / answered.length) * 100) : null,
+      relay: connected.length ? Math.round((relayed.length / connected.length) * 100) : null,
+    }
+  }, [calls])
+
   const shown = useMemo(() => calls.filter((c) => typeFilter === 'all' || (c.type || 'random') === typeFilter), [calls, typeFilter])
   const nm = (u: string) => names[u] || u?.slice(0, 8)
 
@@ -93,6 +107,16 @@ export default function CallsAdmin() {
           <div className="stat-label">Calls today</div>
           <div className="stat-value">{todays.length}</div>
           <div style={{ fontSize: 13, color: 'var(--admin-text-muted)', marginTop: 4 }}>{todays.filter((c) => c.connected).length} mutual likes</div>
+        </div>
+        <div className="admin-card" style={{ marginBottom: 0 }}>
+          <div className="stat-label">Connect rate</div>
+          <div className="stat-value" style={{ color: connectStats.rate != null && connectStats.rate < 85 ? '#fbbf24' : undefined }}>
+            {connectStats.rate == null ? '—' : `${connectStats.rate}%`}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--admin-text-muted)', marginTop: 4 }}>
+            of {connectStats.answered} recent answered calls{connectStats.relay != null ? ` · ${connectStats.relay}% via relay` : ''}
+            {connectStats.rate != null && connectStats.rate < 85 ? ' · set up TURN in Call settings' : ''}
+          </div>
         </div>
       </div>
 

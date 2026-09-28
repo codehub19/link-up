@@ -359,6 +359,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         playEnded()
         return
       }
+      if (!ringing) sessionRef.current.reportFailed()
       endSession(ringing ? 'no_answer' : 'failed', ringing
         ? 'No answer. Try again later.'
         : 'Couldn’t connect. Your network may be blocking calls — try switching between Wi-Fi and mobile data.')

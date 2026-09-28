@@ -4,7 +4,7 @@ import { useAuth } from '../../../state/AuthContext'
 import { isDatingReady } from '../../../firebase'
 import DatingIntro from '../../../components/dating/DatingIntro'
 import { useEffect, useState } from 'react'
-import { getActiveRound } from '../../../services/rounds'
+import { getMyRound } from '../../../services/rounds'
 import { getBoysWhoLikedGirl } from '../../../services/likes'
 import { toMillis } from '../../../services/subscriptions'
 import { collection, getDocs, query, where } from 'firebase/firestore'
@@ -69,18 +69,12 @@ export default function MatchingRound() {
 
   // Load assigned boys
   useEffect(() => {
-    const run = async () => {
-      const active = await getActiveRound()
-      if (!active) {
-        setRoundId(null)
-        setRoundObj(null)
-        return
-      }
-      setRoundId(active.id || active.roundId)
-      setRoundObj(active)
-    }
-    run()
-  }, [])
+    if (!user) return
+    getMyRound().then((r) => {
+      setRoundId(r.round?.id || null)
+      setRoundObj(r.round || null)
+    }).catch(() => { setRoundId(null); setRoundObj(null) })
+  }, [user])
 
   useEffect(() => {
     const run = async () => {
