@@ -4,6 +4,7 @@ import {
 import { httpsCallable } from 'firebase/functions'
 import { db, functions } from '../firebase'
 import { threadIdFor } from './chat'
+import { track } from '../utils/analytics'
 
 export type FriendRequest = {
   id: string
@@ -33,6 +34,7 @@ export function subscribeMyFriendRequests(uid: string, cb: (all: FriendRequest[]
 
 export async function sendFriendRequest(from: string, to: string, message?: string) {
   const text = (message || '').trim().slice(0, 140)
+  track('friend_request_sent', { with_note: !!text })
   await setDoc(doc(db, 'friendRequests', reqId(from, to)), {
     from,
     to,
@@ -48,6 +50,7 @@ export async function cancelFriendRequest(from: string, to: string) {
 
 /** Accept a request and open (or mark) the chat between the two of you, in one write. */
 export async function acceptFriendRequest(req: FriendRequest) {
+  track('friend_request_accepted')
   const tid = threadIdFor(req.from, req.to)
   const threadRef = doc(db, 'threads', tid)
   const existing = await getDoc(threadRef).catch(() => null)

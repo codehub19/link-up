@@ -14,6 +14,10 @@ import { onMessage } from "firebase/messaging";
 import { NotificationPrompt } from './components/NotificationPrompt'
 import { toast } from 'sonner';
 import { DialogProvider } from './components/ui/Dialog';
+import ErrorBoundary from './components/ErrorBoundary'
+import { initMonitoring } from './utils/analytics'
+
+initMonitoring()
 
 onMessage(messaging, (payload) => {
   const title = payload.notification?.title || payload.data?.title || "DateU";
@@ -42,6 +46,7 @@ registerSW({ immediate: true })
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
+    <ErrorBoundary>
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <DialogProvider>
@@ -51,5 +56,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </DialogProvider>
       </AuthProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 )

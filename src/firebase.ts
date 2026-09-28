@@ -93,6 +93,7 @@ export const setupPresence = (uid: string) => {
 };
 
 import { getToken } from "firebase/messaging";
+import { track } from './utils/analytics'
 
 // Public web-push key (safe to ship in the client)
 export const FCM_VAPID_KEY = 'BJMro5dKsOYThOeAFmzgqyZ5a5wUzlFQjEMNGChI6KxSqQHPCw_6_NcPNuLt0O-gR04SR-QeCCUhezAIQjC3s_U'
@@ -399,6 +400,7 @@ export async function updateProfileAndStatus(
       // DateU is for making friends: students show up in Friends unless they turn it off
       ...(prof?.userType !== 'general' && prof?.friendsVisible === undefined ? { friendsVisible: true, friendsAudience: 'all' } : {}),
     })
+    track('profile_completed', { student: prof?.userType !== 'general' })
 
     // Send Welcome Notification
     try {

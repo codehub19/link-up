@@ -3,6 +3,7 @@ import {
   serverTimestamp, setDoc, Timestamp, updateDoc, where,
 } from 'firebase/firestore'
 import { db } from '../firebase'
+import { track } from '../utils/analytics'
 
 /*
  * Interest groups: "Gym buddies", "Weekend treks", "Startup people"…
@@ -77,6 +78,7 @@ export function subscribePosts(groupId: string, cb: (posts: GroupPost[]) => void
 }
 
 export async function joinGroup(groupId: string, uid: string) {
+  track('group_joined', { group: groupId })
   await updateDoc(doc(db, 'groups', groupId), { memberUids: arrayUnion(uid), memberCount: increment(1) })
 }
 
@@ -86,6 +88,7 @@ export async function leaveGroup(groupId: string, uid: string) {
 
 export async function createPost(groupId: string, me: { uid: string; name?: string; photoUrl?: string | null; college?: string | null }, text: string, when?: string) {
   const w = (when || '').trim().slice(0, 60)
+  track('group_post', { group: groupId })
   await addDoc(collection(db, 'groups', groupId, 'posts'), {
     authorUid: me.uid,
     authorName: (me.name || 'Student').split(' ')[0],
@@ -100,6 +103,7 @@ export async function createPost(groupId: string, me: { uid: string; name?: stri
 }
 
 export async function setImIn(groupId: string, postId: string, uid: string, isIn: boolean) {
+  if (isIn) track('group_im_in', { group: groupId })
   await updateDoc(doc(db, 'groups', groupId, 'posts', postId), {
     inUids: isIn ? arrayUnion(uid) : arrayRemove(uid),
     inCount: increment(isIn ? 1 : -1),

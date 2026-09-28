@@ -69,6 +69,7 @@ export async function sendMessage(
   replyTo?: ChatMessage['replyTo']
 ) {
   const now = Date.now()
+  track('message_sent', { type })
   const msgCol = collection(db, 'threads', threadId, 'messages')
   const res = await addDoc(msgCol, {
     text,
@@ -114,6 +115,7 @@ export async function markThreadAsRead(threadId: string, uid: string) {
 
 // Basic helper to delete message
 import { deleteDoc } from 'firebase/firestore'
+import { track } from '../utils/analytics'
 
 export async function deleteMessage(threadId: string, messageId: string) {
   const ref = doc(db, 'threads', threadId, 'messages', messageId)

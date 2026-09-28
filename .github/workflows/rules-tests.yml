@@ -1,0 +1,22 @@
+name: Firestore rules tests
+on:
+  pull_request:
+    paths: ['firestore.rules', 'tests/rules/**', '.github/workflows/rules-tests.yml']
+  push:
+    branches: [main]
+    paths: ['firestore.rules', 'tests/rules/**']
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npx --yes firebase-tools@14 emulators:exec --only firestore --project demo-dateu-rules "node --test tests/rules/firestore.rules.test.mjs"

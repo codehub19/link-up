@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore'
 import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage'
 import { db, storage } from '../firebase'
+import { track } from '../utils/analytics'
 
 export type EventType =
   | 'buddy' | 'fest' | 'meetup' | 'study' | 'sports' | 'trip' | 'music' | 'movie' | 'gaming' | 'workshop' | 'hackathon'
@@ -119,6 +120,7 @@ export async function registerForEvent(
   opts: { lookingForBuddy?: boolean; note?: string } = {},
 ) {
   const note = (opts.note || '').trim().slice(0, 140)
+  track('event_joined', { type: event.type || null, buddy: !!opts.lookingForBuddy })
   const batch = writeBatch(db)
   batch.set(doc(db, 'events', event.id, 'attendees', me.uid), {
     uid: me.uid,

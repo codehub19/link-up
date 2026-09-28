@@ -19,6 +19,7 @@ import {
 } from '../firebase'
 import { getToken, onMessage } from 'firebase/messaging'
 import { messaging } from '../firebase'
+import { identify, resetAnalytics, track } from '../utils/analytics'
 
 type AuthCtx = {
   user: User | null
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.warn('Private data migration skipped', e)
     }
     let data = normalizeProfile(snap.data())
+    identify(uid, { gender: (data as any)?.gender || null, student: (data as any)?.userType !== 'general', dating: (data as any)?.datingEnabled === true })
     // Auto repair: if flattened keys exist and nested is empty
     if (data && Object.keys(data.setupStatus || {}).length === 0) {
       const statusCopy = data.setupStatus || {}
@@ -141,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     login: async () => {
       const { user: u, isNewUser } = await signInWithGoogle()
+      if (isNewUser) track('signed_up', { method: 'google' })
       if (u && u.uid) {
         try {
           await ensureUserDocument(u)
@@ -152,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return isNewUser
     },
-    logout: async () => { await signOut() },
+    logout: async () => { resetAnalytics(); await signOut() },
     refreshProfile: async () => { if (auth.currentUser) await loadProfile(auth.currentUser.uid) },
   }), [user, profile, loading])
 

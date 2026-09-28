@@ -14,14 +14,16 @@
     "deploy": "firebase deploy",
     "clean:shadow:win": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Get-ChildItem -Path src -Recurse -Filter *.js | ForEach-Object { $ts=$_.FullName -replace '\\.js$', '.tsx'; $jsx=$_.FullName -replace '\\.js$', '.jsx'; if (Test-Path $ts -or Test-Path $jsx) { Remove-Item -LiteralPath $_.FullName -Force } }; Get-ChildItem -Path src -Recurse -Filter *.js.map | ForEach-Object { $tsx=$_.FullName -replace '\\.js\\.map$', '.tsx'; $jsx=$_.FullName -replace '\\.js\\.map$', '.jsx'; if (Test-Path $tsx -or Test-Path $jsx) { Remove-Item -LiteralPath $_.FullName -Force } }\"",
     "clean:shadow:nix": "bash -lc \"shopt -s globstar; for f in src/**/*.js; do base=${f%.js}; if [[ -e ${base}.tsx || -e ${base}.jsx ]]; then rm -f \\\"$f\\\"; fi; done; for m in src/**/*.js.map; do base=${m%.js.map}; if [[ -e ${base}.tsx || -e ${base}.jsx ]]; then rm -f \\\"$m\\\"; fi; done\"",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-dateu-rules \"node --test tests/rules/firestore.rules.test.mjs\""
+    "test:rules": "npx --yes firebase-tools emulators:exec --only firestore --project demo-dateu-rules \"node --test tests/rules/firestore.rules.test.mjs\""
   },
   "dependencies": {
     "@firebase/messaging": "^0.12.23",
+    "@sentry/react": "^9.47.1",
     "browser-image-compression": "^2.0.2",
     "firebase": "^12.4.0",
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.562.0",
+    "posthog-js": "^1.434.17",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

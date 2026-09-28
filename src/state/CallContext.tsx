@@ -21,6 +21,7 @@ import {
   prefetchIceServers,
 } from '../services/randomCall'
 import { playConnected, playEnded, startRingback, startRingtone, unlockAudio } from '../utils/callSounds'
+import { track } from '../utils/analytics'
 
 /*
  * Calls belong to the app, not to a page. Starting or answering a call is an
@@ -308,7 +309,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     const session = new RandomCallSession(call.id, uid, peerUid, call.callerUid === uid, (st) => {
       if (st === 'connected') {
-        if (stateRef.current.phase !== 'in-call') playConnected()
+        if (stateRef.current.phase !== 'in-call') { playConnected(); track('call_connected', { type: call.type || 'random' }) }
         set((p) => ({ connectedAt: p.connectedAt ?? Date.now(), wasConnected: true, reconnecting: false, phase: 'in-call' }))
       } else if (st === 'reconnecting') {
         set({ reconnecting: true })

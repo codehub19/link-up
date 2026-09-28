@@ -20,6 +20,7 @@ export async function verifyPayment(payload: {
 }) {
   const callable = httpsCallable(fns(), 'verifyRazorpayPayment')
   const res: any = await callable(payload)
+  if (res.data?.success) track('premium_purchased', { plan: payload.planId })
   return res.data as {
     success: boolean
     paymentDocId: string
@@ -41,6 +42,7 @@ import {
   limit,
   Timestamp,
 } from 'firebase/firestore'
+import { track } from '../utils/analytics'
 
 export interface Payment {
   id: string
