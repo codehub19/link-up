@@ -334,7 +334,7 @@ service cloud.firestore {
         !exists(/databases/$(database)/documents/userBlocks/$(userId)) ||   // non-existent doc is OK to read
         (
           exists(/databases/$(database)/documents/userBlocks/$(userId)) &&  // blocked user can read
-          request.auth.uid in (get(/databases/$(database)/documents/userBlocks/$(userId)).data.uids || [])
+          request.auth.uid in get(/databases/$(database)/documents/userBlocks/$(userId)).data.get('uids', [])
         )
       );
 
