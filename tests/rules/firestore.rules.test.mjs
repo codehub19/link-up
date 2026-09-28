@@ -4,7 +4,7 @@ import { test, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing'
-import { doc, getDoc, setDoc, updateDoc, writeBatch, increment, serverTimestamp, Timestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc, writeBatch, increment, serverTimestamp, Timestamp, arrayUnion, arrayRemove, addDoc, collection } from 'firebase/firestore'
 
 let env
 const [host, port] = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':')
@@ -109,4 +109,33 @@ test('reports: anyone can report, only the reporter and admins can read it', asy
   await assertSucceeds(getDoc(doc(as('r'), 'reports/x')))
   await assertFails(getDoc(doc(as('z'), 'reports/x')))
   await assertSucceeds(getDoc(doc(as('admin'), 'reports/x')))
+})
+
+test('groups: join/leave only yourself; only members post; "I\'m in" only adds yourself', async () => {
+  await seed(async (db) => {
+    await setDoc(doc(db, 'users/a'), person())
+    await setDoc(doc(db, 'users/b'), person())
+    await setDoc(doc(db, 'groups/g1'), { name: 'Gym', active: true, memberUids: ['b'], memberCount: 1 })
+  })
+  const post = (uid) => addDoc(collection(as(uid), 'groups/g1/posts'), { authorUid: uid, authorName: 'X', text: 'Gym at 7?', inUids: [], inCount: 0, createdAt: serverTimestamp() })
+  await assertFails(post('a')) // not a member yet
+  await assertFails(updateDoc(doc(as('a'), 'groups/g1'), { memberUids: arrayUnion('a', 'z'), memberCount: increment(2) }))
+  await assertFails(updateDoc(doc(as('a'), 'groups/g1'), { memberUids: arrayRemove('b'), memberCount: increment(-1) }))
+  await assertSucceeds(updateDoc(doc(as('a'), 'groups/g1'), { memberUids: arrayUnion('a'), memberCount: increment(1) }))
+  const ref = await post('a')
+  await assertSucceeds(Promise.resolve(ref))
+  const p = doc(as('b'), `groups/g1/posts/${ref.id}`)
+  await assertFails(updateDoc(p, { inUids: arrayUnion('b', 'z'), inCount: increment(2) }))
+  await assertSucceeds(updateDoc(p, { inUids: arrayUnion('b'), inCount: increment(1) }))
+  await assertFails(updateDoc(doc(as('b'), `groups/g1/posts/${ref.id}`), { text: 'edited' }))
+  await assertSucceeds(updateDoc(doc(as('a'), 'groups/g1'), { memberUids: arrayRemove('a'), memberCount: increment(-1) }))
+})
+
+test('photo reviews are admin-only', async () => {
+  await seed(async (db) => {
+    await setDoc(doc(db, 'users/admin'), person({ isAdmin: true }))
+    await setDoc(doc(db, 'photoReviews/p1'), { uid: 'a', url: 'x', status: 'pending' })
+  })
+  await assertFails(getDoc(doc(as('a'), 'photoReviews/p1')))
+  await assertSucceeds(getDoc(doc(as('admin'), 'photoReviews/p1')))
 })

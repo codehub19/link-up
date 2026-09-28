@@ -673,3 +673,4 @@ export const expirePremium = onSchedule({ schedule: '15 0 * * *', timeZone: 'Asi
   logger.info('[expirePremium]', { expired, migrated })
 })
 export * from './discovery'
+export * from './groups'

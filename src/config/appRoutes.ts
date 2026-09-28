@@ -14,5 +14,5 @@ export const PUSHED_ROUTES = [
 ]
 
 export function isPushedRoute(pathname: string) {
-  return PUSHED_ROUTES.includes(pathname) || /^\/dashboard\/events\/[^/]+/.test(pathname)
+  return PUSHED_ROUTES.includes(pathname) || /^\/dashboard\/(events|groups)\/[^/]+/.test(pathname)
 }

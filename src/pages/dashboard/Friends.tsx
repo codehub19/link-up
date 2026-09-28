@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import GroupsList from './groups/GroupsList'
 import { toast } from 'sonner'
 import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
@@ -19,7 +20,7 @@ import { suggestOpeners } from '../../config/prompts'
 import './Friends.css'
 
 type Person = { uid: string; name?: string; photoUrl?: string; college?: string; dob?: string; gender?: string; interests?: string[]; bio?: string; friendsAudience?: 'all' | 'same'; collegeId?: { verified?: boolean }; banned?: boolean; underReview?: boolean; photoHidden?: boolean; prompts?: { q: string; a: string }[]; verified?: boolean; reasons?: string[] }
-type Tab = 'discover' | 'requests' | 'friends'
+type Tab = 'discover' | 'groups' | 'requests' | 'friends'
 
 function ageFrom(dob?: string) {
   if (!dob) return ''
@@ -50,7 +51,8 @@ export default function FriendsPage() {
   const me: any = profile || {}
   const isStudent = me.userType !== 'general'
 
-  const [tab, setTab] = useState<Tab>('discover')
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState<Tab>(() => (['discover', 'groups', 'requests', 'friends'].includes(params.get('tab') || '') ? params.get('tab') as Tab : 'discover'))
   const [people, setPeople] = useState<Person[]>([])
   const [loadingPeople, setLoadingPeople] = useState(true)
   const [nextOffset, setNextOffset] = useState<number | null>(null)
@@ -202,7 +204,7 @@ export default function FriendsPage() {
       </div>
     )
   } else {
-    const tabs: [Tab, string, number][] = [['discover', 'Discover', 0], ['requests', 'Requests', incoming.length], ['friends', 'Friends', friends.length]]
+    const tabs: [Tab, string, number][] = [['discover', 'Discover', 0], ['groups', 'Groups', 0], ['requests', 'Requests', incoming.length], ['friends', 'Friends', friends.length]]
     body = (
       <>
         <div className="fr-tabs" role="tablist">
@@ -266,6 +268,8 @@ export default function FriendsPage() {
             )}
           </>
         )}
+
+        {tab === 'groups' && <GroupsList uid={user.uid} interests={me.interests} />}
 
         {tab === 'requests' && (
           <div className="fr-list">
