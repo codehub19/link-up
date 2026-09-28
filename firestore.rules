@@ -471,6 +471,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // "Who viewed your profile" (written and read through Cloud Functions only)
+    match /profileViews/{id} {
+      allow read, write: if false;
+    }
+
     // Photo moderation (written by Cloud Functions only)
     match /photoReviews/{id} {
       allow read: if isAdmin();

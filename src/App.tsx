@@ -72,6 +72,7 @@ const DatingSetup = lazy(() => import('./pages/dashboard/DatingSetup'))
 const EventsPage = lazy(() => import('./pages/dashboard/events/Events'))
 const EventDetail = lazy(() => import('./pages/dashboard/events/EventDetail'))
 const GroupDetail = lazy(() => import('./pages/dashboard/groups/GroupDetail'))
+const WhoViewed = lazy(() => import('./pages/dashboard/views/WhoViewed'))
 const EventsAdmin = lazy(() => import('./pages/admin/EventsAdmin'))
 const GroupsAdmin = lazy(() => import('./pages/admin/GroupsAdmin'))
 const ReportsAdmin = lazy(() => import('./pages/admin/ReportsAdmin'))
@@ -249,6 +250,7 @@ export default function App() {
           <Route path="/dashboard/events" element={<Protected><EventsPage /></Protected>} />
           <Route path="/dashboard/events/:id" element={<Protected><EventDetail /></Protected>} />
           <Route path="/dashboard/groups/:id" element={<Protected><GroupDetail /></Protected>} />
+          <Route path="/dashboard/views" element={<Protected><WhoViewed /></Protected>} />
 
           <Route
             path="/dashboard/dating-profile"

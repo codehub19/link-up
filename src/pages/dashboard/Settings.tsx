@@ -238,6 +238,12 @@ export default function SettingsPage() {
           }
         },
         {
+          label: 'Show when I view profiles',
+          type: 'toggle' as const,
+          checked: profile?.showViews !== false,
+          action: () => toggleSetting('showViews', profile?.showViews !== false)
+        },
+        {
           label: 'Show me in Friends',
           type: 'toggle' as const,
           checked: !!profile?.friendsVisible,

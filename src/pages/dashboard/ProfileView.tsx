@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { recordProfileView } from '../../services/profileViews'
 import { useNavigate, useParams } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
 import { toast } from 'sonner'
@@ -86,6 +87,7 @@ export default function ProfileView() {
   }, [uid])
 
   useEffect(() => { if (myUid && !isMe) return subscribeMyFriendRequests(myUid, setRequests) }, [myUid, isMe])
+  useEffect(() => { if (myUid && uid && !isMe) recordProfileView(uid) }, [myUid, uid, isMe])
   useEffect(() => { if (myUid) return subscribeBlockedEitherWay(myUid, setBlocked) }, [myUid])
   useEffect(() => {
     if (!myUid || isMe) return

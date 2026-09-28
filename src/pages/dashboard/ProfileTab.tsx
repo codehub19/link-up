@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { getProfileViews } from '../../services/profileViews'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
@@ -35,6 +36,8 @@ const toMs = (t: any) => (t?.toMillis ? t.toMillis() : t?.seconds ? t.seconds * 
 
 /** The Profile tab (shared by men and women; each passes its own referral card). */
 export default function ProfileTab({ referral }: { referral?: React.ReactNode }) {
+  const [views, setViews] = useState<number | null>(null)
+  useEffect(() => { getProfileViews().then((v) => setViews(v ? v.count : null)) }, [])
   const { profile, user } = useAuth()
   const nav = useNavigate()
   const [idSheet, setIdSheet] = useState(false)
@@ -186,6 +189,14 @@ export default function ProfileTab({ referral }: { referral?: React.ReactNode })
         {referral}
 
         <div className="pt-list">
+          <button type="button" className="pt-row" onClick={() => nav('/dashboard/views')}>
+            <span className="pt-row-icon premium"><Icon><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></Icon></span>
+            <span className="pt-row-body">
+              <span className="pt-row-title">Profile views</span>
+              <span className="pt-row-sub">{views == null ? 'See who’s been checking you out' : `${views} ${views === 1 ? 'person' : 'people'} this week`}</span>
+            </span>
+            <Chevron />
+          </button>
           {dating ? (
             <button type="button" className="pt-row" onClick={() => nav('/dashboard/matches')}>
               <span className="pt-row-icon"><Icon><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" /></Icon></span>

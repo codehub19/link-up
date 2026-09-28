@@ -61,6 +61,10 @@ export default function PrivacyPolicy() {
             Other members can see your first name, age, photos, college, bio, interests, profile prompts and (if you turned dating on, and only to others in dating) your dating details.
             People going to the same event can see that you’re going and your note. We <strong className="text-gray-200">never show</strong> your email, phone number, Instagram, date of birth or college ID.
           </p>
+          <p>
+            When you open someone’s profile, they see that one more person viewed them this week, and Premium members can see it was you.
+            Turn off “Show when I view profiles” in Settings to stop this (you then can’t see who viewed you either).
+          </p>
           <p>You control this in Settings → Safety &amp; privacy: hide yourself from Friends, allow requests only from verified students, or be visible only to your own gender.</p>
         </Sec>
 

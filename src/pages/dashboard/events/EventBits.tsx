@@ -108,3 +108,23 @@ export function SuggestSheet({ open, onClose, uid, name }: { open: boolean; onCl
     </Sheet>
   )
 }
+
+/** "Presented by <sponsor>" and a ticket button, when the event has them. */
+export function SponsorAndTickets({ event }: { event: { sponsorName?: string; sponsorLogoUrl?: string; sponsorUrl?: string; ticketUrl?: string; price?: string } }) {
+  if (!event.sponsorName && !event.ticketUrl) return null
+  return (
+    <div className="ev-sponsor-block">
+      {event.sponsorName && (
+        <a className="ev-sponsor" href={event.sponsorUrl || undefined} target="_blank" rel="noopener noreferrer sponsored" onClick={(e) => { if (!event.sponsorUrl) e.preventDefault() }}>
+          {event.sponsorLogoUrl && <img src={event.sponsorLogoUrl} alt="" loading="lazy" />}
+          <span><small>Presented by</small><strong>{event.sponsorName}</strong></span>
+        </a>
+      )}
+      {event.ticketUrl && (
+        <a className="ev-btn sm ev-ticket-btn" href={event.ticketUrl} target="_blank" rel="noopener noreferrer">
+          🎟️ Get tickets{event.price ? ` · ${event.price}` : ''}
+        </a>
+      )}
+    </div>
+  )
+}

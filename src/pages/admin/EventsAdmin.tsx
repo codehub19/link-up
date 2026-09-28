@@ -22,14 +22,21 @@ type Form = {
   capacity: string
   price: string
   organizer: string
+  ticketUrl: string
+  sponsorName: string
+  sponsorLogoUrl: string
+  sponsorUrl: string
   coverUrl: string
   status: EventStatus
   featured: boolean
 }
 
+/** Only http(s) links are stored (no javascript: URLs). */
+const safeUrl = (u: string) => (/^https?:\/\//i.test(u.trim()) ? u.trim() : null)
+
 const EMPTY: Form = {
   title: '', type: 'meetup', buddy: false, buddyLabel: '', description: '', venue: '', city: '', college: '', mapUrl: '',
-  start: '', end: '', capacity: '', price: '', organizer: 'DateU', coverUrl: '', status: 'draft', featured: false,
+  start: '', end: '', capacity: '', price: '', organizer: 'DateU', ticketUrl: '', sponsorName: '', sponsorLogoUrl: '', sponsorUrl: '', coverUrl: '', status: 'draft', featured: false,
 }
 
 // One-tap starting points for common events
@@ -89,7 +96,7 @@ export default function EventsAdmin() {
       title: e.title, type: e.type, buddy: !!e.buddy, buddyLabel: e.buddyLabel || '', description: e.description || '',
       venue: e.venue || '', city: e.city || '', college: e.college || '', mapUrl: e.mapUrl || '',
       start: toLocal(e.startAt), end: toLocal(e.endAt), capacity: e.capacity ? String(e.capacity) : '',
-      price: e.price || '', organizer: e.organizer || '', coverUrl: e.coverUrl || '', status: e.status, featured: !!e.featured,
+      price: e.price || '', organizer: e.organizer || '', ticketUrl: e.ticketUrl || '', sponsorName: e.sponsorName || '', sponsorLogoUrl: e.sponsorLogoUrl || '', sponsorUrl: e.sponsorUrl || '', coverUrl: e.coverUrl || '', status: e.status, featured: !!e.featured,
     })
     document.getElementById('eventForm')?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -110,6 +117,8 @@ export default function EventsAdmin() {
         city: form.city.trim(), college: form.college.trim() || null, mapUrl: form.mapUrl.trim() || null,
         startAt, endAt, capacity: form.capacity ? Math.max(1, Number(form.capacity)) : 0,
         price: form.price.trim() || null, organizer: form.organizer.trim() || null,
+        ticketUrl: safeUrl(form.ticketUrl), sponsorName: form.sponsorName.trim() || null,
+        sponsorLogoUrl: safeUrl(form.sponsorLogoUrl), sponsorUrl: safeUrl(form.sponsorUrl),
         coverUrl: form.coverUrl || null, status: form.status, featured: form.featured,
       }
       const id = await saveEvent(editingId, data)
@@ -294,6 +303,10 @@ export default function EventsAdmin() {
             <div className="stack"><label>Capacity (blank = no limit)</label><input className="input" type="number" min={1} value={form.capacity} onChange={(e) => set('capacity', e.target.value)} /></div>
             <div className="stack"><label>Price text (optional)</label><input className="input" value={form.price} onChange={(e) => set('price', e.target.value)} placeholder="Free / ₹199 at the gate" /></div>
             <div className="stack"><label>Organiser</label><input className="input" value={form.organizer} onChange={(e) => set('organizer', e.target.value)} /></div>
+            <div className="stack"><label>Ticket link (optional)</label><input className="input" value={form.ticketUrl} onChange={(e) => set('ticketUrl', e.target.value)} placeholder="https://unstop.com/… or the organiser’s page" /></div>
+            <div className="stack"><label>Sponsor name (optional)</label><input className="input" value={form.sponsorName} onChange={(e) => set('sponsorName', e.target.value)} placeholder="Shown as “Presented by …”" /></div>
+            <div className="stack"><label>Sponsor logo URL (optional)</label><input className="input" value={form.sponsorLogoUrl} onChange={(e) => set('sponsorLogoUrl', e.target.value)} placeholder="https://…/logo.png" /></div>
+            <div className="stack"><label>Sponsor website (optional)</label><input className="input" value={form.sponsorUrl} onChange={(e) => set('sponsorUrl', e.target.value)} /></div>
             <div className="stack">
               <label>Cover image (optional)</label>
               <input className="input" type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} />

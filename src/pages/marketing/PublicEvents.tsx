@@ -7,7 +7,7 @@ import JoinButton from '../../components/home/JoinButton'
 import { useAuth } from '../../state/AuthContext'
 import { SITE_URL, useSeo } from '../../utils/seo'
 import { AppEvent, EVENT_TYPES, eventState, formatEventWhen, ms, subscribeEvent, subscribeEvents } from '../../services/events'
-import { EventCover, Icon } from '../dashboard/events/EventBits'
+import { EventCover, Icon, SponsorAndTickets } from '../dashboard/events/EventBits'
 import '../dashboard/events/Events.css'
 import './marketing.css'
 
@@ -134,6 +134,7 @@ export function PublicEventPage() {
                 <div className="ev-fact"><span className="ev-fact-icon">{Icon.people}</span><span><strong>{event.attendeeCount || 0} going</strong><small>Join to see who’s going</small></span></div>
                 {event.price && <div className="ev-fact"><span className="ev-fact-icon">{Icon.ticket}</span><span><strong>{event.price}</strong></span></div>}
               </div>
+              <SponsorAndTickets event={event} />
               {event.description && <p className="ev-desc" style={{ marginBottom: 20 }}>{event.description}</p>}
               {eventState(event) === 'past' || event.status === 'cancelled' ? (
                 <p className="mk-lead">{event.status === 'cancelled' ? 'This event was cancelled.' : 'This event has ended.'} <Link to="/events">See upcoming events →</Link></p>

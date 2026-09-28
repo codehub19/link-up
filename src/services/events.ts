@@ -47,6 +47,12 @@ export type AppEvent = {
   /** "Free", "₹199 at the gate", … */
   price?: string
   organizer?: string
+  /** Where to buy tickets (organiser's page, e.g. Unstop, Insider, BookMyShow) */
+  ticketUrl?: string
+  /** Sponsor shown as "Presented by …" */
+  sponsorName?: string
+  sponsorLogoUrl?: string
+  sponsorUrl?: string
   status: EventStatus
   featured?: boolean
   createdAt?: any

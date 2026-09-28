@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import GroupsList from './groups/GroupsList'
+import InviteCard from '../../components/InviteCard'
 import { toast } from 'sonner'
 import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
@@ -261,6 +262,9 @@ export default function FriendsPage() {
                 })}
               </div>
             )}
+            {!loadingPeople && discover.length > 0 && discover.length < 12 && nextOffset == null && (
+              <InviteCard where="discover_end" title="Want more people here?" text="Invite your friends and classmates — you both get free Premium days when they finish signing up." />
+            )}
             {!loadingPeople && nextOffset != null && (
               <button type="button" className="fr-btn ghost fr-more" onClick={loadMore} disabled={loadingMore}>
                 {loadingMore ? 'Loading…' : 'Show more people'}
@@ -322,6 +326,9 @@ export default function FriendsPage() {
 
         {tab === 'friends' && (
           <div className="fr-list">
+            {friends.length > 0 && friends.length < 5 && (
+              <InviteCard where="friends_tab" title="Nice! Now bring your crew" text="Invite your friends so you can plan events and calls together. You both get free Premium days." />
+            )}
             {friends.length === 0 ? (
               <EmptyState icon="heart" title="No friends yet" text="Say hi to a few people in Discover — when they accept, you can chat and call." actions={[{ label: 'Discover people', onClick: () => setTab('discover') }]} />
             ) : friends.map((uid) => {

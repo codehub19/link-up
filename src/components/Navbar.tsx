@@ -81,6 +81,7 @@ export default function Navbar() {
     "/pay": ["Payment", profileTab],
     "/dashboard/random-call": ["Random call", "/dashboard/chat"],
     "/dashboard/dating-profile": ["Dating profile", "/dashboard"],
+    "/dashboard/views": ["Profile views", profileTab],
   };
   // Help and legal pages opened from inside the app get a back button too
   // (the installed iPhone app has no browser back button)
@@ -99,7 +100,8 @@ export default function Navbar() {
   }
   const pushed = PUSHED[loc.pathname]
     || (loc.pathname.startsWith("/profile/") ? ["Profile", "/dashboard/friends"] as [string, string] : null)
-    || (loc.pathname.startsWith("/dashboard/events/") ? ["Event", "/dashboard/events"] as [string, string] : null);
+    || (loc.pathname.startsWith("/dashboard/events/") ? ["Event", "/dashboard/events"] as [string, string] : null)
+    || (loc.pathname.startsWith("/dashboard/groups/") ? ["Group", "/dashboard/friends?tab=groups"] as [string, string] : null);
   const pushedTitle = pushed?.[0];
   const pushedParent = pushed?.[1] || "/dashboard";
 

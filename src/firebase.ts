@@ -159,6 +159,8 @@ export type UserProfile = {
   /** Icebreaker prompts shown on the profile card */
   prompts?: { q: string; a: string }[]
   lastActiveAt?: any
+  /** Leave a trace when viewing profiles (and see who viewed you with Premium) */
+  showViews?: boolean
   createdAt?: any
   updatedAt?: any
   lastLoginAt?: any

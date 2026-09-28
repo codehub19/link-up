@@ -520,6 +520,14 @@ export default function MalePlans() {
                       <CheckIcon />
                       <span>Keep chatting after the 24-hour call window</span>
                     </li>
+                    <li className="plan-feature-item">
+                      <CheckIcon />
+                      <span>See who viewed your profile</span>
+                    </li>
+                    <li className="plan-feature-item">
+                      <CheckIcon />
+                      <span>Boost in Friends suggestions</span>
+                    </li>
                     {Array.isArray(p.offers) && p.offers.map((o: string) => (
                       <li key={o} className="plan-feature-item">
                         <CheckIcon />

@@ -11,7 +11,7 @@ import {
   AppEvent, Attendee, EVENT_TYPES, downloadIcs, eventState, formatEventWhen, isFull, leaveEvent, registerForEvent,
   subscribeAttendees, subscribeEvent, subscribeMyAttendance, updateMyAttendance,
 } from '../../../services/events'
-import { EventCover, Icon, Sheet } from './EventBits'
+import { EventCover, Icon, Sheet, SponsorAndTickets } from './EventBits'
 import './Events.css'
 
 type Rel = 'friends' | 'sent' | 'received' | null
@@ -217,10 +217,12 @@ export default function EventDetail() {
           {event.price && (
             <div className="ev-fact">
               <span className="ev-fact-icon">{Icon.ticket}</span>
-              <span><strong>{event.price}</strong><small>Tickets are handled by the organiser</small></span>
+              <span><strong>{event.price}</strong><small>{event.ticketUrl ? 'Buy tickets from the organiser below' : 'Tickets are handled by the organiser'}</small></span>
             </div>
           )}
         </div>
+
+        <SponsorAndTickets event={event} />
 
         <div className="ev-actions-row">
           <button type="button" className="ev-btn ghost sm" onClick={share}>{Icon.share} Share</button>

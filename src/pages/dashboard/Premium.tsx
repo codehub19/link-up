@@ -49,7 +49,7 @@ export default function PremiumPage() {
           </div>
           <h1 className="plans-title text-gradient">DateU Premium</h1>
           <p className="plans-subtitle">
-            Keep chatting with people you meet on random calls after the free 24 hours, and get more calls every day.
+            See who viewed your profile, get shown to more people in Friends, keep chatting after random calls, and get more calls every day.
           </p>
         </div>
 
@@ -89,6 +89,8 @@ export default function PremiumPage() {
                     {final > 0 && days > 1 && <div className="plan-per-day">That’s about ₹{Math.max(1, Math.round(final / days))} a day</div>}
                   </div>
                   <ul className="plan-features">
+                    <li className="plan-feature-item"><Check />See who viewed your profile</li>
+                    <li className="plan-feature-item"><Check />Boost in Friends suggestions</li>
                     <li className="plan-feature-item"><Check />Keep chatting after the free 24 hours</li>
                     {typeof p.dailyCallLimit === 'number' && <li className="plan-feature-item"><Check />{p.dailyCallLimit} random calls a day</li>}
                     {Array.isArray(p.offers) && p.offers.map((o: string) => <li key={o} className="plan-feature-item"><Check />{o}</li>)}
