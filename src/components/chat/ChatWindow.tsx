@@ -51,6 +51,7 @@ export default function ChatWindow({
   peerLastReadMs,
   peer,
   intro,
+  openers,
   onLike,
   onReply,
   onDelete,
@@ -72,6 +73,8 @@ export default function ChatWindow({
   peer?: { name?: string; photoUrl?: string }
   /** Shown above the first message, e.g. how you matched */
   intro?: string
+  /** Suggested first messages, shown while the chat is empty */
+  openers?: string[]
   onLike?: (msgId: string, currentLikes: string[]) => void
   onReply?: (msg: ChatMessage) => void
   onDelete?: (msgId: string) => void
@@ -190,6 +193,11 @@ export default function ChatWindow({
             <Avatar name={peer?.name} photoUrl={peer?.photoUrl} />
             <strong>{peer?.name || 'Chat'}</strong>
             {intro || 'Say hi and start the conversation 👋'}
+            {messages.length === 0 && !disabled && !!openers?.length && (
+              <div className="dm-openers">
+                {openers.map((o) => <button key={o} type="button" onClick={() => onSend(o)}>{o}</button>)}
+              </div>
+            )}
           </div>
         )}
         {rows}

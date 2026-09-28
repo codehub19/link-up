@@ -672,3 +672,4 @@ export const expirePremium = onSchedule({ schedule: '15 0 * * *', timeZone: 'Asi
   if (ops > 0) await batch.commit()
   logger.info('[expirePremium]', { expired, migrated })
 })
+export * from './discovery'

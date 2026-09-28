@@ -1,5 +1,5 @@
 import { onAuthStateChanged, User } from 'firebase/auth'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import {
   auth,
@@ -30,6 +30,18 @@ type AuthCtx = {
 }
 
 const Ctx = createContext<AuthCtx>({} as any)
+
+
+/** Used to rank "active recently" in Friends. Written at most every 6 hours per device. */
+function markActive(uid: string) {
+  try {
+    const key = `dateu.active.${uid}`
+    const last = Number(localStorage.getItem(key) || 0)
+    if (Date.now() - last < 6 * 3_600_000) return
+    localStorage.setItem(key, String(Date.now()))
+  } catch { /* storage unavailable: still write */ }
+  setDoc(doc(db, 'users', uid), { lastActiveAt: serverTimestamp() }, { merge: true }).catch(() => { })
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -96,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await loadProfile(u.uid)
           await saveFcmToken(u)
           setupPresence(u.uid)
+          markActive(u.uid)
         } else {
           setProfile(null)
         }

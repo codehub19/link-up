@@ -155,6 +155,9 @@ export type UserProfile = {
   /** Finished the dating details in the Dating tab */
   datingProfileComplete?: boolean
   isAdmin?: boolean
+  /** Icebreaker prompts shown on the profile card */
+  prompts?: { q: string; a: string }[]
+  lastActiveAt?: any
   createdAt?: any
   updatedAt?: any
   lastLoginAt?: any

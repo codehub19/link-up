@@ -9,15 +9,16 @@ import { updateProfileAndStatus } from '../../firebase'
 import { subscribeBlockedEitherWay } from '../../services/blocks'
 import {
   FriendRequest, MAX_PENDING_SENT, acceptFriendRequest, cancelFriendRequest, declineFriendRequest,
-  listDiscoverableStudents, removeFriend, sendFriendRequest, subscribeMyFriendRequests,
+  discoverPeople, listDiscoverableStudents, removeFriend, sendFriendRequest, subscribeMyFriendRequests,
 } from '../../services/friends'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { useDialog } from '../../components/ui/Dialog'
 import { useCall } from '../../state/CallContext'
+import { suggestOpeners } from '../../config/prompts'
 import './Friends.css'
 
-type Person = { uid: string; name?: string; photoUrl?: string; college?: string; dob?: string; gender?: string; interests?: string[]; bio?: string; friendsAudience?: 'all' | 'same'; collegeId?: { verified?: boolean }; banned?: boolean; underReview?: boolean; photoHidden?: boolean }
+type Person = { uid: string; name?: string; photoUrl?: string; college?: string; dob?: string; gender?: string; interests?: string[]; bio?: string; friendsAudience?: 'all' | 'same'; collegeId?: { verified?: boolean }; banned?: boolean; underReview?: boolean; photoHidden?: boolean; prompts?: { q: string; a: string }[]; verified?: boolean; reasons?: string[] }
 type Tab = 'discover' | 'requests' | 'friends'
 
 function ageFrom(dob?: string) {
@@ -52,6 +53,9 @@ export default function FriendsPage() {
   const [tab, setTab] = useState<Tab>('discover')
   const [people, setPeople] = useState<Person[]>([])
   const [loadingPeople, setLoadingPeople] = useState(true)
+  const [nextOffset, setNextOffset] = useState<number | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [ranked, setRanked] = useState(true)
   const [requests, setRequests] = useState<FriendRequest[]>([])
   const [blocked, setBlocked] = useState<Set<string>>(new Set())
   const [profiles, setProfiles] = useState<Record<string, Person>>({})
@@ -70,9 +74,36 @@ export default function FriendsPage() {
 
   useEffect(() => {
     if (!user || !me.friendsVisible) return
+    let live = true
     setLoadingPeople(true)
-    listDiscoverableStudents(120).then((list) => setPeople(list as Person[])).catch(() => setPeople([])).finally(() => setLoadingPeople(false))
-  }, [user, me.friendsVisible])
+    ;(async () => {
+      const res = await discoverPeople(scope, 0)
+      if (!live) return
+      if (res) {
+        setRanked(true)
+        setPeople(res.people as Person[])
+        setNextOffset(res.nextOffset)
+      } else {
+        // Server ranking not deployed yet: rank on the device
+        setRanked(false)
+        setPeople(await listDiscoverableStudents(120).catch(() => []) as Person[])
+        setNextOffset(null)
+      }
+      setLoadingPeople(false)
+    })()
+    return () => { live = false }
+  }, [user, me.friendsVisible, scope])
+
+  const loadMore = async () => {
+    if (nextOffset == null || loadingMore) return
+    setLoadingMore(true)
+    const res = await discoverPeople(scope, nextOffset)
+    if (res) {
+      setPeople((prev) => [...prev, ...(res.people as Person[]).filter((p) => !prev.some((x) => x.uid === p.uid))])
+      setNextOffset(res.nextOffset)
+    }
+    setLoadingMore(false)
+  }
 
   // Profiles of people in my requests / friends that aren't in the discover list
   useEffect(() => {
@@ -102,9 +133,10 @@ export default function FriendsPage() {
       // Respect "only people of my gender can find me"
       && (p.friendsAudience !== 'same' || p.gender === me.gender)
       && (scope === 'all' || (!!me.college && p.college === me.college)))
+    if (ranked) return list // already ranked by the server
     const shared = (p: Person) => (p.interests || []).filter((i) => myInterests.has(i)).length
     return list.sort((a, b) => shared(b) - shared(a))
-  }, [people, blocked, requests, scope, me.college, me.gender, user?.uid])
+  }, [people, blocked, requests, scope, me.college, me.gender, user?.uid, ranked])
 
   const enable = async () => {
     if (!user) return
@@ -207,11 +239,12 @@ export default function FriendsPage() {
                     <div key={p.uid} className="fr-card">
                       <button type="button" className="fr-card-photo" onClick={() => nav(`/profile/${p.uid}`)} aria-label={`View ${first(p.name)}`}>
                         {p.photoUrl ? <img src={p.photoUrl} alt="" loading="lazy" /> : <span>{first(p.name).charAt(0)}</span>}
-                        {p.collegeId?.verified && <em title="Verified student">✓</em>}
+                        {(p.collegeId?.verified || p.verified) && <em title="Verified student">✓</em>}
                       </button>
                       <div className="fr-card-body">
                         <div className="fr-card-name">{first(p.name)}{age ? `, ${age}` : ''}</div>
                         <div className="fr-card-college">{p.college || 'Student'}</div>
+                        {!!p.reasons?.length && <div className="fr-card-why">{p.reasons[0]}</div>}
                         {!!(p.interests || []).length && (
                           <div className="fr-card-tags">
                             {(shared.length ? shared : p.interests!).slice(0, 2).map((i) => <span key={i} className={myInterests.has(i) ? 'shared' : ''}>{i}</span>)}
@@ -225,6 +258,11 @@ export default function FriendsPage() {
                   )
                 })}
               </div>
+            )}
+            {!loadingPeople && nextOffset != null && (
+              <button type="button" className="fr-btn ghost fr-more" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? 'Loading…' : 'Show more people'}
+              </button>
             )}
           </>
         )}
@@ -323,7 +361,12 @@ export default function FriendsPage() {
             <div className="app-sheet-handle" />
             <Avatar p={sayHiTo} size={64} />
             <h3>Say hi to {first(sayHiTo.name)}</h3>
-            <p>Add a short note so they know why you’re reaching out (optional).</p>
+            <p>Pick a starter or write your own — a note gets far more replies.</p>
+            <div className="fr-openers">
+              {suggestOpeners(me, sayHiTo, { event: sayHiTo.reasons?.find((r) => r.startsWith('Also going to'))?.replace('Also going to ', '') }).map((s) => (
+                <button key={s} type="button" className={hiText === s.slice(0, 140) ? 'on' : ''} onClick={() => setHiText(s.slice(0, 140))}>{s}</button>
+              ))}
+            </div>
             <textarea
               maxLength={140}
               rows={3}

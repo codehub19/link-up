@@ -1,7 +1,8 @@
 import {
   collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore'
-import { db } from '../firebase'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions } from '../firebase'
 import { threadIdFor } from './chat'
 
 export type FriendRequest = {
@@ -87,4 +88,25 @@ export async function removeFriend(me: string, other: string) {
 export async function listDiscoverableStudents(max = 80) {
   const snap = await getDocs(query(collection(db, 'users'), where('friendsVisible', '==', true), limit(max)))
   return snap.docs.map((d) => ({ uid: d.id, ...(d.data() as any) }))
+}
+
+export type DiscoverPerson = {
+  uid: string; name?: string; photoUrl?: string; college?: string; dob?: string; gender?: string
+  interests?: string[]; bio?: string; prompts?: { q: string; a: string }[]; verified?: boolean
+  /** Why we suggest them, e.g. "Also going to Rendezvous", "Into Music too" */
+  reasons?: string[]
+}
+
+/**
+ * Ranked, paged suggestions from the server (blocks, privacy settings and people
+ * you already know are removed there). Returns null if the server call isn't available.
+ */
+export async function discoverPeople(scope: 'all' | 'college', offset = 0, pageSize = 24) {
+  try {
+    const res = await httpsCallable(functions, 'discoverPeople')({ scope, offset, pageSize })
+    return res.data as { people: DiscoverPerson[]; nextOffset: number | null; total: number }
+  } catch (e) {
+    console.warn('discoverPeople unavailable, falling back', e)
+    return null
+  }
 }

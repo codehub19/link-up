@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
+import PromptsEditor from '../../components/profile/PromptsEditor'
+import { cleanPrompts, ProfilePrompt } from '../../config/prompts'
 import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
 import { useAuth } from '../../state/AuthContext'
@@ -57,6 +59,7 @@ export default function EditProfile() {
   const dating = isDatingReady(profile)
   const [name, setName] = useState(profile?.name ?? '')
   const [bio, setBio] = useState(profile?.bio ?? '')
+  const [prompts, setPrompts] = useState<ProfilePrompt[]>(profile?.prompts ?? [])
   const [interests, setInterests] = useState<string[]>(profile?.interests ?? [])
   const [saving, setSaving] = useState(false)
   const [insta, setInsta] = useState(profile?.instagramId ?? '')
@@ -88,6 +91,7 @@ export default function EditProfile() {
     if (profile) {
       setName(profile.name ?? '')
       setBio(profile.bio ?? '')
+      setPrompts(profile.prompts ?? [])
       setInterests(profile.interests ?? [])
       setInsta(profile.instagramId ?? '')
       setHeight(profile.height ?? '')
@@ -174,6 +178,7 @@ export default function EditProfile() {
       await updateDoc(doc(db, 'users', user.uid), {
         name: name.trim(),
         bio: bio.trim(),
+        prompts: cleanPrompts(prompts),
         interests,
         photoUrl: filteredUrls[0], // first photo as main
         photoUrls: filteredUrls,
@@ -290,6 +295,11 @@ export default function EditProfile() {
                   <span className="field-label">About Me</span>
                   <textarea className="field-input" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell us about yourself..." rows={3} style={{ resize: 'vertical', minHeight: '100px' }} />
                 </label>
+
+                <div className="field">
+                  <span className="field-label">Icebreakers <small style={{ opacity: 0.6, fontWeight: 400 }}>(give people something easy to reply to)</small></span>
+                  <PromptsEditor value={prompts} onChange={setPrompts} />
+                </div>
 
                 <div className="field">
                   <span className="field-label">Interests</span>

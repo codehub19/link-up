@@ -261,6 +261,13 @@ export default function ProfileView() {
           </section>
         )}
 
+        {!!user.prompts?.length && user.prompts.map((pr: { q: string; a: string }) => (
+          <section key={pr.q} className="pv-card pv-prompt">
+            <small>{pr.q}</small>
+            <p>{pr.a}</p>
+          </section>
+        ))}
+
         {vibe.length > 0 && (
           <section className="pv-card">
             <h2>Vibe</h2>

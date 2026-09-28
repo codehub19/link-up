@@ -5,6 +5,7 @@ import { ref as dbRef, onValue } from 'firebase/database'
 import Navbar from '../../../components/Navbar'
 import HomeBackground from '../../../components/home/HomeBackground'
 import { useAuth } from '../../../state/AuthContext'
+import { suggestOpeners } from '../../../config/prompts'
 import { db, rtdb } from '../../../firebase'
 import ChatList, { Avatar, ChatListItem } from '../../../components/chat/ChatList'
 import ChatWindow, { ChatMessage } from '../../../components/chat/ChatWindow'
@@ -457,6 +458,7 @@ export default function ChatPage() {
         onTyping={handleTyping}
         peerLastReadMs={peerLastReadMs}
         peer={selectedPeer}
+        openers={selectedPeer ? suggestOpeners((profile || {}) as any, selectedPeer as any) : undefined}
         intro={selectedThread?.friend || selectedThread?.source === 'friend'
           ? 'You’re friends on DateU. Say hi!'
           : selectedThread?.source === 'random_call' ? 'You connected on a random call.' : 'You matched in a DateU round.'}
