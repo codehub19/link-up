@@ -157,7 +157,7 @@ export default function SettingsPage() {
     setIsDeleting(true)
     try {
       await requestAccountDeletion(user.uid, finalReason)
-      await showAlert('Your request has been submitted. Your account will be permanently deleted within 30 days. You will be logged out now.')
+      await showAlert('Your account is now hidden and will be permanently deleted within 7 days — your profile, photos, messages, friends and event sign-ups. Changed your mind? Email support@dateu.in before then. You will be logged out now.')
       await logout()
       nav('/', { replace: true })
     } catch (e) {

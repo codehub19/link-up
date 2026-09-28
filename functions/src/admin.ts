@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { isUserAdmin } from './push'
+import { deleteUserData } from './accountDeletion'
 
 if (!admin.apps.length) admin.initializeApp()
 const db = admin.firestore()
@@ -115,20 +116,12 @@ export const adminDeleteUser = onCall({ region: REGION, timeoutSeconds: 120 }, a
   if (uid === caller) throw new HttpsError('failed-precondition', "You can't delete your own account here.")
 
   const name = (await db.collection('users').doc(uid).get()).data()?.name || null
-  await Promise.all([
-    db.collection('users').doc(uid).delete(),
-    db.collection('userPrivate').doc(uid).delete(),
-    db.collection('callQueue').doc(uid).delete(),
-    db.collection('randomCallStats').doc(uid).delete(),
-    db.collection('userBlocks').doc(uid).delete(),
-  ])
   try {
-    await admin.storage().bucket().deleteFiles({ prefix: `users/${uid}/` })
-  } catch { /* no files or bucket not configured */ }
-  try {
-    await admin.auth().deleteUser(uid)
+    // Everything: profile, photos, messages, friends, events, groups, login (see accountDeletion.ts)
+    const counts = await deleteUserData(uid)
+    await db.collection('account_delete_requests').doc(uid).set({ status: 'done', doneAt: admin.firestore.FieldValue.serverTimestamp(), by: caller, counts }, { merge: true })
   } catch (e: any) {
-    if (e?.code !== 'auth/user-not-found') throw new HttpsError('internal', e?.message || 'Failed to delete login')
+    throw new HttpsError('internal', e?.message || 'Failed to delete account')
   }
   await logAdmin(caller!, 'delete_user', uid, { name })
   return { ok: true }

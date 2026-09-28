@@ -6,11 +6,14 @@ import { db, mergeSetupStatus } from '../../firebase'
 import './setup.styles.css'
 
 type Props = { embedded?: boolean; onComplete?: () => void }
-const TERMS_VERSION = 1
+// v2: friends-first DateU (Friends, events, calls), Sept 2026
+const TERMS_VERSION = 2
 
 export default function Terms({ embedded, onComplete }: Props) {
   const { user, refreshProfile } = useAuth()
   const [agree, setAgree] = useState(false)
+  // Optional, never pre-ticked (DPDP Act): news and updates by email
+  const [marketing, setMarketing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,6 +29,7 @@ export default function Terms({ embedded, onComplete }: Props) {
           uid: user.uid,
           acceptedTermsVersion: TERMS_VERSION,
           acceptedTermsAt: serverTimestamp(),
+          marketingConsent: { granted: marketing, at: new Date().toISOString(), source: 'signup' },
           setupStatus: { terms: true },
           updatedAt: serverTimestamp(),
         })
@@ -34,6 +38,7 @@ export default function Terms({ embedded, onComplete }: Props) {
         await updateDoc(ref, {
           acceptedTermsVersion: TERMS_VERSION,
           acceptedTermsAt: serverTimestamp(),
+          marketingConsent: { granted: marketing, at: new Date().toISOString(), source: 'signup' },
           updatedAt: serverTimestamp(),
         })
         await mergeSetupStatus(user.uid, { terms: true })
@@ -58,9 +63,11 @@ export default function Terms({ embedded, onComplete }: Props) {
           <div className="terms-box">
             <h3 style={{marginTop:0}}>Summary</h3>
             <ul>
-              <li>Be respectful & authentic.</li>
-              <li>No harassment or spam.</li>
-              <li>Accurate college information only.</li>
+              <li>DateU is for people aged 18 and over.</li>
+              <li>Be respectful and genuine — no harassment, hate, nudity or spam.</li>
+              <li>Use your real name, photos and college.</li>
+              <li>Meet in public places and look out for each other at events.</li>
+              <li>Report anything that feels wrong — we review every report.</li>
             </ul>
             <p style={{marginBottom:0}}>Continuing means you accept these terms.</p>
           </div>
@@ -69,6 +76,12 @@ export default function Terms({ embedded, onComplete }: Props) {
             <span>
               I agree to the <a href="/legal/terms" target="_blank" rel="noopener">Terms of Service</a> and{' '}
               <a href="/legal/privacy" target="_blank" rel="noopener">Privacy Policy</a>, and I’m at least 18.
+            </span>
+          </label>
+          <label className="terms-accept" style={{ marginTop: 10 }}>
+            <input type="checkbox" checked={marketing} onChange={e=>setMarketing(e.target.checked)} />
+            <span>
+              Send me DateU news, events near me and tips by email (optional — you can turn this off any time in Settings).
             </span>
           </label>
           {error && <div style={{color:'#ff6b84', fontSize:13, marginTop:8}}>{error}</div>}

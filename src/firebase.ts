@@ -246,6 +246,8 @@ export async function requestAccountDeletion(uid: string, reason: string) {
     requestedAt: serverTimestamp(),
     status: 'pending'
   })
+  // Hide the account right away; the server deletes everything within 7 days
+  await updateDoc(userRef, { deletionRequestedAt: serverTimestamp(), friendsVisible: false, datingEnabled: false }).catch(() => { })
 }
 
 export function normalizeProfile(raw: any | null): UserProfile | null {
