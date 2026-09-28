@@ -13,7 +13,7 @@ export default function Footer() {
           <div className="footer-brand">
             <h2 className="footer-logo text-gradient">DateU</h2>
             <p className="footer-desc">
-              Make new friends on campus.
+              Make new friends, from every college.
               <br />
               Real people, verified students.
             </p>

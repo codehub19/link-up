@@ -43,9 +43,9 @@ export function LandingHero() {
       <div className="ld-wrap ld-hero-grid">
         <div className="ld-hero-copy">
           <span className="ld-badge"><span className="ld-dot" /> Made for college students</span>
-          <h1>Make new friends, <span>on campus.</span></h1>
+          <h1>Make new friends, <span>from every college.</span></h1>
           <p className="ld-lead">
-            Find people from your college who share your vibe, go to fests and events together, and meet someone new on a quick voice call. Dating is there too — if you want it.
+            Meet students from any college who share your vibe — from your own campus or across the city. Go to fests and events together, and meet someone new on a quick voice call. Dating is there too — if you want it.
           </p>
           <div className="ld-ctas">
             <button type="button" className="ld-btn" onClick={go} disabled={busy}>
@@ -73,7 +73,7 @@ export function LandingHero() {
             <div className="ld-screen">
               <div className="ld-screen-head">
                 <strong>Friends</strong>
-                <span className="ld-seg"><i className="on">My college</i><i>All</i></span>
+                <span className="ld-seg"><i className="on">All colleges</i><i>Mine</i></span>
               </div>
               {PEOPLE.map((p) => (
                 <div key={p.n} className="ld-person">
@@ -98,7 +98,7 @@ export function LandingHero() {
 }
 
 const FEATURES = [
-  { e: '👋', h: 'Friends on your campus', p: 'Browse students from your college and nearby campuses, see shared interests and send a friend request with a quick hello.', big: true },
+  { e: '👋', h: 'Friends from any college', p: 'Browse students from every college — or just your own — see shared interests and send a friend request with a quick hello.', big: true },
   { e: '🎪', h: 'Events & fests', p: 'Find your garba partner, fest crew, trek buddy or hackathon team. See who’s going before you go.', big: true },
   { e: '📞', h: 'Quick voice calls', p: 'Talk to someone new for 5 minutes — voice only, no pressure. Both tap like and keep chatting.' },
   { e: '💬', h: 'Chat & calls with friends', p: 'Messages, voice notes and calls in one place, with read receipts you control.' },
@@ -110,7 +110,7 @@ export function LandingFeatures() {
     <section className="ld-section" id="features">
       <div className="ld-wrap">
         <div className="ld-head">
-          <span className="ld-eyebrow">One app for campus life</span>
+          <span className="ld-eyebrow">One app for student life</span>
           <h2>Everything you need to meet new people</h2>
         </div>
         <div className="ld-features">
@@ -167,7 +167,7 @@ export function LandingEvents() {
 const STEPS = [
   { n: '1', h: 'Sign in with Google', p: 'Add a photo, your college and what you’re into. Takes about a minute.' },
   { n: '2', h: 'Say hi', p: 'Send a friend request, join an event or hop on a random voice call.' },
-  { n: '3', h: 'Hang out', p: 'Chat, call and make plans — then meet up on campus.' },
+  { n: '3', h: 'Hang out', p: 'Chat, call and make plans — then meet up.' },
 ]
 
 export function LandingSteps() {
@@ -250,7 +250,7 @@ export function LandingFinal() {
     <section className="ld-section">
       <div className="ld-wrap">
         <div className="ld-final">
-          <h2>Your next friend is on campus 👋</h2>
+          <h2>Your next friend is one hello away 👋</h2>
           <p>Join free, say hi to new people, and never go to a fest alone again.</p>
           <button type="button" className="ld-btn" onClick={go} disabled={busy}>
             {busy ? 'Signing in…' : signedIn ? 'Open DateU' : 'Join DateU — it’s free'}

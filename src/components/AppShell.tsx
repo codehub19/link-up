@@ -105,7 +105,7 @@ function AppWelcome() {
     <div className="app-welcome">
       <div className="app-welcome-top">
         <div className="app-welcome-logo">DateU</div>
-        <p>Make new friends on campus — events, calls and real conversations.</p>
+        <p>Make new friends from any college — events, calls and real conversations.</p>
       </div>
       <div className="app-welcome-bottom">
         <button

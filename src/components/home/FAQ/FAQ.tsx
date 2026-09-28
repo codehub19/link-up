@@ -4,11 +4,11 @@ import "./FAQ.styles.css";
 const FAQS = [
   {
     q: "Is DateU a dating app?",
-    a: "DateU is for making new friends and connections on campus. Friends, events, chat and voice calls are the heart of it. Dating is an optional extra you can turn on in the Dating tab — or ignore completely.",
+    a: "DateU is for making new friends and connections with students from any college. Friends, events, chat and voice calls are the heart of it. Dating is an optional extra you can turn on in the Dating tab — or ignore completely.",
   },
   {
     q: "How do I make friends on DateU?",
-    a: "Open Friends, browse students from your college or nearby campuses, and send a friend request with a short hello. Once they accept, you can chat and call.",
+    a: "Open Friends, browse students from any college (or filter to your own), and send a friend request with a short hello. Once they accept, you can chat and call.",
   },
   {
     q: "What are events?",

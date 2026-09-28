@@ -94,8 +94,8 @@ export function BlogPostPage() {
           </div>
 
           <div className="mk-final">
-            <h2>Meet people from your campus</h2>
-            <p>Make friends on campus, find event buddies and talk on quick voice calls — made for college students.</p>
+            <h2>Meet people from every college</h2>
+            <p>Make new friends from any college, find event buddies and talk on quick voice calls — made for students.</p>
             <JoinButton />
           </div>
 

@@ -55,7 +55,7 @@ export default function FriendsPage() {
   const [requests, setRequests] = useState<FriendRequest[]>([])
   const [blocked, setBlocked] = useState<Set<string>>(new Set())
   const [profiles, setProfiles] = useState<Record<string, Person>>({})
-  const [scope, setScope] = useState<'college' | 'all'>('college')
+  const [scope, setScope] = useState<'college' | 'all'>('all')
   const [busy, setBusy] = useState<string | null>(null)
   const [enabling, setEnabling] = useState(false)
   const [sayHiTo, setSayHiTo] = useState<Person | null>(null)
@@ -141,7 +141,7 @@ export default function FriendsPage() {
   const header = (
     <div className="fr-head">
       <h1 className="fr-title">Friends</h1>
-      <p className="fr-sub">Meet students from your campus — study buddies, gym partners, people to explore the city with.</p>
+      <p className="fr-sub">Meet students from any college — study buddies, gym partners, people to explore the city with.</p>
     </div>
   )
 
@@ -159,7 +159,7 @@ export default function FriendsPage() {
     body = (
       <div className="fr-optin">
         <div className="fr-optin-art" aria-hidden="true">👋</div>
-        <h2>Make friends on campus</h2>
+        <h2>Make new friends</h2>
         <ul>
           <li><strong>Students only</strong> — everyone here is a college student.</li>
           <li><strong>Not dating</strong> — this is for friendships, study groups and plans.</li>
@@ -184,8 +184,8 @@ export default function FriendsPage() {
         {tab === 'discover' && (
           <>
             <div className="fr-scope">
-              <button className={scope === 'college' ? 'on' : ''} onClick={() => setScope('college')}>{me.college ? `My college` : 'My college'}</button>
               <button className={scope === 'all' ? 'on' : ''} onClick={() => setScope('all')}>All colleges</button>
+              <button className={scope === 'college' ? 'on' : ''} onClick={() => setScope('college')}>My college</button>
             </div>
             {loadingPeople ? (
               <div className="fr-grid">{[0, 1, 2, 3].map((i) => <div key={i} className="fr-card skeleton" />)}</div>
@@ -193,7 +193,7 @@ export default function FriendsPage() {
               <EmptyState
                 icon="sparkle"
                 title={scope === 'college' ? `No one new from ${me.college || 'your college'} yet` : 'You’ve seen everyone for now'}
-                text={scope === 'college' ? 'Try All colleges, or invite friends from your campus — they’ll show up here.' : 'New students join every day. Check back soon, or invite your friends.'}
+                text={scope === 'college' ? 'Try All colleges, or invite your friends — they’ll show up here.' : 'New students join every day. Check back soon, or invite your friends.'}
                 actions={scope === 'college'
                   ? [{ label: 'Show all colleges', onClick: () => setScope('all') }]
                   : [{ label: 'Invite friends', to: '/dashboard/' + (me.gender === 'female' ? 'female' : 'male') + '/profile' }]}

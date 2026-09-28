@@ -12,7 +12,7 @@ export default defineConfig({
       manifest: {
         name: 'DateU',
         short_name: 'DateU',
-        description: 'Make new friends on campus — friends, events, calls and chat for college students.',
+        description: 'Make new friends from any college — friends, events, calls and chat for students.',
         start_url: '/dashboard',
         scope: '/',
         display: 'standalone',           // app-style window (no Chrome UI)

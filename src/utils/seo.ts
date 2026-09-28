@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 
 export const SITE_URL = 'https://dateu.in'
-const DEFAULT_TITLE = 'DateU – Make New Friends on Campus | College Students in India'
-const DEFAULT_DESC = 'DateU is the social app for college students in India — make new friends on campus, find buddies for fests and events, and meet people on quick voice calls. Dating is optional.'
+const DEFAULT_TITLE = 'DateU – Make New Friends | The Social App for College Students in India'
+const DEFAULT_DESC = 'DateU is the social app for college students in India — make new friends from any college, find buddies for fests and events, and meet people on quick voice calls. Dating is optional.'
 
 function setMeta(attr: 'name' | 'property', key: string, value: string) {
   let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`)

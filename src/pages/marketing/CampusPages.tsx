@@ -24,7 +24,7 @@ export function CampusIndexPage() {
       <main className="mk">
         <div className="mk-wrap">
           <span className="mk-eyebrow">Colleges</span>
-          <h1>Friends at <span>your campus</span></h1>
+          <h1>Friends from <span>every college</span></h1>
           <p className="mk-lead">
             DateU is built for college students. Pick your college to see how DateU works there — or just sign up
             and choose it during setup.
@@ -112,7 +112,7 @@ export function CampusPage() {
           <span className="mk-eyebrow">{c.area}</span>
           <h1>Make friends at <span>{c.short}</span></h1>
           <p className="mk-lead">
-            Meet genuine, verified students from {c.name} and nearby colleges. Find people who share your interests,
+            Meet genuine, verified students from {c.name} and every other college. Find people who share your interests,
             go to fests and events together, and talk on quick voice calls. Dating is there too, if you want it.
           </p>
           <div className="mk-cta-row">
@@ -128,8 +128,8 @@ export function CampusPage() {
             </div>
             <div className="mk-card">
               <div className="mk-card-icon">👋</div>
-              <h3>Friends on campus</h3>
-              <p>Browse {c.short} students who share your interests and send a friend request with a quick hello.</p>
+              <h3>Friends from every college</h3>
+              <p>Browse students from {c.short} and every other college who share your interests, and send a friend request with a quick hello.</p>
             </div>
             <div className="mk-card">
               <div className="mk-card-icon">📞</div>
@@ -143,7 +143,7 @@ export function CampusPage() {
             <ol>
               <li><strong>Sign up with Google</strong> and pick {c.name} as your college.</li>
               <li><strong>Build your profile</strong> — a few photos, a short bio and your interests.</li>
-              <li><strong>Say hi</strong> to {c.short} students in Friends, join an event, or start a random voice call any time.</li>
+              <li><strong>Say hi</strong> to students from {c.short} or any other college, join an event, or start a random voice call any time.</li>
               <li><strong>Hang out.</strong> Chat, make plans and meet up near {c.area.split(',')[0]}.</li>
             </ol>
           </div>
