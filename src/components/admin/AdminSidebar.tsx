@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Users, CreditCard, Layers, Zap, Shield, Key, Bell, Send, Inbox, Briefcase, Flag, BarChart3, UserCog, Phone, BadgeCheck, SlidersHorizontal, ScrollText, CalendarDays } from 'lucide-react'
+import { Home, Users, CreditCard, Layers, Zap, Shield, Key, Bell, Send, Inbox, Briefcase, Flag, BarChart3, UserCog, Phone, BadgeCheck, SlidersHorizontal, ScrollText, CalendarDays, Image } from 'lucide-react'
 
 export default function AdminSidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMobileOpen: (o: boolean) => void }) {
     const location = useLocation()
@@ -19,6 +19,7 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }: { mobileOpen
             items: [
                 { label: 'Users', href: '/admin/users', icon: UserCog },
                 { label: 'Reports', href: '/admin/reports', icon: Flag },
+                { label: 'Photo review', href: '/admin/photos', icon: Image },
                 { label: 'ID Verification', href: '/admin/college-id-verification', icon: Key },
                 { label: 'Requests', href: '/admin/requests', icon: Inbox },
                 { label: 'Referrals', href: '/admin/referrals', icon: Users },

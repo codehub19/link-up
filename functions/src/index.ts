@@ -635,6 +635,7 @@ export * from './referralRewards'
 export * from './friends'
 export * from './moderation'
 export * from './accountDeletion'
+export * from './photoModeration'
 
 /* ----------------------------------------------------------------------------
  * expirePremium (daily): mark ended Premium plans expired. Older plans that were

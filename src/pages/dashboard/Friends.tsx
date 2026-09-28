@@ -17,7 +17,7 @@ import { useDialog } from '../../components/ui/Dialog'
 import { useCall } from '../../state/CallContext'
 import './Friends.css'
 
-type Person = { uid: string; name?: string; photoUrl?: string; college?: string; dob?: string; gender?: string; interests?: string[]; bio?: string; friendsAudience?: 'all' | 'same'; collegeId?: { verified?: boolean }; banned?: boolean; underReview?: boolean }
+type Person = { uid: string; name?: string; photoUrl?: string; college?: string; dob?: string; gender?: string; interests?: string[]; bio?: string; friendsAudience?: 'all' | 'same'; collegeId?: { verified?: boolean }; banned?: boolean; underReview?: boolean; photoHidden?: boolean }
 type Tab = 'discover' | 'requests' | 'friends'
 
 function ageFrom(dob?: string) {
@@ -98,7 +98,7 @@ export default function FriendsPage() {
   const myInterests = new Set<string>(me.interests || [])
   const discover = useMemo(() => {
     const list = people.filter((p) =>
-      p.uid !== user?.uid && !p.banned && !p.underReview && !blocked.has(p.uid) && !related.has(p.uid)
+      p.uid !== user?.uid && !p.banned && !p.underReview && !p.photoHidden && !blocked.has(p.uid) && !related.has(p.uid)
       // Respect "only people of my gender can find me"
       && (p.friendsAudience !== 'same' || p.gender === me.gender)
       && (scope === 'all' || (!!me.college && p.college === me.college)))

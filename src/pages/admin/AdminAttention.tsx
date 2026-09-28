@@ -16,7 +16,8 @@ export default function AdminAttention() {
       getCountFromServer(query(collection(db, col), where(field, '==', value))).then((s) => s.data().count).catch(() => null)
 
     Promise.all([
-      getDocs(collection(db, 'reports')).then((s) => s.docs.filter((d) => d.data().status !== 'resolved').length).catch(() => null),
+      getDocs(collection(db, 'reports')).then((s) => s.docs.filter((d) => !d.data().status || d.data().status === 'open').length).catch(() => null),
+      count('photoReviews', 'reviewed', false),
       count('payments', 'status', 'pending'),
       getDocs(query(collection(db, 'users'), where('collegeId.verified', '==', false)))
         .then((s) => s.docs.filter((d) => !d.data().collegeId?.rejected && (d.data().collegeId?.submitted || d.data().collegeId?.frontUrl)).length)
@@ -24,8 +25,9 @@ export default function AdminAttention() {
       count('account_delete_requests', 'status', 'pending'),
       count('support_queries', 'status', 'pending'),
       count('referral_claims', 'status', 'pending'),
-    ]).then(([reports, payments, ids, deletes, support, claims]) => setItems([
+    ]).then(([reports, photos, payments, ids, deletes, support, claims]) => setItems([
       { label: 'Open reports', count: reports, href: '/admin/reports', tone: 'warning' },
+      { label: 'Photos to review', count: photos, href: '/admin/photos', tone: 'warning' },
       { label: 'Pending payments', count: payments, href: '/admin/payments', tone: 'warning' },
       { label: 'College IDs to review', count: ids, href: '/admin/college-id-verification', tone: 'neutral' },
       { label: 'Account deletion requests', count: deletes, href: '/admin/requests', tone: 'neutral' },

@@ -73,6 +73,7 @@ const EventsPage = lazy(() => import('./pages/dashboard/events/Events'))
 const EventDetail = lazy(() => import('./pages/dashboard/events/EventDetail'))
 const EventsAdmin = lazy(() => import('./pages/admin/EventsAdmin'))
 const ReportsAdmin = lazy(() => import('./pages/admin/ReportsAdmin'))
+const PhotoReviewAdmin = lazy(() => import('./pages/admin/PhotoReviewAdmin'))
 const UsersAdmin = lazy(() => import('./pages/admin/UsersAdmin'))
 const UserDetailAdmin = lazy(() => import('./pages/admin/UserDetailAdmin'))
 const AnalyticsAdmin = lazy(() => import('./pages/admin/AnalyticsAdmin'))
@@ -340,6 +341,7 @@ export default function App() {
             <Route path="/admin/referrals" element={<ReferralsAdmin />} />
             <Route path="/admin/applications" element={<JobApplications />} />
             <Route path="/admin/reports" element={<ReportsAdmin />} />
+            <Route path="/admin/photos" element={<PhotoReviewAdmin />} />
             <Route path="/admin/users" element={<UsersAdmin />} />
             <Route path="/admin/users/:uid" element={<UserDetailAdmin />} />
             <Route path="/admin/analytics" element={<AnalyticsAdmin />} />

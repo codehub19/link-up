@@ -488,6 +488,15 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Photo moderation (written by Cloud Functions only)
+    match /photoReviews/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /photoChecks/{id} {
+      allow read, write: if false;
+    }
+
     // Append-only record of admin actions
     match /adminLogs/{logId} {
       allow read: if isAdmin();
