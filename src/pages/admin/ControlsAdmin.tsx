@@ -1,3 +1,5 @@
+import { httpsCallable } from 'firebase/functions'
+import { functions } from '../../firebase'
 import { useEffect, useState } from 'react'
 import { useDialog } from '../../components/ui/Dialog'
 import { AppConfig, getConfigDoc, saveConfigDoc } from '../../services/adminTools'
@@ -47,11 +49,13 @@ export default function ControlsAdmin() {
   const [turn, setTurn] = useState<Record<string, any>>({})
   const [turnMode, setTurnMode] = useState<'cloudflare' | 'static'>('cloudflare')
   const [pay, setPay] = useState<Record<string, any>>({})
+  const [mail, setMail] = useState<Record<string, any>>({ fromEmail: 'hello@dateu.in', fromName: 'DateU', enabled: false })
   const [payQr, setPayQr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
 
   useEffect(() => {
+    getConfigDoc('serverConfig/email').then((m) => setMail((prev) => ({ ...prev, ...m }))).catch(() => { })
     getConfigDoc('config/payment').then((p) => setPay({ ...DEFAULT_PAYMENT_SETTINGS, ...p })).catch(() => setPay({ ...DEFAULT_PAYMENT_SETTINGS }))
     Promise.all([getConfigDoc<AppConfig>('config/app'), getConfigDoc('config/randomCall'), getConfigDoc('serverConfig/turn')])
       .then(([a, c, t]) => {
@@ -274,6 +278,40 @@ export default function ControlsAdmin() {
                 : { urls: turn.urls || null, username: turn.username || null, credential: turn.credential || null, cloudflareKeyId: null, cloudflareApiToken: null }))}>
                 Save relay settings
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Email */}
+        <div className="admin-card">
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Email alerts (Brevo)</div>
+          <div style={{ fontSize: 13, color: 'var(--admin-text-muted)', marginBottom: 14 }}>
+            Friend requests, accepted requests, report outcomes and “event tomorrow” reminders are also emailed (members can turn this off in Settings).
+            Get an API key in Brevo → SMTP &amp; API → API keys. The sender must be verified in Brevo.
+            {mail.enabled && mail.brevoApiKey ? ' ✅ On.' : ' ⚠️ Off.'}
+          </div>
+          <div className="stack" style={{ gap: 14 }}>
+            <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+              <input type="checkbox" checked={!!mail.enabled} onChange={(e) => setMail({ ...mail, enabled: e.target.checked })} /> Send email alerts
+            </label>
+            <div className="admin-field"><label>Brevo API key</label><input className="input" type="password" autoComplete="off" value={mail.brevoApiKey || ''} onChange={(e) => setMail({ ...mail, brevoApiKey: e.target.value.trim() })} /></div>
+            <div className="admin-field"><label>From email</label><input className="input" value={mail.fromEmail || ''} onChange={(e) => setMail({ ...mail, fromEmail: e.target.value.trim() })} /></div>
+            <div className="admin-field"><label>From name</label><input className="input" value={mail.fromName || ''} onChange={(e) => setMail({ ...mail, fromName: e.target.value })} /></div>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn btn-primary" disabled={saving === 'mail'} onClick={() => save('mail', () => saveConfigDoc('serverConfig/email', {
+                enabled: !!mail.enabled, brevoApiKey: mail.brevoApiKey || null, fromEmail: mail.fromEmail || null, fromName: mail.fromName || 'DateU',
+              }))}>Save email settings</button>
+              <button className="btn" disabled={saving === 'mailtest'} onClick={async () => {
+                setSaving('mailtest')
+                try {
+                  const res: any = await httpsCallable(functions, 'sendTestEmail')({})
+                  await showAlert(`Test email sent to ${res.data?.to}. Check your inbox (and Promotions/Spam). Settings are cached for up to 5 minutes after saving.`)
+                } catch (e: any) {
+                  await showAlert(e?.message || 'Test failed')
+                } finally {
+                  setSaving(null)
+                }
+              }}>Send test email to me</button>
             </div>
           </div>
         </div>

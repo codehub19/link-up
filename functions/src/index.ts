@@ -674,3 +674,4 @@ export const expirePremium = onSchedule({ schedule: '15 0 * * *', timeZone: 'Asi
 })
 export * from './discovery'
 export * from './groups'
+export * from './emailAlerts'
