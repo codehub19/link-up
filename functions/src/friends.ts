@@ -1,20 +1,12 @@
 import * as admin from 'firebase-admin'
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore'
-import { sendPushToUsers } from './push'
+import { notifyUser } from './notify'
 
 if (!admin.apps.length) admin.initializeApp()
 const db = admin.firestore()
 const REGION = 'asia-south2'
 
 const firstName = async (uid: string) => String((await db.collection('users').doc(uid).get()).get('name') || 'A student').split(' ')[0]
-
-async function notify(uid: string, title: string, body: string) {
-  await db.collection('notifications').add({
-    userUid: uid, title, body, targetType: 'personal', seen: false,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  })
-  await sendPushToUsers([uid], title, body, '/dashboard/friends').catch(() => 0)
-}
 
 /** Tell someone they got a friend request. */
 export const onFriendRequestCreated = onDocumentCreated(
@@ -23,7 +15,11 @@ export const onFriendRequestCreated = onDocumentCreated(
     const r = event.data?.data()
     if (!r || r.status !== 'pending') return
     const name = await firstName(r.from)
-    await notify(r.to, `👋 ${name} wants to be friends`, r.message ? `“${String(r.message).slice(0, 100)}”` : 'Open Friends to accept or decline.')
+    const body = r.message ? `“${String(r.message).slice(0, 100)}”` : 'Open Friends to accept or decline.'
+    await notifyUser(r.to, {
+      title: `👋 ${name} wants to be friends`, body, link: '/dashboard/friends',
+      email: { subject: `${name} wants to be friends on DateU 👋`, text: `${name} sent you a friend request. ${r.message ? body + ' ' : ''}Accept it to start chatting.`, cta: 'See request' },
+    })
   },
 )
 
@@ -35,6 +31,9 @@ export const onFriendRequestUpdated = onDocumentUpdated(
     const after = event.data?.after.data()
     if (!after || before?.status === 'accepted' || after.status !== 'accepted') return
     const name = await firstName(after.to)
-    await notify(after.from, `🎉 You and ${name} are now friends`, 'Say hi in Chat.')
+    await notifyUser(after.from, {
+      title: `🎉 You and ${name} are now friends`, body: 'Say hi in Chat.', link: `/dashboard/chat?with=${after.to}`,
+      email: { subject: `${name} accepted your friend request 🎉`, text: `You and ${name} are now friends on DateU. Send the first message!`, cta: 'Say hi' },
+    })
   },
 )

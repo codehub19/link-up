@@ -51,7 +51,8 @@ export default function PaymentsAdmin() {
       const all = [...pendingExtra, ...recent]
       const names: Record<string, any> = {}
       await Promise.all([...new Set(all.map((p) => p.uid))].map(async (uid) => {
-        names[uid] = (await getDoc(doc(db, 'users', uid)).catch(() => null))?.data() || {}
+        const [u, pv] = await Promise.all([getDoc(doc(db, 'users', uid)).catch(() => null), getDoc(doc(db, 'userPrivate', uid)).catch(() => null)])
+        names[uid] = { ...(u?.data() || {}), instagramId: pv?.data()?.instagramId || u?.data()?.instagramId }
       }))
       const enriched = all.map((p) => {
         const udata = names[p.uid] || {}

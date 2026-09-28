@@ -6,7 +6,7 @@ import HomeBackground from '../../components/home/HomeBackground'
 import EmptyState from '../../components/ui/EmptyState'
 import { useAuth } from '../../state/AuthContext'
 import { updateProfileAndStatus } from '../../firebase'
-import { subscribeBlockedUids } from '../../services/blocks'
+import { subscribeBlockedEitherWay } from '../../services/blocks'
 import {
   FriendRequest, MAX_PENDING_SENT, acceptFriendRequest, cancelFriendRequest, declineFriendRequest,
   listDiscoverableStudents, removeFriend, sendFriendRequest, subscribeMyFriendRequests,
@@ -17,7 +17,7 @@ import { useDialog } from '../../components/ui/Dialog'
 import { useCall } from '../../state/CallContext'
 import './Friends.css'
 
-type Person = { uid: string; name?: string; photoUrl?: string; college?: string; dob?: string; gender?: string; interests?: string[]; bio?: string; friendsAudience?: 'all' | 'same'; collegeId?: { verified?: boolean }; banned?: boolean }
+type Person = { uid: string; name?: string; photoUrl?: string; college?: string; dob?: string; gender?: string; interests?: string[]; bio?: string; friendsAudience?: 'all' | 'same'; collegeId?: { verified?: boolean }; banned?: boolean; underReview?: boolean }
 type Tab = 'discover' | 'requests' | 'friends'
 
 function ageFrom(dob?: string) {
@@ -64,7 +64,7 @@ export default function FriendsPage() {
   useEffect(() => {
     if (!user) return
     const a = subscribeMyFriendRequests(user.uid, setRequests)
-    const b = subscribeBlockedUids(user.uid, setBlocked)
+    const b = subscribeBlockedEitherWay(user.uid, setBlocked)
     return () => { a(); b() }
   }, [user])
 
@@ -98,7 +98,7 @@ export default function FriendsPage() {
   const myInterests = new Set<string>(me.interests || [])
   const discover = useMemo(() => {
     const list = people.filter((p) =>
-      p.uid !== user?.uid && !p.banned && !blocked.has(p.uid) && !related.has(p.uid)
+      p.uid !== user?.uid && !p.banned && !p.underReview && !blocked.has(p.uid) && !related.has(p.uid)
       // Respect "only people of my gender can find me"
       && (p.friendsAudience !== 'same' || p.gender === me.gender)
       && (scope === 'all' || (!!me.college && p.college === me.college)))

@@ -1,4 +1,4 @@
-import { arrayRemove, arrayUnion, deleteField, doc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { arrayRemove, arrayUnion, collection, deleteField, doc, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore'
 import { db } from '../firebase'
 import { threadIdFor } from './chat'
 
@@ -14,6 +14,18 @@ export function subscribeBlockedUids(uid: string, cb: (blocked: Set<string>) => 
     const data = snap.data() as UserBlockDoc | undefined
     cb(new Set(data?.uids ?? []))
   })
+}
+
+/** Everyone I blocked plus everyone who blocked me: people who shouldn't see each other anywhere. */
+export function subscribeBlockedEitherWay(uid: string, cb: (uids: Set<string>) => void) {
+  let mine = new Set<string>()
+  let theirs = new Set<string>()
+  const emit = () => cb(new Set([...mine, ...theirs]))
+  const a = onSnapshot(doc(db, 'userBlocks', uid), (snap) => { mine = new Set((snap.data() as UserBlockDoc | undefined)?.uids ?? []); emit() }, () => { })
+  const b = onSnapshot(query(collection(db, 'userBlocks'), where('uids', 'array-contains', uid)), (snap) => {
+    theirs = new Set(snap.docs.map((d) => d.id)); emit()
+  }, () => { })
+  return () => { a(); b() }
 }
 
 export function subscribeAmIBlockedBy(peerUid: string, meUid: string, cb: (isBlocked: boolean) => void) {

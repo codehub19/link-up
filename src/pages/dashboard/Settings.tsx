@@ -225,8 +225,18 @@ export default function SettingsPage() {
       ]
     },
     ...(profile?.userType !== 'general' ? [{
-      title: 'Friends',
+      title: 'Safety & privacy',
       items: [
+        {
+          label: 'Only verified students can send me requests',
+          type: 'toggle' as const,
+          checked: profile?.requestsFrom === 'verified',
+          action: async () => {
+            if (!user) return
+            await updateProfileAndStatus(user.uid, { requestsFrom: profile?.requestsFrom === 'verified' ? 'everyone' : 'verified' })
+            await refreshProfile()
+          }
+        },
         {
           label: 'Show me in Friends',
           type: 'toggle' as const,
@@ -253,6 +263,23 @@ export default function SettingsPage() {
           type: 'toggle',
           checked: profile?.pushNotifications !== false, // default true
           action: () => toggleSetting('pushNotifications', profile?.pushNotifications !== false)
+        },
+        {
+          label: 'Email alerts (friend requests, events)',
+          type: 'toggle',
+          checked: profile?.emailAlerts !== false,
+          action: () => toggleSetting('emailAlerts', profile?.emailAlerts !== false)
+        },
+        {
+          label: 'News & updates by email',
+          type: 'toggle',
+          checked: profile?.marketingConsent?.granted === true,
+          action: async () => {
+            if (!user) return
+            const next = profile?.marketingConsent?.granted !== true
+            await updateProfileAndStatus(user.uid, { marketingConsent: { granted: next, at: new Date().toISOString(), source: 'settings' } })
+            await refreshProfile()
+          }
         },
       ]
     },

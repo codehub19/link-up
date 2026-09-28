@@ -17,7 +17,7 @@ async function logAdmin(adminUid: string, action: string, targetUid: string | nu
   }).catch(() => { })
 }
 
-const PRIVATE_FIELDS = ['email', 'phoneNumber', 'upiId', 'fcmToken']
+const PRIVATE_FIELDS = ['email', 'phoneNumber', 'upiId', 'fcmToken', 'instagramId']
 
 /* ----------------------------------------------------------------------------
  * migrateUserPrivateData (admin): move contact details and college ID image URLs

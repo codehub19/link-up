@@ -9,7 +9,7 @@ import { db, isDatingReady } from '../../firebase'
 import { useAuth } from '../../state/AuthContext'
 import { useCall } from '../../state/CallContext'
 import { threadIdFor } from '../../services/chat'
-import { blockUser, subscribeBlockedUids } from '../../services/blocks'
+import { blockUser, subscribeBlockedEitherWay } from '../../services/blocks'
 import { reportUser } from '../../services/chatModeration'
 import {
   FriendRequest, acceptFriendRequest, cancelFriendRequest, declineFriendRequest, sendFriendRequest, subscribeMyFriendRequests,
@@ -86,7 +86,7 @@ export default function ProfileView() {
   }, [uid])
 
   useEffect(() => { if (myUid && !isMe) return subscribeMyFriendRequests(myUid, setRequests) }, [myUid, isMe])
-  useEffect(() => { if (myUid) return subscribeBlockedUids(myUid, setBlocked) }, [myUid])
+  useEffect(() => { if (myUid) return subscribeBlockedEitherWay(myUid, setBlocked) }, [myUid])
   useEffect(() => {
     if (!myUid || isMe) return
     getDoc(doc(db, 'threads', threadIdFor(myUid, uid)))
@@ -117,7 +117,8 @@ export default function ProfileView() {
       </>
     )
   }
-  if (user === null || (myUid && blocked.has(uid))) {
+  const hiddenByModeration = !!user && !isMe && !myProfile?.isAdmin && (user.underReview === true || user.banned === true)
+  if (user === null || (myUid && blocked.has(uid)) || hiddenByModeration) {
     return (
       <>
         <Navbar />

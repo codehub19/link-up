@@ -71,6 +71,7 @@ export async function listAllUsers(): Promise<AdminUser[]> {
       email: p.email ?? data.email,
       phoneNumber: p.phoneNumber ?? data.phoneNumber,
       upiId: p.upiId ?? data.upiId,
+      instagramId: p.instagramId ?? data.instagramId,
     } as AdminUser
   })
 }
@@ -86,6 +87,7 @@ export async function getAdminUser(uid: string): Promise<AdminUser | null> {
     email: pd.email ?? data.email,
     phoneNumber: pd.phoneNumber ?? data.phoneNumber,
     upiId: pd.upiId ?? data.upiId,
+    instagramId: pd.instagramId ?? data.instagramId,
     collegeIdImages: pd.collegeId || null,
   } as AdminUser
 }

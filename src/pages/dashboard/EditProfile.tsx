@@ -3,7 +3,7 @@ import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
 import { useAuth } from '../../state/AuthContext'
 import { doc, updateDoc } from 'firebase/firestore'
-import { db, uploadProfilePhoto, isDatingReady } from '../../firebase'
+import { db, uploadProfilePhoto, isDatingReady, updatePrivateProfile } from '../../firebase'
 import { toast } from 'sonner'
 import InterestsSelect from '../../components/InterestsSelect'
 import CollegeSelect from '../../components/CollegeSelect'
@@ -173,7 +173,6 @@ export default function EditProfile() {
       const filteredUrls = urls.filter(Boolean)
       await updateDoc(doc(db, 'users', user.uid), {
         name: name.trim(),
-        instagramId: insta.replace(/^@/, '').trim(),
         bio: bio.trim(),
         interests,
         photoUrl: filteredUrls[0], // first photo as main
@@ -191,6 +190,8 @@ export default function EditProfile() {
           conflictApproach,
         } : {}),
       })
+      // Instagram is private: stored with email/phone, never on the public profile
+      await updatePrivateProfile(user.uid, { instagramId: insta.replace(/^@/, '').trim() })
       await refreshProfile()
       toast.success('Profile updated')
       goBackOr(nav, `/dashboard/${profile?.gender}/profile`)

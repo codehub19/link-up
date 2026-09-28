@@ -112,7 +112,7 @@ export const joinRandomCallQueue = onCall({ region: REGION }, async (req) => {
   if (!me.isProfileComplete) {
     throw new HttpsError('failed-precondition', 'Complete your profile first.', { reason: 'profile' })
   }
-  if (me.banned) {
+  if (me.banned || me.underReview) {
     throw new HttpsError('permission-denied', 'Your account is restricted from calls.', { reason: 'banned' })
   }
 

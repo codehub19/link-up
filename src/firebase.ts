@@ -182,7 +182,7 @@ export type UserProfile = {
 // ---- Private profile data ----
 // Contact details and ID images live in userPrivate/{uid} (owner + admins only),
 // not on the publicly readable users/{uid} profile.
-export const PRIVATE_USER_FIELDS = ['email', 'phoneNumber', 'upiId', 'fcmToken'] as const
+export const PRIVATE_USER_FIELDS = ['email', 'phoneNumber', 'upiId', 'fcmToken', 'instagramId'] as const
 
 function splitPrivate(patch: Record<string, any>) {
   const pub: Record<string, any> = {}

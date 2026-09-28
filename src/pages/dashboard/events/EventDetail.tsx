@@ -5,7 +5,7 @@ import Navbar from '../../../components/Navbar'
 import EmptyState from '../../../components/ui/EmptyState'
 import { useAuth } from '../../../state/AuthContext'
 import { useDialog } from '../../../components/ui/Dialog'
-import { subscribeBlockedUids } from '../../../services/blocks'
+import { subscribeBlockedEitherWay } from '../../../services/blocks'
 import { FriendRequest, sendFriendRequest, subscribeMyFriendRequests } from '../../../services/friends'
 import {
   AppEvent, Attendee, EVENT_TYPES, downloadIcs, eventState, formatEventWhen, isFull, leaveEvent, registerForEvent,
@@ -39,7 +39,7 @@ export default function EventDetail() {
   const goingNow = !!mine
   useEffect(() => { if (goingNow) return subscribeAttendees(id, setAttendees); setAttendees([]) }, [id, goingNow])
   useEffect(() => { if (uid) return subscribeMyFriendRequests(uid, setRequests) }, [uid])
-  useEffect(() => { if (uid) return subscribeBlockedUids(uid, setBlocked) }, [uid])
+  useEffect(() => { if (uid) return subscribeBlockedEitherWay(uid, setBlocked) }, [uid])
 
   const relOf = useMemo(() => {
     const m = new Map<string, Rel>()

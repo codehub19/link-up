@@ -31,6 +31,7 @@ export default function CollegeIdVerification() {
           const data = doc.data();
           const p = priv[doc.id] || {};
           const collegeId = { ...(data.collegeId || {}), ...(p.collegeId || {}) };
+          if (p.instagramId && !data.instagramId) (data as any).instagramId = p.instagramId;
           if (
             collegeId.frontUrl &&
             collegeId.backUrl &&
