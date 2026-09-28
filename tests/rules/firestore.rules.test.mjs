@@ -4,7 +4,7 @@ import { test, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing'
-import { doc, getDoc, setDoc, updateDoc, writeBatch, increment, serverTimestamp, Timestamp, arrayUnion, arrayRemove, addDoc, collection } from 'firebase/firestore'
+import { doc, getDoc, getDocs, setDoc, updateDoc, writeBatch, increment, serverTimestamp, Timestamp, arrayUnion, arrayRemove, addDoc, collection, query, where, limit } from 'firebase/firestore'
 
 let env
 const [host, port] = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':')
@@ -151,4 +151,60 @@ test('rounds are admin-only; calls: you can only write your own connection repor
   await assertSucceeds(getDoc(doc(as('admin'), 'matchingRounds/r1')))
   await assertSucceeds(updateDoc(doc(as('a'), 'randomCalls/c1'), { 'media.a': { ok: true, relay: false } }))
   await assertFails(updateDoc(doc(as('a'), 'randomCalls/c1'), { 'media.b': { ok: false } }))
+})
+
+test('security: no chats with strangers, no hijacking chats, no messages across a block', async () => {
+  await seed(async (db) => {
+    await setDoc(doc(db, 'users/a'), person())
+    await setDoc(doc(db, 'users/b'), person())
+    await setDoc(doc(db, 'users/c'), person())
+    await setDoc(doc(db, 'threads/a_b'), { participants: ['a', 'b'], createdAt: 1, updatedAt: 1 })
+  })
+  const t = { createdAt: serverTimestamp(), updatedAt: serverTimestamp() }
+  // Can't just open a chat with anyone
+  await assertFails(setDoc(doc(as('a'), 'threads/a_c'), { participants: ['a', 'c'], ...t }))
+  await assertFails(setDoc(doc(as('a'), 'threads/a_c'), { participants: ['a', 'c'], source: 'friend', ...t }))
+  // Can't swap someone else into an existing chat
+  await assertFails(updateDoc(doc(as('a'), 'threads/a_b'), { participants: ['a', 'c'] }))
+  await assertSucceeds(updateDoc(doc(as('a'), 'threads/a_b'), { typing: { a: true } }))
+  // Messages work until one blocks the other
+  const msg = (uid) => addDoc(collection(as(uid), 'threads/a_b/messages'), { senderUid: uid, text: 'hi', createdAt: serverTimestamp() })
+  await assertSucceeds(msg('a'))
+  await seed((db) => setDoc(doc(db, 'userBlocks/b'), { uids: ['a'] }))
+  await assertFails(msg('a'))
+})
+
+test('security: edits can’t change the sender; likes only with your own id', async () => {
+  await seed(async (db) => {
+    await setDoc(doc(db, 'threads/a_b'), { participants: ['a', 'b'], createdAt: 1, updatedAt: 1 })
+    await setDoc(doc(db, 'threads/a_b/messages/m1'), { senderUid: 'a', text: 'hi', createdAt: Timestamp.now(), likes: [] })
+  })
+  await assertFails(updateDoc(doc(as('a'), 'threads/a_b/messages/m1'), { senderUid: 'b' }))
+  await assertSucceeds(updateDoc(doc(as('a'), 'threads/a_b/messages/m1'), { text: 'hello', isEdited: true }))
+  await assertFails(updateDoc(doc(as('b'), 'threads/a_b/messages/m1'), { likes: ['a'] }))
+  await assertSucceeds(updateDoc(doc(as('b'), 'threads/a_b/messages/m1'), { likes: ['b'] }))
+})
+
+test('security: likes can’t be forged and aren’t public', async () => {
+  await seed(async (db) => {
+    await setDoc(doc(db, 'users/boy'), person())
+    await setDoc(doc(db, 'matchingRounds/r1'), { isActive: true, assignedGirlsToBoys: { boy: ['girl'] } })
+    await setDoc(doc(db, 'likes/r1_x_y'), { roundId: 'r1', likingUserUid: 'x', likedUserUid: 'y' })
+  })
+  const like = (uid, id, liked) => setDoc(doc(as(uid), `likes/${id}`), { roundId: 'r1', likingUserUid: uid, likedUserUid: liked, timestamp: serverTimestamp() })
+  await assertSucceeds(like('boy', 'r1_boy_girl', 'girl'))
+  await assertFails(like('boy', 'r1_boy_other', 'other'))       // not suggested to him
+  await assertFails(like('girl', 'r1_boy_girl2', 'boy'))        // id pretends someone else liked
+  await assertFails(getDoc(doc(as('stranger'), 'likes/r1_x_y')))
+  await assertSucceeds(getDoc(doc(as('y'), 'likes/r1_x_y')))
+})
+
+test('security: no self-verification, no dumping the user list', async () => {
+  await seed((db) => setDoc(doc(db, 'users/a'), person()))
+  await assertFails(updateDoc(doc(as('a'), 'users/a'), { verified: true }))
+  await assertFails(setDoc(doc(as('n'), 'users/n'), person({ verified: true })))
+  await assertSucceeds(getDoc(doc(as('b'), 'users/a')))
+  await assertFails(getDocs(collection(as('b'), 'users')))
+  await assertFails(getDocs(query(collection(as('b'), 'users'), limit(50))))
+  await assertSucceeds(getDocs(query(collection(as('b'), 'users'), where('referralCode', '==', 'ABC'), limit(1))))
 })

@@ -237,6 +237,24 @@ export const verifyRazorpayPayment = onCall(
       throw new HttpsError('permission-denied', 'Signature mismatch')
     }
 
+    // The signature proves the payment is real, not that it was for this plan or
+    // this user. Check the order we created: same user, same plan, full amount.
+    try {
+      const client = new Razorpay({ key_id: RAZORPAY_KEY_ID.value(), key_secret })
+      const order: any = await client.orders.fetch(orderId)
+      const planSnap = await db.collection('plans').doc(planId).get()
+      const expectedPaise = Math.round(Number(planSnap.get('price') ?? planSnap.get('amount') ?? 0) * 100)
+      if (order?.notes?.uid !== auth.uid || order?.notes?.planId !== planId
+          || Number(order?.amount_paid ?? order?.amount) < expectedPaise || !expectedPaise) {
+        logger.warn('verify_order_mismatch', { orderId, uid: auth.uid, planId, notes: order?.notes, amount: order?.amount, expectedPaise })
+        throw new HttpsError('permission-denied', 'This payment doesn’t match the plan. Contact support if you were charged.')
+      }
+    } catch (e: any) {
+      if (e instanceof HttpsError) throw e
+      logger.error('verify_order_fetch_failed', { orderId, error: e?.message })
+      throw new HttpsError('unavailable', 'Couldn’t confirm the payment. Please try again in a minute.')
+    }
+
     // Fetch plan info (for amount logging & plan validation)
     let planPrice: number | undefined
     let planQuota: number | undefined
@@ -367,7 +385,7 @@ export const checkInstagramUsername = onRequest(
     }
 
     const username = req.query.username || req.body?.username
-    if (!username || typeof username !== "string") {
+    if (!username || typeof username !== "string" || !/^[A-Za-z0-9._]{1,30}$/.test(username)) {
       res.status(400).json({ error: "Username is required" })
       return
     }
@@ -443,6 +461,10 @@ export const confirmMatch = onCall({ region: REGION }, async (req) => {
   const likeId = `${roundId}_${girlUid}_${boyUid}`
   const likeSnap = await db.collection('likes').doc(likeId).get()
   if (!likeSnap.exists) throw new HttpsError('failed-precondition', 'Like not found')
+  // The like must really have been made by her, for him
+  if ((likeSnap.get('likingUserUid') ?? likeSnap.get('likerUid')) !== girlUid || likeSnap.get('likedUserUid') !== boyUid) {
+    throw new HttpsError('failed-precondition', 'Like not found')
+  }
 
   const matchId = `${roundId}_${boyUid}_${girlUid}`
   const matchRef = db.collection('matches').doc(matchId)
@@ -477,6 +499,10 @@ export const confirmMatchByGirl = onCall({ region: REGION }, async (req) => {
   const likeRef = admin.firestore().collection('likes').doc(likeId)
   const likeSnap = await likeRef.get()
   if (!likeSnap.exists) throw new HttpsError('failed-precondition', 'Like not found')
+  // The like must really have been made by him, for her
+  if ((likeSnap.get('likingUserUid') ?? likeSnap.get('likerUid')) !== boyUid || likeSnap.get('likedUserUid') !== girlUid) {
+    throw new HttpsError('failed-precondition', 'Like not found')
+  }
 
   const matchId = `${roundId}_${boyUid}_${girlUid}`
   const matchRef = admin.firestore().collection('matches').doc(matchId)
@@ -680,3 +706,4 @@ export * from './groups'
 export * from './emailAlerts'
 export * from './rounds'
 export * from './profileViews'
+export * from './chat'

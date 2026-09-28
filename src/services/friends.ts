@@ -87,12 +87,6 @@ export async function removeFriend(me: string, other: string) {
   await updateDoc(doc(db, 'threads', threadIdFor(me, other)), { friend: false }).catch(() => { })
 }
 
-/** Students who turned on Friends (the caller filters out themselves, friends, blocks…). */
-export async function listDiscoverableStudents(max = 80) {
-  const snap = await getDocs(query(collection(db, 'users'), where('friendsVisible', '==', true), limit(max)))
-  return snap.docs.map((d) => ({ uid: d.id, ...(d.data() as any) }))
-}
-
 export type DiscoverPerson = {
   uid: string; name?: string; photoUrl?: string; college?: string; dob?: string; gender?: string
   interests?: string[]; bio?: string; prompts?: { q: string; a: string }[]; verified?: boolean

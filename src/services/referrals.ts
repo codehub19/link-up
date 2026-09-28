@@ -1,6 +1,7 @@
 
 import {
     addDoc,
+    limit,
     collection,
     doc,
     getDoc,
@@ -35,7 +36,7 @@ export async function assignReferralCode(uid: string, name: string) {
     let unique = false
     // Retry a few times if collision
     for (let i = 0; i < 5; i++) {
-        const q = query(collection(db, 'users'), where('referralCode', '==', code))
+        const q = query(collection(db, 'users'), where('referralCode', '==', code), limit(1))
         const snap = await getDocs(q)
         if (snap.empty) {
             unique = true
@@ -53,7 +54,7 @@ export async function assignReferralCode(uid: string, name: string) {
 
 export async function validateReferralCode(code: string) {
     if (!code) return null
-    const q = query(collection(db, 'users'), where('referralCode', '==', code))
+    const q = query(collection(db, 'users'), where('referralCode', '==', code), limit(1))
     const snap = await getDocs(q)
     if (snap.empty) return null
     return snap.docs[0].id // Return referrer UID

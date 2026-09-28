@@ -12,6 +12,7 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null
                    && request.auth.uid == uid
+                   && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*')
                    && fileName.matches('profile(_[0-9]+)?\\.jpg');
     }
@@ -21,6 +22,7 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null
                    && request.auth.uid == uid
+                   && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*')
                    && fileName.matches('profile(_[0-9]+)?\\.jpg');
     }
@@ -28,7 +30,9 @@ service firebase.storage {
     // New structure: users/{uid}/college-id/
     match /users/{uid}/college-id/{fileName} {
       allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
-      allow write: if request.auth != null && request.auth.uid == uid && request.resource.contentType.matches('image/.*');
+      allow write: if request.auth != null && request.auth.uid == uid
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
     }
     // Voice notes are stored under the sender's uid; the recipient plays them via the
     // download URL saved in the (participant-only) chat message.
@@ -40,7 +44,9 @@ service firebase.storage {
     }
     match /payments/{uid}/{allPaths=**} {
       allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
-      allow write: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
     }
     // Event cover images (admins upload, everyone can see)
     match /events/{eventId}/{fileName} {

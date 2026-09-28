@@ -1,7 +1,7 @@
 import Navbar from '../../components/Navbar'
 import { useAuth } from '../../state/AuthContext'
 import { useEffect, useState } from 'react'
-import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore'
+import { collection, getDocs, limit, query, where, doc, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import ProfileMiniCard from '../../components/ProfileMiniCard'
 import { Link } from 'react-router-dom'
@@ -57,7 +57,7 @@ export default function MatchesPage() {
       // Fetch all user profiles in one go
       const snaps = await Promise.all(
         ids.map(async (uid) => {
-          const r = await getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
+          const r = await getDocs(query(collection(db, 'users'), where('uid', '==', uid), limit(1)))
           return r.docs[0]
         })
       )

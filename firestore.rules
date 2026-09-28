@@ -102,11 +102,17 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if request.auth != null;
+      // Anyone signed in can open a profile, but only admins can list/search the
+      // whole collection (stops scraping). Members find people through
+      // discoverPeople (server) and single-result lookups (e.g. a referral code).
+      allow get: if request.auth != null;
+      allow list: if isAdmin() || (request.auth != null && request.query.limit <= 1);
       allow create: if isAdmin() || (
         request.auth != null && request.auth.uid == uid
         && !signupsPaused()
         && !request.resource.data.keys().hasAny(protectedUserKeys())
+        // The verified badge is only set by admins
+        && request.resource.data.get('verified', false) == false
         && !request.resource.data.keys().hasAny(privateUserKeys())
         && collegeIdWriteOk()
         && (!('dob' in request.resource.data) || request.resource.data.dob == null || isAdultDob(request.resource.data.dob))
@@ -114,6 +120,7 @@ service cloud.firestore {
       allow update: if isAdmin() || (
         request.auth != null && request.auth.uid == uid
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(protectedUserKeys())
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified'])
         && !request.resource.data.diff(resource.data).addedKeys().hasAny(privateUserKeys())
         && !request.resource.data.diff(resource.data).changedKeys().hasAny(privateUserKeys())
         && collegeIdWriteOk()
@@ -207,17 +214,26 @@ service cloud.firestore {
 
     // Likes
     match /likes/{likeId} {
+      // Id = "<roundId>_<liker>_<liked>" and you can only like someone suggested to you
+      // in that round (so a like can't be forged to force a match).
       allow create: if request.auth != null
-                    && (
-                      request.resource.data.likingUserUid == request.auth.uid
-                      || request.resource.data.likerUid == request.auth.uid
-                    )
+                    && !isBanned()
+                    && request.resource.data.likingUserUid == request.auth.uid
                     && request.resource.data.likedUserUid is string
-                    && request.resource.data.roundId is string;
-      allow read: if request.auth != null;
-      allow update, delete: if isAdmin()
-                            || (request.auth != null && resource.data.likingUserUid == request.auth.uid)
-                            || (request.auth != null && resource.data.likerUid == request.auth.uid);
+                    && request.resource.data.roundId is string
+                    && likeId == request.resource.data.roundId + '_' + request.auth.uid + '_' + request.resource.data.likedUserUid
+                    && request.resource.data.keys().hasOnly(['roundId', 'likingUserUid', 'likedUserUid', 'timestamp'])
+                    && exists(/databases/$(database)/documents/matchingRounds/$(request.resource.data.roundId))
+                    && request.resource.data.likedUserUid in get(/databases/$(database)/documents/matchingRounds/$(request.resource.data.roundId))
+                         .data.get('assignedGirlsToBoys', {}).get(request.auth.uid, []);
+      // Only the two people involved (and admins) can see a like
+      allow read: if request.auth != null
+                  && (resource.data.get('likingUserUid', '') == request.auth.uid
+                      || resource.data.get('likerUid', '') == request.auth.uid
+                      || resource.data.get('likedUserUid', '') == request.auth.uid
+                      || isAdmin());
+      allow update: if isAdmin();
+      allow delete: if isAdmin() || (request.auth != null && resource.data.likingUserUid == request.auth.uid);
     }
 
     // Matches (readable by participants, writes via Cloud Functions)
@@ -245,25 +261,26 @@ service cloud.firestore {
                     && request.resource.data.createdAt != null
                     && request.resource.data.updatedAt != null
                     && !('unlocked' in request.resource.data)
-                    // Only the server creates random-call chats; friend chats need an accepted request
-                    && (!('source' in request.resource.data) || (request.resource.data.source == 'friend'
-                          && friendsAccepted(request.resource.data.participants[0], request.resource.data.participants[1])))
-                    && (!('friend' in request.resource.data) || friendsAccepted(request.resource.data.participants[0], request.resource.data.participants[1]));
+                    && threadId == (request.resource.data.participants[0] < request.resource.data.participants[1]
+                          ? request.resource.data.participants[0] + '_' + request.resource.data.participants[1]
+                          : request.resource.data.participants[1] + '_' + request.resource.data.participants[0])
+                    // Members only create a chat when accepting a friend request. Match and
+                    // random-call chats are created by the server (openChat / calls).
+                    && request.resource.data.get('source', '') == 'friend'
+                    && friendsAccepted(request.resource.data.participants[0], request.resource.data.participants[1]);
 
       // Update allowed for participants as long as participants list is unchanged
       allow update: if isAdmin()
                     || (
                       request.auth != null
                       && isParticipant(request.auth.uid, resource.data.participants)
-                      // Random-call chat window fields are server-managed
+                      // Who is in a chat never changes; random-call window fields are server-managed
                       && !request.resource.data.diff(resource.data).affectedKeys()
-                            .hasAny(['source', 'chatExpiresAt', 'connectedAt', 'randomCallId', 'unlocked', 'unlockedBy', 'unlockedAt'])
+                            .hasAny(['participants', 'source', 'chatExpiresAt', 'connectedAt', 'randomCallId', 'unlocked', 'unlockedBy', 'unlockedAt', 'deletedUsers'])
                       // Marking a chat as a friends chat needs an accepted friend request
                       && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['friend'])
                           || request.resource.data.friend != true
                           || friendsAccepted(resource.data.participants[0], resource.data.participants[1]))
-                      // Relaxed to allow typing/read status updates without strict check on participants immutability for MVP
-                      // && request.resource.data.participants == resource.data.participants
                     );
 
       allow delete: if isAdmin();
@@ -293,6 +310,8 @@ service cloud.firestore {
                       )
                       && isChatOpen(get(/databases/$(database)/documents/threads/$(threadId)).data)
                       && !isBanned()
+                      // No messages between people who blocked each other
+                      && !blockedEitherWay(request.auth.uid, otherParticipant(get(/databases/$(database)/documents/threads/$(threadId)).data.participants))
                       && request.resource.data.senderUid == request.auth.uid
                       && request.resource.data.text is string
                       && request.resource.data.createdAt != null;
@@ -302,11 +321,16 @@ service cloud.firestore {
                         request.auth != null
                         && resource.data.senderUid == request.auth.uid
                         && request.time < resource.data.createdAt + duration.value(30, 'm')
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'isEdited', 'editedAt'])
+                        && request.resource.data.text is string
                       )
-                      // Either participant can like / unlike a message
+                      // Either participant can like / unlike a message (only with their own uid)
                       || (
                         request.auth != null
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
+                        && request.resource.data.get('likes', []).toSet().difference(resource.data.get('likes', []).toSet())
+                             .union(resource.data.get('likes', []).toSet().difference(request.resource.data.get('likes', []).toSet()))
+                             .hasOnly([request.auth.uid])
                         && isParticipant(
                              request.auth.uid,
                              get(/databases/$(database)/documents/threads/$(threadId)).data.participants

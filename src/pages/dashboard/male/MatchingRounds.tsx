@@ -5,7 +5,7 @@ import { isDatingReady } from '../../../firebase'
 import DatingIntro from '../../../components/dating/DatingIntro'
 import { useEffect, useState } from 'react'
 import { getMyRound } from '../../../services/rounds'
-import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore'
+import { collection, getDocs, limit, query, where, doc, setDoc } from 'firebase/firestore'
 import { db, callJoinMatchingRound } from '../../../firebase'
 import { getActiveSubscription, formatPremiumUntil, type ActiveSubscription } from '../../../services/subscriptions'
 import ProfileMiniCard from '../../../components/ProfileMiniCard'
@@ -116,7 +116,7 @@ export default function MatchingRounds() {
       }
       const users: UserDoc[] = []
       for (const uid of assignedUids) {
-        const s = await getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
+        const s = await getDocs(query(collection(db, 'users'), where('uid', '==', uid), limit(1)))
         if (!s.empty) {
           const userData = s.docs[0].data() as UserDoc
           users.push(userData)

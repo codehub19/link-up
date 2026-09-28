@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import { getMyRound } from '../../../services/rounds'
 import { getBoysWhoLikedGirl } from '../../../services/likes'
 import { toMillis } from '../../../services/subscriptions'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { collection, getDocs, limit, query, where } from 'firebase/firestore'
 import { db, callConfirmMatchByGirl } from '../../../firebase'
 import ProfileMiniCard from '../../../components/ProfileMiniCard'
 import Carousel from '../../../components/Carousel'
@@ -96,7 +96,7 @@ export default function MatchingRound() {
       }
       const users: UserDoc[] = []
       for (const uid of boyUids) {
-        const s = await getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
+        const s = await getDocs(query(collection(db, 'users'), where('uid', '==', uid), limit(1)))
         if (!s.empty) users.push(s.docs[0].data() as UserDoc)
       }
 

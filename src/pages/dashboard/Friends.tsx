@@ -11,7 +11,7 @@ import { updateProfileAndStatus } from '../../firebase'
 import { subscribeBlockedEitherWay } from '../../services/blocks'
 import {
   FriendRequest, MAX_PENDING_SENT, acceptFriendRequest, cancelFriendRequest, declineFriendRequest,
-  discoverPeople, listDiscoverableStudents, removeFriend, sendFriendRequest, subscribeMyFriendRequests,
+  discoverPeople, removeFriend, sendFriendRequest, subscribeMyFriendRequests,
 } from '../../services/friends'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
@@ -89,7 +89,7 @@ export default function FriendsPage() {
       } else {
         // Server ranking not deployed yet: rank on the device
         setRanked(false)
-        setPeople(await listDiscoverableStudents(120).catch(() => []) as Person[])
+        setPeople([]) // the ranked list comes from the server only
         setNextOffset(null)
       }
       setLoadingPeople(false)
