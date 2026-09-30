@@ -79,20 +79,10 @@ export async function adminGoogleStep() {
   await auth.currentUser!.getIdToken(true)
   await httpsCallable(functions, 'completeAdminSession')({ ticket: t.ticket })
   sessionStorage.removeItem(TICKET_KEY)
+  // Pick up the admin access the server just confirmed (same sign-in, new claims)
+  await auth.currentUser!.getIdToken(true)
 }
 
-/* ---- First-time setup ---- */
-export async function setupGoogleSignIn() {
-  await signInWithPopup(auth, googleProvider())
-}
-export async function claimOwnerAccess(user: User) {
-  await httpsCallable(functions, 'claimAdmin')({})
-  await user.getIdToken(true)
-}
-export async function adminHasPassword() {
-  const r: any = await httpsCallable(functions, 'adminPasswordStatus')({})
-  return !!r.data.hasPassword
-}
 export async function setAdminPassword(newPassword: string, currentPassword?: string) {
   await httpsCallable(functions, 'setAdminPassword')({ newPassword, currentPassword })
 }

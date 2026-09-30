@@ -44,6 +44,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   }, [ok, nav])
 
   if (loading || (user && ok === null)) return null
-  if (!ok) return <Navigate to="/admin/login" replace />
+  // Not a signed-in admin with a valid two-step session: back to the home screen
+  if (!ok) return <Navigate to="/" replace />
   return <>{children}</>
 }

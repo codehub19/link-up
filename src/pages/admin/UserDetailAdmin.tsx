@@ -282,7 +282,12 @@ export default function UserDetailAdmin() {
                 }}>{isSelf ? 'You are an admin' : 'Remove admin access'}</button>
               ) : (
                 <button className="btn btn-sm" disabled={busy} onClick={async () => {
-                  if (await showConfirm(`Give ${u.name} FULL admin access? They will be able to see and change everything. They must sign in with Google (with 2-Step Verification on). Only the owner can do this.`)) run(() => setUserAdmin(uid, true))
+                  if (await showConfirm(`Give ${u.name} FULL admin access? They will be able to see and change everything. They must sign in with Google (with 2-Step Verification on). Only the owner can do this.`)) run(async () => {
+                    const pw = window.prompt('Set their admin password (12+ characters). Give it to them privately — they need it plus their Google account to sign in.') || ''
+                    if (pw.length < 12) throw new Error('Admin password must be at least 12 characters.')
+                    if (window.prompt('Type the password again') !== pw) throw new Error('The passwords don’t match.')
+                    await setUserAdmin(uid, true, pw)
+                  })
                 }}>Make admin</button>
               )}
               <button className="btn btn-sm" style={{ color: '#f87171', borderColor: '#f87171' }} disabled={busy || isSelf} onClick={async () => {

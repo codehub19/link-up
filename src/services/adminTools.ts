@@ -96,8 +96,8 @@ export async function setUserBan(uid: string, banned: boolean, reason?: string) 
   await httpsCallable(functions, 'setUserBan')({ uid, banned, reason })
 }
 
-export async function setUserAdmin(uid: string, isAdmin: boolean) {
-  await httpsCallable(functions, 'setUserAdmin')({ uid, isAdmin })
+export async function setUserAdmin(uid: string, isAdmin: boolean, password?: string) {
+  await httpsCallable(functions, 'setUserAdmin')({ uid, isAdmin, password })
 }
 
 export async function deleteUserPermanently(uid: string) {

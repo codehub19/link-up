@@ -31,6 +31,10 @@ const REGION = 'asia-south2'
 
 export const ADMIN_SESSION_HOURS = 12
 const OWNER_EMAILS = defineString('OWNER_EMAILS', { description: 'Comma-separated Google emails of the DateU owner(s), e.g. you@gmail.com' })
+// The owner's admin password, as a hash made on your own computer with
+//   node functions/scripts/hash-admin-password.mjs
+// It is never set or changed through the website.
+const OWNER_PASSWORD_HASH = defineString('OWNER_PASSWORD_HASH', { default: '', description: 'Owner admin password hash from functions/scripts/hash-admin-password.mjs' })
 
 const owners = () => OWNER_EMAILS.value().split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
 
@@ -49,6 +53,17 @@ const MIN_PASSWORD = 12
 const sessionRef = (uid: string) => db.collection('adminSessions').doc(uid)
 const credRef = (email: string) => db.collection('adminCredentials').doc(email.toLowerCase())
 const attemptsRef = (email: string) => db.collection('adminLoginAttempts').doc(email.toLowerCase())
+
+/** The stored admin password for an email: the owner's comes from OWNER_PASSWORD_HASH. */
+async function credentialFor(email: string): Promise<{ salt: string; hash: string } | null> {
+  const e = email.toLowerCase()
+  if (owners().includes(e)) {
+    const [kind, salt, hash] = OWNER_PASSWORD_HASH.value().split(':')
+    return kind === 'scrypt' && salt && hash ? { salt, hash } : null
+  }
+  const d = (await credRef(e).get()).data()
+  return d?.salt && d?.hash ? { salt: d.salt, hash: d.hash } : null
+}
 
 /** Both login steps done for THIS Google sign-in, and not expired or ended. */
 async function hasAdminSession(uid: string, token: any) {
@@ -115,31 +130,27 @@ async function ownerUids() {
   return out
 }
 
-/** Owner: turn on your own admin access (only for emails in OWNER_EMAILS). */
-export const claimAdmin = onCall({ region: REGION }, async (req) => {
-  const t = req.auth?.token as any
-  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required')
-  const email = String(t?.email || '').toLowerCase()
-  if (!owners().includes(email) || !strongSession(t)) {
-    logger.warn('claimAdmin refused', { uid: req.auth.uid, email })
-    throw new HttpsError('permission-denied', 'This account can’t be an admin.')
-  }
-  await admin.auth().setCustomUserClaims(req.auth.uid, { admin: true, owner: true })
-  await db.collection('users').doc(req.auth.uid).set({ isAdmin: true }, { merge: true })
-  await audit(req.auth.uid, 'claim_owner', req.auth.uid, { email })
-  return { ok: true }
+/** Retired: owners now get access automatically when both login steps succeed. */
+export const claimAdmin = onCall({ region: REGION }, async () => {
+  throw new HttpsError('failed-precondition', 'Sign in at /admin/login with your email, admin password and Google.')
 })
 
 /** Owner: make someone an admin, or remove them. They must sign in with Google. */
 export const setUserAdmin = onCall({ region: REGION }, async (req) => {
   if (!(await isOwnerRequest(req))) throw new HttpsError('permission-denied', 'Only the owner can change admins. Sign in to the admin panel again.')
-  const { uid, isAdmin } = (req.data || {}) as { uid?: string; isAdmin?: boolean }
+  const { uid, isAdmin, password } = (req.data || {}) as { uid?: string; isAdmin?: boolean; password?: string }
   if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
+  if (isAdmin && (!password || password.length < MIN_PASSWORD || password.length > 200)) {
+    throw new HttpsError('invalid-argument', `Give them an admin password of at least ${MIN_PASSWORD} characters.`)
+  }
   if (uid === req.auth!.uid) throw new HttpsError('failed-precondition', 'You can’t change your own access here.')
   const target = await admin.auth().getUser(uid).catch(() => null)
   if (!target) throw new HttpsError('not-found', 'User not found')
   if (isAdmin && !target.providerData.some((p) => p.providerId === 'google.com')) {
     throw new HttpsError('failed-precondition', 'Admins must sign in with a Google account.')
+  }
+  if (isAdmin && target.email) {
+    await credRef(target.email).set({ ...hashPassword(password!), uid, setBy: req.auth!.uid, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
   }
   const claims = { ...(target.customClaims || {}) } as Record<string, any>
   if (isAdmin) claims.admin = true
@@ -164,7 +175,7 @@ export const listAdmins = onCall({ region: REGION }, async (req) => {
   const snap = await db.collection('users').where('isAdmin', '==', true).select('name').get()
   const rows = await Promise.all(snap.docs.map(async (d) => {
     const u = await admin.auth().getUser(d.id).catch(() => null)
-    const hasPassword = u?.email ? (await credRef(u.email).get()).exists : false
+    const hasPassword = u?.email ? !!(await credentialFor(u.email)) : false
     return { uid: d.id, name: d.get('name') || null, email: u?.email || null, admin: u?.customClaims?.admin === true, owner: u?.customClaims?.owner === true, hasPassword, lastSignIn: u?.metadata.lastSignInTime || null }
   }))
   return { admins: rows }
@@ -195,7 +206,7 @@ export const adminPasswordStep = onCall({ region: REGION }, async (req) => {
   if (Number(a.lockedUntilMs || 0) > Date.now()) {
     throw new HttpsError('resource-exhausted', 'Too many wrong attempts. Try again in 15 minutes.')
   }
-  const cred = (await credRef(email).get()).data()
+  const cred = await credentialFor(email)
   const ok = !!cred && passwordMatches(password, cred.salt, cred.hash)
   if (!ok) {
     const fails = Number(a.fails || 0) + 1
@@ -219,7 +230,15 @@ export const completeAdminSession = onCall({ region: REGION }, async (req) => {
   const email = String(t?.email || '').toLowerCase()
   if (!ticket) throw new HttpsError('deadline-exceeded', 'The password step expired. Start again.')
   if (ticket.email !== email) throw new HttpsError('permission-denied', 'Use the Google account with the same email as step 1.')
-  if (t?.admin !== true || !strongSession(t)) throw new HttpsError('permission-denied', 'This Google account doesn’t have admin access.')
+  if (!strongSession(t)) throw new HttpsError('permission-denied', 'Sign in with Google again.')
+  const isOwner = owners().includes(email)
+  if (t?.admin !== true && !isOwner) throw new HttpsError('permission-denied', 'This account doesn’t have admin access.')
+  if (isOwner && (t?.admin !== true || t?.owner !== true)) {
+    // The owner passed the password (OWNER_PASSWORD_HASH) and Google steps: grant access
+    const u = await admin.auth().getUser(req.auth.uid)
+    await admin.auth().setCustomUserClaims(req.auth.uid, { ...(u.customClaims || {}), admin: true, owner: true })
+    await db.collection('users').doc(req.auth.uid).set({ isAdmin: true }, { merge: true })
+  }
   // The Google sign-in must be the one that just happened (after the password step)
   if (Date.now() / 1000 - Number(t.auth_time) > TICKET_MS / 1000) throw new HttpsError('permission-denied', 'Sign in with Google again.')
   await sessionRef(req.auth.uid).set({
@@ -245,23 +264,23 @@ export const endAdminSession = onCall({ region: REGION }, async (req) => {
  * current password.
  */
 export const setAdminPassword = onCall({ region: REGION }, async (req) => {
-  const t = req.auth?.token as any
-  if (!req.auth || t?.admin !== true || !strongSession(t)) throw new HttpsError('permission-denied', 'Admins only (sign in with Google)')
-  const email = String(t.email || '').toLowerCase()
+  if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Sign in to the admin panel first.')
+  const email = String((req.auth!.token as any).email || '').toLowerCase()
+  if (owners().includes(email)) {
+    throw new HttpsError('failed-precondition', 'The owner password is changed on your computer: run node functions/scripts/hash-admin-password.mjs and redeploy functions.')
+  }
   const { newPassword, currentPassword } = (req.data || {}) as { newPassword?: string; currentPassword?: string }
   if (!newPassword || newPassword.length < MIN_PASSWORD || newPassword.length > 200) {
     throw new HttpsError('invalid-argument', `Use at least ${MIN_PASSWORD} characters.`)
   }
-  const ref = credRef(email)
-  const existing = (await ref.get()).data()
-  if (existing) {
-    if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Sign in to the admin panel first.')
-    if (!currentPassword || !passwordMatches(currentPassword, existing.salt, existing.hash)) throw new HttpsError('permission-denied', 'Current admin password is wrong.')
+  const existing = await credentialFor(email)
+  if (!existing || !currentPassword || !passwordMatches(currentPassword, existing.salt, existing.hash)) {
+    throw new HttpsError('permission-denied', 'Current admin password is wrong.')
   }
-  await ref.set({ ...hashPassword(newPassword), uid: req.auth.uid, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  await audit(req.auth.uid, existing ? 'admin_password_changed' : 'admin_password_set', req.auth.uid, { email })
+  await credRef(email).set({ ...hashPassword(newPassword), uid: req.auth!.uid, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  await audit(req.auth!.uid, 'admin_password_changed', req.auth!.uid, { email })
   const notify = (await ownerUids()).filter((u) => u !== req.auth!.uid)
-  if (notify.length) await sendPushToUsers(notify, 'Admin password changed', `${email} ${existing ? 'changed' : 'set'} their admin password`, '/admin/audit').catch(() => 0)
+  if (notify.length) await sendPushToUsers(notify, 'Admin password changed', `${email} changed their admin password`, '/admin/audit').catch(() => 0)
   return { ok: true }
 })
 
@@ -269,5 +288,5 @@ export const setAdminPassword = onCall({ region: REGION }, async (req) => {
 export const adminPasswordStatus = onCall({ region: REGION }, async (req) => {
   const t = req.auth?.token as any
   if (!req.auth || t?.admin !== true) throw new HttpsError('permission-denied', 'Admins only')
-  return { hasPassword: (await credRef(String(t.email || '')).get()).exists }
+  return { hasPassword: !!(await credentialFor(String(t.email || ''))), owner: owners().includes(String(t.email || '').toLowerCase()) }
 })

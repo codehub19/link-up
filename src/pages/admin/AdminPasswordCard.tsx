@@ -14,6 +14,7 @@ export default function AdminPasswordCard() {
       <div style={{ fontWeight: 600, marginBottom: 6 }}>Your admin password</div>
       <div style={{ fontSize: 13, color: 'var(--admin-text-muted)', marginBottom: 12 }}>
         Step 1 of admin sign-in. It’s separate from your Google password and can’t be reset by email. At least 12 characters.
+        (Owner: change yours on your computer with <code>node functions/scripts/hash-admin-password.mjs</code>, then deploy functions.)
       </div>
       <form className="stack" style={{ gap: 10 }} onSubmit={async (e) => {
         e.preventDefault()

@@ -31,7 +31,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         navigateFallback: '/index.html',
         // Let these real files load instead of the app shell
-        navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/, /^\/og-image\.png$/],
+        // Admin pages always load fresh from the server, never from the offline cache
+        navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/, /^\/og-image\.png$/, /^\/admin/],
         globIgnores: ['**/og-image.png'],
         runtimeCaching: [
           {
