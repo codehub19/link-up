@@ -3,6 +3,7 @@ import { functions } from '../../firebase'
 import { useEffect, useState } from 'react'
 import { useDialog } from '../../components/ui/Dialog'
 import AdminsCard from './AdminsCard'
+import AdminPasswordCard from './AdminPasswordCard'
 import { AppConfig, getConfigDoc, saveConfigDoc } from '../../services/adminTools'
 import QRCode from 'qrcode'
 import { DEFAULT_PAYMENT_SETTINGS, upiLink } from '../../services/paymentSettings'
@@ -283,6 +284,7 @@ export default function ControlsAdmin() {
           </div>
         </div>
 
+        <AdminPasswordCard />
         <AdminsCard />
 
         {/* Email */}

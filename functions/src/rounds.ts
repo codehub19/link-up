@@ -135,7 +135,7 @@ export const getMyRound = onCall({ region: REGION }, async (req) => {
 
 /** Admin: add Premium men to the active round and drop anyone no longer eligible. */
 export const syncActiveRound = onCall({ region: REGION, timeoutSeconds: 300 }, async (req) => {
-  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const round = await activeRound()
   if (!round) throw new HttpsError('failed-precondition', 'No active round')
   const premium = await premiumUids()
@@ -154,7 +154,7 @@ export const syncActiveRound = onCall({ region: REGION, timeoutSeconds: 300 }, a
  *  phase 'girls' → among the men who liked her, the best ones for each woman
  */
 export const runRoundMatching = onCall({ region: REGION, timeoutSeconds: 540, memory: '1GiB' }, async (req) => {
-  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const { roundId, phase = 'boys', mode = 'smart', countPerUser = 3 } = (req.data || {}) as { roundId?: string; phase?: 'boys' | 'girls'; mode?: 'smart' | 'random'; countPerUser?: number }
   if (!roundId) throw new HttpsError('invalid-argument', 'roundId required')
   const n = Math.min(Math.max(Number(countPerUser) || 3, 1), 20)

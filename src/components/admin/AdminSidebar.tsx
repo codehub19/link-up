@@ -108,9 +108,14 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }: { mobileOpen
                 </nav>
 
                 <div style={{ padding: 24, borderTop: '1px solid var(--admin-border)' }}>
-                    <div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>
-                        Logged in as Admin
+                    <div style={{ fontSize: 12, color: 'var(--admin-text-muted)', marginBottom: 10 }}>
+                        Signed in as admin
                     </div>
+                    <button type="button" className="btn btn-sm" onClick={async () => {
+                        const { adminSignOut } = await import('../../services/adminAuth')
+                        await adminSignOut()
+                        window.location.href = '/admin/login'
+                    }}>Sign out</button>
                 </div>
             </aside>
         </>

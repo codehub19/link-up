@@ -25,7 +25,7 @@ const PRIVATE_FIELDS = ['email', 'phoneNumber', 'upiId', 'fcmToken', 'instagramI
  * from the public users/{uid} profile into userPrivate/{uid}. Safe to run again.
  * ------------------------------------------------------------------------- */
 export const migrateUserPrivateData = onCall({ region: REGION, timeoutSeconds: 540 }, async (req) => {
-  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
 
   const FieldValue = admin.firestore.FieldValue
   const users = await db.collection('users').get()
@@ -73,7 +73,7 @@ export const migrateUserPrivateData = onCall({ region: REGION, timeoutSeconds: 5
  * or send chat messages.
  * ------------------------------------------------------------------------- */
 export const setUserBan = onCall({ region: REGION }, async (req) => {
-  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const { uid, banned, reason } = (req.data || {}) as { uid?: string; banned?: boolean; reason?: string }
   if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
 
@@ -96,7 +96,7 @@ export const setUserBan = onCall({ region: REGION }, async (req) => {
  * ------------------------------------------------------------------------- */
 export const adminDeleteUser = onCall({ region: REGION, timeoutSeconds: 120 }, async (req) => {
   const caller = req.auth?.uid
-  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const { uid } = (req.data || {}) as { uid?: string }
   if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
   if (uid === caller) throw new HttpsError('failed-precondition', "You can't delete your own account here.")

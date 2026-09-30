@@ -88,7 +88,7 @@ export const onReportUpdated = onDocumentUpdated(
 
 /** Admin: hide or restore an account (used from the Reports and Users screens). */
 export const setUserReview = onCall({ region: REGION }, async (req) => {
-  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const { uid, underReview } = (req.data || {}) as { uid?: string; underReview?: boolean }
   if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
   await db.collection('users').doc(uid).set({

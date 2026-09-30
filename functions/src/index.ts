@@ -54,7 +54,7 @@ interface ActiveSubscription {
 
 // Push notification to a list of users (admin only: rounds, payments, support replies)
 export const sendPushNotification = onCall({ region: REGION }, async (req) => {
-  if (!(isAdminRequest(req))) {
+  if (!(await isAdminRequest(req))) {
     throw new HttpsError('permission-denied', 'Admin only')
   }
   const { userUids, title, body } = (req.data || {}) as { userUids?: string[]; title?: string; body?: string }
@@ -530,7 +530,7 @@ export const confirmMatchByGirl = onCall({ region: REGION }, async (req) => {
 
 export const adminPromoteMatch = onCall({ region: REGION }, async (req) => {
   const caller = req.auth?.uid
-  if (!(isAdminRequest(req))) {
+  if (!(await isAdminRequest(req))) {
     throw new HttpsError('permission-denied', 'Admin only')
   }
 
@@ -568,7 +568,7 @@ export const adminPromoteMatch = onCall({ region: REGION }, async (req) => {
 export const adminApprovePayment = onCall({ region: REGION }, async (req) => {
   const caller = req.auth?.uid
   if (!caller) throw new HttpsError('unauthenticated', 'Sign in required')
-  if (!(isAdminRequest(req))) {
+  if (!(await isAdminRequest(req))) {
     throw new HttpsError('permission-denied', 'Admin only')
   }
 

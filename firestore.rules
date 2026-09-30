@@ -9,7 +9,11 @@ service cloud.firestore {
         && request.auth.token.get('admin', false) == true
         && request.auth.token.get('email_verified', false) == true
         && request.auth.token.firebase.sign_in_provider == 'google.com'
-        && request.time.toMillis() < (request.auth.token.auth_time + 12 * 3600) * 1000;
+        && request.time.toMillis() < (request.auth.token.auth_time + 12 * 3600) * 1000
+        // Both login steps (admin password, then Google) done for THIS sign-in
+        && exists(/databases/$(database)/documents/adminSessions/$(request.auth.uid))
+        && get(/databases/$(database)/documents/adminSessions/$(request.auth.uid)).data.authTime == request.auth.token.auth_time
+        && get(/databases/$(database)/documents/adminSessions/$(request.auth.uid)).data.expiresAtMs > request.time.toMillis();
     }
 
     function isParticipant(uid, participants) {
@@ -498,6 +502,15 @@ service cloud.firestore {
     match /serverConfig/{configId} {
       allow read, write: if isAdmin();
     }
+
+    // Admin login (Cloud Functions only). Admins may read their own session.
+    match /adminSessions/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /adminCredentials/{id} { allow read, write: if false; }
+    match /adminLoginAttempts/{id} { allow read, write: if false; }
+    match /adminSecrets/{id} { allow read, write: if false; }
 
     // "Who viewed your profile" (written and read through Cloud Functions only)
     match /profileViews/{id} {

@@ -7,7 +7,7 @@ const db = admin.firestore()
 
 export const repairUserSubscription = onCall(async (req) => {
   const caller = req.auth?.uid
-  if (!isAdminRequest(req)) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const { uid } = (req.data || {}) as { uid?: string }
   if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
 

@@ -16,10 +16,19 @@ before(async () => {
   })
 })
 after(async () => { await env?.cleanup() })
-beforeEach(async () => { await env.clearFirestore() })
+beforeEach(async () => {
+  await env.clearFirestore()
+  // Test admins have finished both login steps for the sign-in at AUTH_TIME
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    for (const uid of ['admin', 'boss']) {
+      await ctx.firestore().doc(`adminSessions/${uid}`).set({ authTime: AUTH_TIME, expiresAtMs: Date.now() + 3_600_000 })
+    }
+  })
+})
 
 const now = () => Math.floor(Date.now() / 1000)
-const adminToken = (extra = {}) => ({ admin: true, email_verified: true, auth_time: now(), firebase: { sign_in_provider: 'google.com' }, ...extra })
+const AUTH_TIME = now() - 60
+const adminToken = (extra = {}) => ({ admin: true, email_verified: true, auth_time: AUTH_TIME, firebase: { sign_in_provider: 'google.com' }, ...extra })
 // The account called 'admin' signs in like a real admin (claim + Google + fresh sign-in)
 const as = (uid, token) => env.authenticatedContext(uid, token ?? (uid === 'admin' ? adminToken() : {})).firestore()
 const seed = (fn) => env.withSecurityRulesDisabled((ctx) => fn(ctx.firestore()))
@@ -222,6 +231,12 @@ test('admin: only a server-set claim with a fresh Google sign-in counts', async 
   await assertFails(getDoc(doc(as('boss', adminToken({ auth_time: now() - 13 * 3600 })), 'reports/r')))          // stale session
   await assertFails(getDoc(doc(as('boss', adminToken({ firebase: { sign_in_provider: 'password' } })), 'reports/r'))) // not Google
   await assertFails(getDoc(doc(as('boss', adminToken({ email_verified: false })), 'reports/r')))
+  // Claim + fresh Google sign-in but no password step (no session for this sign-in)
+  await assertFails(getDoc(doc(as('boss', adminToken({ auth_time: AUTH_TIME + 5 })), 'reports/r')))
+  await assertFails(getDoc(doc(as('nosession', adminToken()), 'reports/r')))
+  // Admin login records can't be read or forged by anyone
+  await assertFails(setDoc(doc(as('boss', adminToken()), 'adminSessions/boss'), { authTime: AUTH_TIME, expiresAtMs: Date.now() + 1e9 }))
+  await assertFails(getDoc(doc(as('boss', adminToken()), 'adminCredentials/boss@test.dev')))
   // Nobody can give themselves the flag either
   await assertFails(updateDoc(doc(as('fake'), 'users/fake'), { isAdmin: false, banned: false, name: 'x' }).then(() => updateDoc(doc(as('fake'), 'users/fake'), { isAdmin: true })))
 })

@@ -158,7 +158,7 @@ export const onUserPhotosChanged = onDocumentWritten(
 
 /** Admin decision on a flagged photo: 'approve' (put it back / keep it) or 'remove'. */
 export const reviewPhoto = onCall({ region: REGION }, async (req) => {
-  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const { id, decision } = (req.data || {}) as { id?: string; decision?: 'approve' | 'remove' }
   if (!id || (decision !== 'approve' && decision !== 'remove')) throw new HttpsError('invalid-argument', 'id and decision required')
 
