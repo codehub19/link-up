@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../state/AuthContext'
-import { adminGoogleSignIn, getAdminState } from '../../services/adminAuth'
+import { adminGoogleSignIn } from '../../services/adminAuth'
 
 /** Admins sign in with Google only (no passwords), so Google's 2-Step Verification protects the panel. */
 export default function AdminLogin() {
@@ -11,16 +11,17 @@ export default function AdminLogin() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Once signed in, go to the admin area; it shows "Activate owner access" or
+  // "Not authorized" there if needed. (Waiting for the signed-in user avoids a race
+  // where the app still thinks you're signed out and sends you to the home page.)
   useEffect(() => {
-    if (!user) return
-    getAdminState(user, true).then((s) => { if (s.admin) nav('/admin/home', { replace: true }) }).catch(() => { })
+    if (user) nav('/admin/home', { replace: true })
   }, [user, nav])
 
   const go = async () => {
     setBusy(true); setError(null)
     try {
       await adminGoogleSignIn()
-      nav('/admin/home', { replace: true })
     } catch (e: any) {
       setError(e?.code === 'auth/popup-closed-by-user' ? null : (e?.message || 'Sign-in failed'))
     } finally {

@@ -324,14 +324,13 @@ export default function App() {
           <Route path="/admin/login" element={<AdminLogin />} />
 
           {/* Admin Routes with Layout */}
+          {/* AdminGuard handles sign-in itself (Google only) and doesn't need a member profile */}
           <Route element={
-            <Protected>
-              <AdminGuard>
-                <AdminLayout>
-                  <Outlet />
-                </AdminLayout>
-              </AdminGuard>
-            </Protected>
+            <AdminGuard>
+              <AdminLayout>
+                <Outlet />
+              </AdminLayout>
+            </AdminGuard>
           }>
             <Route path="/admin/home" element={<AdminDashboard />} />
             <Route path="/admin/rounds" element={<RoundsAdmin />} />
