@@ -1,8 +1,8 @@
+import { isAdminRequest } from './adminAuth'
 import * as admin from 'firebase-admin'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import * as logger from 'firebase-functions/logger'
-import { isUserAdmin } from './push'
 import { emailHtml, notifyUser, sendEmail } from './notify'
 
 if (!admin.apps.length) admin.initializeApp()
@@ -11,7 +11,7 @@ const REGION = 'asia-south2'
 
 /** Admin → App Controls → "Send test email": checks the Brevo settings end to end. */
 export const sendTestEmail = onCall({ region: REGION }, async (req) => {
-  if (!(await isUserAdmin(req.auth?.uid))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const priv = await db.collection('userPrivate').doc(req.auth!.uid).get()
   const email = String((req.data as any)?.to || priv.get('email') || req.auth?.token?.email || '')
   if (!email) throw new HttpsError('failed-precondition', 'No email address to send to')

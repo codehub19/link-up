@@ -18,7 +18,10 @@ before(async () => {
 after(async () => { await env?.cleanup() })
 beforeEach(async () => { await env.clearFirestore() })
 
-const as = (uid) => env.authenticatedContext(uid).firestore()
+const now = () => Math.floor(Date.now() / 1000)
+const adminToken = (extra = {}) => ({ admin: true, email_verified: true, auth_time: now(), firebase: { sign_in_provider: 'google.com' }, ...extra })
+// The account called 'admin' signs in like a real admin (claim + Google + fresh sign-in)
+const as = (uid, token) => env.authenticatedContext(uid, token ?? (uid === 'admin' ? adminToken() : {})).firestore()
 const seed = (fn) => env.withSecurityRulesDisabled((ctx) => fn(ctx.firestore()))
 const person = (extra = {}) => ({ name: 'Test User', gender: 'male', userType: 'college', isProfileComplete: true, ...extra })
 
@@ -207,4 +210,18 @@ test('security: no self-verification, no dumping the user list', async () => {
   await assertFails(getDocs(collection(as('b'), 'users')))
   await assertFails(getDocs(query(collection(as('b'), 'users'), limit(50))))
   await assertSucceeds(getDocs(query(collection(as('b'), 'users'), where('referralCode', '==', 'ABC'), limit(1))))
+})
+
+test('admin: only a server-set claim with a fresh Google sign-in counts', async () => {
+  await seed(async (db) => {
+    await setDoc(doc(db, 'users/fake'), person({ isAdmin: true }))  // old-style flag: no longer enough
+    await setDoc(doc(db, 'reports/r'), { reporterUid: 'x', reportedUid: 'y', threadId: 't', reason: 'r', createdAt: 1 })
+  })
+  await assertFails(getDoc(doc(as('fake'), 'reports/r')))
+  await assertSucceeds(getDoc(doc(as('boss', adminToken()), 'reports/r')))
+  await assertFails(getDoc(doc(as('boss', adminToken({ auth_time: now() - 13 * 3600 })), 'reports/r')))          // stale session
+  await assertFails(getDoc(doc(as('boss', adminToken({ firebase: { sign_in_provider: 'password' } })), 'reports/r'))) // not Google
+  await assertFails(getDoc(doc(as('boss', adminToken({ email_verified: false })), 'reports/r')))
+  // Nobody can give themselves the flag either
+  await assertFails(updateDoc(doc(as('fake'), 'users/fake'), { isAdmin: false, banned: false, name: 'x' }).then(() => updateDoc(doc(as('fake'), 'users/fake'), { isAdmin: true })))
 })

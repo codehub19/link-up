@@ -1,10 +1,13 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Same admin check as firestore.rules: server-set claim + fresh Google sign-in
     function isAdmin() {
       return request.auth != null
-        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
-        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true;
+        && request.auth.token.get('admin', false) == true
+        && request.auth.token.get('email_verified', false) == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.time.toMillis() < (request.auth.token.auth_time + 12 * 3600) * 1000;
     }
 
     // Legacy text: straight under users/{uid}

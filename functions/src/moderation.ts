@@ -1,8 +1,9 @@
+import { isAdminRequest } from './adminAuth'
 import * as admin from 'firebase-admin'
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import * as logger from 'firebase-functions/logger'
-import { isUserAdmin, sendPushToUsers } from './push'
+import { sendPushToUsers } from './push'
 import { notifyUser } from './notify'
 
 if (!admin.apps.length) admin.initializeApp()
@@ -87,7 +88,7 @@ export const onReportUpdated = onDocumentUpdated(
 
 /** Admin: hide or restore an account (used from the Reports and Users screens). */
 export const setUserReview = onCall({ region: REGION }, async (req) => {
-  if (!(await isUserAdmin(req.auth?.uid))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const { uid, underReview } = (req.data || {}) as { uid?: string; underReview?: boolean }
   if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
   await db.collection('users').doc(uid).set({

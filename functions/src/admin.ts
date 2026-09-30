@@ -1,6 +1,6 @@
+import { isAdminRequest } from './adminAuth'
 import * as admin from 'firebase-admin'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
-import { isUserAdmin } from './push'
 import { deleteUserData } from './accountDeletion'
 
 if (!admin.apps.length) admin.initializeApp()
@@ -25,7 +25,7 @@ const PRIVATE_FIELDS = ['email', 'phoneNumber', 'upiId', 'fcmToken', 'instagramI
  * from the public users/{uid} profile into userPrivate/{uid}. Safe to run again.
  * ------------------------------------------------------------------------- */
 export const migrateUserPrivateData = onCall({ region: REGION, timeoutSeconds: 540 }, async (req) => {
-  if (!(await isUserAdmin(req.auth?.uid))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
 
   const FieldValue = admin.firestore.FieldValue
   const users = await db.collection('users').get()
@@ -73,7 +73,7 @@ export const migrateUserPrivateData = onCall({ region: REGION, timeoutSeconds: 5
  * or send chat messages.
  * ------------------------------------------------------------------------- */
 export const setUserBan = onCall({ region: REGION }, async (req) => {
-  if (!(await isUserAdmin(req.auth?.uid))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const { uid, banned, reason } = (req.data || {}) as { uid?: string; banned?: boolean; reason?: string }
   if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
 
@@ -90,27 +90,13 @@ export const setUserBan = onCall({ region: REGION }, async (req) => {
 })
 
 /* ----------------------------------------------------------------------------
- * setUserAdmin (admin): grant or revoke admin access. You can't remove your own.
- * ------------------------------------------------------------------------- */
-export const setUserAdmin = onCall({ region: REGION }, async (req) => {
-  const caller = req.auth?.uid
-  if (!(await isUserAdmin(caller))) throw new HttpsError('permission-denied', 'Admin only')
-  const { uid, isAdmin } = (req.data || {}) as { uid?: string; isAdmin?: boolean }
-  if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
-  if (uid === caller && !isAdmin) throw new HttpsError('failed-precondition', "You can't remove your own admin access.")
-  await db.collection('users').doc(uid).set({ isAdmin: !!isAdmin }, { merge: true })
-  await logAdmin(caller!, isAdmin ? 'grant_admin' : 'revoke_admin', uid)
-  return { ok: true }
-})
-
-/* ----------------------------------------------------------------------------
  * adminDeleteUser (admin): permanently delete an account — login, profile,
  * private data, call data and uploaded files. Chats/matches are kept for the
  * other person but show the profile as removed.
  * ------------------------------------------------------------------------- */
 export const adminDeleteUser = onCall({ region: REGION, timeoutSeconds: 120 }, async (req) => {
   const caller = req.auth?.uid
-  if (!(await isUserAdmin(caller))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const { uid } = (req.data || {}) as { uid?: string }
   if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
   if (uid === caller) throw new HttpsError('failed-precondition', "You can't delete your own account here.")

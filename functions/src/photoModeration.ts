@@ -1,9 +1,10 @@
+import { isAdminRequest } from './adminAuth'
 import * as admin from 'firebase-admin'
 import * as crypto from 'crypto'
 import { onDocumentWritten } from 'firebase-functions/v2/firestore'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import * as logger from 'firebase-functions/logger'
-import { isUserAdmin, sendPushToUsers } from './push'
+import { sendPushToUsers } from './push'
 import { notifyUser } from './notify'
 
 if (!admin.apps.length) admin.initializeApp()
@@ -157,7 +158,7 @@ export const onUserPhotosChanged = onDocumentWritten(
 
 /** Admin decision on a flagged photo: 'approve' (put it back / keep it) or 'remove'. */
 export const reviewPhoto = onCall({ region: REGION }, async (req) => {
-  if (!(await isUserAdmin(req.auth?.uid))) throw new HttpsError('permission-denied', 'Admin only')
+  if (!(isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
   const { id, decision } = (req.data || {}) as { id?: string; decision?: 'approve' | 'remove' }
   if (!id || (decision !== 'approve' && decision !== 'remove')) throw new HttpsError('invalid-argument', 'id and decision required')
 

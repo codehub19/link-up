@@ -1,5 +1,6 @@
 // Must be imported first so the options apply to every function below
 import './options'
+import { isAdminRequest } from './adminAuth'
 import * as admin from 'firebase-admin'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import {
@@ -14,7 +15,7 @@ import { defineSecret } from 'firebase-functions/params'
 import { onRequest } from "firebase-functions/v2/https"
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import axios from 'axios'
-import { isUserAdmin, sendPushToUsers } from './push'
+import { sendPushToUsers } from './push'
 import { DEFAULT_PREMIUM_DAYS, getActivePremium, grantPremiumDays } from './premium'
 
 /* ----------------------------------------------------------------------------
@@ -53,7 +54,7 @@ interface ActiveSubscription {
 
 // Push notification to a list of users (admin only: rounds, payments, support replies)
 export const sendPushNotification = onCall({ region: REGION }, async (req) => {
-  if (!(await isUserAdmin(req.auth?.uid))) {
+  if (!(isAdminRequest(req))) {
     throw new HttpsError('permission-denied', 'Admin only')
   }
   const { userUids, title, body } = (req.data || {}) as { userUids?: string[]; title?: string; body?: string }
@@ -64,11 +65,6 @@ export const sendPushNotification = onCall({ region: REGION }, async (req) => {
   return { sent }
 })
 
-async function isRequesterAdmin(uid?: string): Promise<boolean> {
-  if (!uid) return false
-  const snap = await db.collection('users').doc(uid).get()
-  return !!snap.exists && snap.data()?.isAdmin === true
-}
 
 async function getActiveSubscription(uid: string): Promise<ActiveSubscription | null> {
   return (await getActivePremium(uid)) as ActiveSubscription | null
@@ -534,7 +530,7 @@ export const confirmMatchByGirl = onCall({ region: REGION }, async (req) => {
 
 export const adminPromoteMatch = onCall({ region: REGION }, async (req) => {
   const caller = req.auth?.uid
-  if (!(await isRequesterAdmin(caller))) {
+  if (!(isAdminRequest(req))) {
     throw new HttpsError('permission-denied', 'Admin only')
   }
 
@@ -572,7 +568,7 @@ export const adminPromoteMatch = onCall({ region: REGION }, async (req) => {
 export const adminApprovePayment = onCall({ region: REGION }, async (req) => {
   const caller = req.auth?.uid
   if (!caller) throw new HttpsError('unauthenticated', 'Sign in required')
-  if (!(await isRequesterAdmin(caller))) {
+  if (!(isAdminRequest(req))) {
     throw new HttpsError('permission-denied', 'Admin only')
   }
 
@@ -707,3 +703,4 @@ export * from './emailAlerts'
 export * from './rounds'
 export * from './profileViews'
 export * from './chat'
+export * from './adminAuth'

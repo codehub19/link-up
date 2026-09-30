@@ -47,3 +47,5 @@ coverage/
 
 # Config files - add any others you need to
 cors.json
+# Functions parameters (e.g. OWNER_EMAILS) saved by firebase deploy
+functions/.env*

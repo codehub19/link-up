@@ -282,7 +282,7 @@ export default function UserDetailAdmin() {
                 }}>{isSelf ? 'You are an admin' : 'Remove admin access'}</button>
               ) : (
                 <button className="btn btn-sm" disabled={busy} onClick={async () => {
-                  if (await showConfirm(`Give ${u.name} FULL admin access? They will be able to see and change everything.`)) run(() => setUserAdmin(uid, true))
+                  if (await showConfirm(`Give ${u.name} FULL admin access? They will be able to see and change everything. They must sign in with Google (with 2-Step Verification on). Only the owner can do this.`)) run(() => setUserAdmin(uid, true))
                 }}>Make admin</button>
               )}
               <button className="btn btn-sm" style={{ color: '#f87171', borderColor: '#f87171' }} disabled={busy || isSelf} onClick={async () => {

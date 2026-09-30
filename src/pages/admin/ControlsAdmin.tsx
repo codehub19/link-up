@@ -2,6 +2,7 @@ import { httpsCallable } from 'firebase/functions'
 import { functions } from '../../firebase'
 import { useEffect, useState } from 'react'
 import { useDialog } from '../../components/ui/Dialog'
+import AdminsCard from './AdminsCard'
 import { AppConfig, getConfigDoc, saveConfigDoc } from '../../services/adminTools'
 import QRCode from 'qrcode'
 import { DEFAULT_PAYMENT_SETTINGS, upiLink } from '../../services/paymentSettings'
@@ -281,6 +282,8 @@ export default function ControlsAdmin() {
             </div>
           </div>
         </div>
+
+        <AdminsCard />
 
         {/* Email */}
         <div className="admin-card">

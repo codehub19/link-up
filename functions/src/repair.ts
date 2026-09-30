@@ -1,17 +1,13 @@
+import { isAdminRequest } from './adminAuth'
 import * as admin from 'firebase-admin'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 if (!admin.apps.length) admin.initializeApp()
 const db = admin.firestore()
 
-async function isAdmin(uid?: string) {
-  if (!uid) return false
-  const u = await db.collection('users').doc(uid).get()
-  return !!u.exists && u.data()?.isAdmin === true
-}
 
 export const repairUserSubscription = onCall(async (req) => {
   const caller = req.auth?.uid
-  if (!await isAdmin(caller)) throw new HttpsError('permission-denied', 'Admin only')
+  if (!isAdminRequest(req)) throw new HttpsError('permission-denied', 'Admin only')
   const { uid } = (req.data || {}) as { uid?: string }
   if (!uid) throw new HttpsError('invalid-argument', 'uid is required')
 
