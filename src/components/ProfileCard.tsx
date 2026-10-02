@@ -1,4 +1,5 @@
 import React from 'react'
+import { photoOf } from '../utils/avatar'
 
 export type ProfileCardData = {
   photoUrl?: string
@@ -16,7 +17,7 @@ export default function ProfileCard({
   return (
     <div className="card">
       <div className="card-media">
-        {data.photoUrl ? <img src={data.photoUrl} alt="profile" /> : <div className="media-placeholder" />}
+        <img src={photoOf(data as any)} alt="profile" />
       </div>
       <div className="card-body">
         <p className="bio">{data.bio}</p>

@@ -31,7 +31,7 @@ function derive(raw: any | null): StepId {
   if (!s.referral) return 'referral'
   if (!p.interests?.length || !s.interests) return 'interests'
   if (!p.bio || !s.bio) return 'bio'
-  if (!p.photoUrl || !s.photos) return 'photos'
+  if ((!p.photoUrl && !p.avatar) || !s.photos) return 'photos'
   return 'done'
 }
 

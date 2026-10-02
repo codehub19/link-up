@@ -63,6 +63,8 @@ export type Attendee = {
   uid: string
   name?: string
   photoUrl?: string
+  /** Illustrated avatar when they have no photo */
+  avatar?: any
   college?: string
   gender?: string
   userType?: string
@@ -122,7 +124,7 @@ export function subscribeAttendees(eventId: string, cb: (list: Attendee[]) => vo
 
 export async function registerForEvent(
   event: AppEvent,
-  me: { uid: string; name?: string; photoUrl?: string; college?: string; gender?: string; userType?: string },
+  me: { uid: string; name?: string; photoUrl?: string | null; avatar?: any; college?: string; gender?: string; userType?: string },
   opts: { lookingForBuddy?: boolean; note?: string } = {},
 ) {
   const note = (opts.note || '').trim().slice(0, 140)
@@ -132,6 +134,7 @@ export async function registerForEvent(
     uid: me.uid,
     name: (me.name || '').split(' ')[0] || 'Student',
     photoUrl: me.photoUrl || null,
+    ...(me.avatar ? { avatar: me.avatar } : {}),
     college: me.college || null,
     gender: me.gender || null,
     userType: me.userType || 'college',

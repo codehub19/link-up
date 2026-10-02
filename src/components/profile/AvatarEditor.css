@@ -1,0 +1,13 @@
+.ave { display: flex; flex-direction: column; gap: 14px; }
+.ave-preview { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.ave-preview img { width: 140px; height: 140px; border-radius: 50%; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.ave-shuffle { border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); color: inherit; border-radius: 999px; padding: 7px 14px; font-weight: 700; font-size: 13px; cursor: pointer; }
+.ave-sections { display: flex; flex-direction: column; gap: 10px; }
+.ave-row { display: flex; flex-direction: column; gap: 6px; }
+.ave-label { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; opacity: .6; }
+.ave-options { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+.ave-options::-webkit-scrollbar { display: none; }
+.ave-swatch { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,.15); cursor: pointer; }
+.ave-swatch.on { border-color: #fff; box-shadow: 0 0 0 3px #ff416c; }
+.ave-chip { flex: 0 0 auto; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.05); color: inherit; border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.ave-chip.on { background: #fff; color: #111; border-color: #fff; }

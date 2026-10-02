@@ -6,17 +6,27 @@ import { useNavigate } from 'react-router-dom'
 import './setup.styles.css'
 import { compressImage } from '../../utils/compressImage' // Add compression utility
 import LoadingSpinner from '../../components/LoadingSpinner' // Add spinner
+import AvatarEditor from '../../components/profile/AvatarEditor'
+import { AvatarConfig, normalizeAvatar } from '../../utils/avatar'
 
 type Slot = { id: number; url?: string; file?: File }
-type Props = { embedded?: boolean; onComplete?: () => void }
+type Props = {
+  embedded?: boolean
+  onComplete?: () => void
+  /** Dating: real photos only, no avatar option */
+  photosOnly?: boolean
+}
 
-export default function Photos({ embedded, onComplete }: Props) {
+export default function Photos({ embedded, onComplete, photosOnly }: Props) {
   const { user, profile, refreshProfile } = useAuth()
   const nav = useNavigate()
   const [slots, setSlots] = useState<Slot[]>(() => Array.from({ length: 4 }, (_, i) => ({ id: i })))
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [saving, setSaving] = useState(false)
   const [isCompressing, setIsCompressing] = useState<boolean[]>(Array(4).fill(false)) // Add compression state
+  // Friends doesn't need a photo: people can use an illustrated avatar instead
+  const [mode, setMode] = useState<'photos' | 'avatar'>('photos')
+  const [avatar, setAvatar] = useState<AvatarConfig>(() => normalizeAvatar((profile as any)?.avatar, user?.uid, profile?.gender))
 
   // Updated pick function for instant preview and async compress/upload
   const pick = (i: number) => {
@@ -83,14 +93,49 @@ export default function Photos({ embedded, onComplete }: Props) {
     }
   }
 
+  const finishWithAvatar = async () => {
+    if (!user) return
+    setSaving(true)
+    try {
+      await updateProfileAndStatus(user.uid, { avatar, photoUrl: null, photoUrls: [] } as any, { photos: true })
+      await refreshProfile()
+      await finalizeIfComplete(user.uid)
+      if (embedded && onComplete) onComplete()
+      else nav(nextSetupRoute(profile) || '/dashboard')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (mode === 'avatar') {
+    return (
+      <>
+        {!embedded && <Navbar />}
+        <div className={embedded ? '' : 'setup-page'}>
+          <section className="setup-card setup-card-glass">
+            <h1 className="setup-title">Make your avatar</h1>
+            <p className="setup-sub">Shown instead of a photo in Friends, Events and Groups. You can add photos any time — they’re needed only if you try dating.</p>
+            <AvatarEditor value={avatar} onChange={setAvatar} gender={profile?.gender} />
+            <div className="setup-card-footer" style={{ flexDirection: 'column', gap: 10 }}>
+              <button className="btn-primary-lg" disabled={saving} onClick={finishWithAvatar}>{saving ? <LoadingSpinner /> : 'Use this avatar'}</button>
+              <button type="button" className="setup-link-btn" onClick={() => setMode('photos')}>Upload photos instead</button>
+            </div>
+          </section>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       {!embedded && <Navbar />}
       <div className={embedded ? '' : 'setup-page'}>
         <input ref={inputRef} type="file" accept="image/*" hidden />
         <section className="setup-card setup-card-glass">
-          <h1 className="setup-title">Upload Photos</h1>
-          <p className="setup-sub">Add at least one. First chosen becomes primary.</p>
+          <h1 className="setup-title">{photosOnly ? 'Add your photos' : 'Upload Photos'}</h1>
+          <p className="setup-sub">{photosOnly
+            ? 'Dating needs real photos of you — it keeps everyone genuine. Add at least one clear photo of your face. Photos are checked automatically.'
+            : 'Add at least one. First chosen becomes primary. Not comfortable with a photo? Use an avatar — you’ll need real photos only for dating.'}</p>
           <div className="photo-grid">
             {slots.map((s, i) => (
               <div key={s.id} className={`photo-slot ${s.url ? 'has-image' : ''}`}>
@@ -120,6 +165,7 @@ export default function Photos({ embedded, onComplete }: Props) {
             <button className="btn-primary-lg" disabled={!filled || saving || isCompressing.some(Boolean)} onClick={finish}>
               {saving ? <LoadingSpinner /> : 'Finish'}
             </button>
+            {!photosOnly && <button type="button" className="setup-link-btn" onClick={() => setMode('avatar')}>Use an avatar instead</button>}
           </div>
         </section>
       </div>

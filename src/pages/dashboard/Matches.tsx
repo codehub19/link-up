@@ -13,6 +13,7 @@ import './dashboard.css'
 import './Matches.styles.css'
 import EmptyState from '../../components/ui/EmptyState'
 import { useCall } from '../../state/CallContext'
+import { photoOf } from '../../utils/avatar'
 
 type Match = {
   id: string
@@ -125,7 +126,7 @@ export default function MatchesPage() {
                         <Link className="match-card-action-btn" to={`/dashboard/chat?with=${encodeURIComponent(u.uid)}`}>
                           Start Chat
                         </Link>
-                        <button type="button" className="match-card-action-btn match-card-action-secondary" onClick={() => callPerson(u.uid, { name: u.name, photoUrl: u.photoUrl })}>
+                        <button type="button" className="match-card-action-btn match-card-action-secondary" onClick={() => callPerson(u.uid, { name: u.name, photoUrl: photoOf(u) })}>
                           📞 Call
                         </button>
                       </div>

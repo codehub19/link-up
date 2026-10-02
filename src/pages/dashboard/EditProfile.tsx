@@ -5,7 +5,9 @@ import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
 import { useAuth } from '../../state/AuthContext'
 import { doc, updateDoc } from 'firebase/firestore'
-import { db, uploadProfilePhoto, isDatingReady, updatePrivateProfile } from '../../firebase'
+import { db, uploadProfilePhoto, hasDatingDetails, updatePrivateProfile } from '../../firebase'
+import AvatarEditor from '../../components/profile/AvatarEditor'
+import { AvatarConfig, normalizeAvatar } from '../../utils/avatar'
 import { toast } from 'sonner'
 import InterestsSelect from '../../components/InterestsSelect'
 import CollegeSelect from '../../components/CollegeSelect'
@@ -56,7 +58,10 @@ export default function EditProfile() {
   const { loading, user, profile, refreshProfile } = useAuth()
   const nav = useNavigate()
   // Profile field states
-  const dating = isDatingReady(profile)
+  // Dating turned on (details filled in): photos are required, an avatar isn't enough
+  const dating = !!profile && profile.isProfileComplete === true && (profile as any).datingEnabled !== false
+    && ((profile as any).datingProfileComplete === true || hasDatingDetails(profile))
+  const [avatar, setAvatar] = useState<AvatarConfig>(() => normalizeAvatar((profile as any)?.avatar, user?.uid, profile?.gender))
   const [name, setName] = useState(profile?.name ?? '')
   const [bio, setBio] = useState(profile?.bio ?? '')
   const [prompts, setPrompts] = useState<ProfilePrompt[]>(profile?.prompts ?? [])
@@ -92,6 +97,7 @@ export default function EditProfile() {
       setName(profile.name ?? '')
       setBio(profile.bio ?? '')
       setPrompts(profile.prompts ?? [])
+      setAvatar(normalizeAvatar((profile as any).avatar, profile.uid, profile.gender))
       setInterests(profile.interests ?? [])
       setInsta(profile.instagramId ?? '')
       setHeight(profile.height ?? '')
@@ -157,8 +163,8 @@ export default function EditProfile() {
 
   const save = async () => {
     if (!user) return
-    if (filledCount === 0) {
-      toast.error('Please upload at least one photo.')
+    if (filledCount === 0 && dating) {
+      toast.error('Dating needs at least one real photo. Add one, or turn off dating in Settings.')
       return
     }
     try {
@@ -180,8 +186,9 @@ export default function EditProfile() {
         bio: bio.trim(),
         prompts: cleanPrompts(prompts),
         interests,
-        photoUrl: filteredUrls[0], // first photo as main
+        photoUrl: filteredUrls[0] || null, // first photo as main; none = avatar is shown
         photoUrls: filteredUrls,
+        avatar,
         college,
         // Dating details are only edited here once dating is set up
         ...(dating ? {
@@ -239,6 +246,7 @@ export default function EditProfile() {
 
             {/* Photos Section */}
             <div className="edit-section-title">Photos</div>
+            <p className="edit-hint">{dating ? 'Dating needs at least one real photo.' : 'Optional. Without a photo, your avatar (below) is shown in Friends, Events and Groups.'}</p>
             <div className="edit-photos-grid">
               {photoSlots.map((slot, idx) => (
                 <div key={slot.id} className={`edit-photo-slot ${slot.url ? 'has-image' : ''}`} onClick={() => !slot.url && pick(idx)}>
@@ -264,6 +272,12 @@ export default function EditProfile() {
               ))}
             </div>
             <span className="photos-caption">First photo will be your main profile picture.</span>
+
+            <div className="edit-section-title">Your avatar</div>
+            <p className="edit-hint">{filledCount ? 'Shown if you remove your photos.' : 'This is what people see instead of a photo.'}</p>
+            <div style={{ marginBottom: '2rem' }}>
+              <AvatarEditor value={avatar} onChange={setAvatar} gender={profile?.gender} />
+            </div>
 
             {/* Verification Status */}
             <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>

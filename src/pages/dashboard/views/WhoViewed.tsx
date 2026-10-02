@@ -5,6 +5,7 @@ import EmptyState from '../../../components/ui/EmptyState'
 import { useAuth } from '../../../state/AuthContext'
 import { getProfileViews, ProfileViews } from '../../../services/profileViews'
 import './WhoViewed.css'
+import { photoOf } from '../../../utils/avatar'
 
 const ago = (t: number) => {
   const h = Math.floor((Date.now() - t) / 3_600_000)
@@ -50,7 +51,7 @@ export default function WhoViewed() {
                 <div className="wv-list">
                   {data.viewers.map((v) => (
                     <button key={v.uid} type="button" className="wv-row" onClick={() => nav(`/profile/${v.uid}`)}>
-                      <span className="wv-avatar">{v.photoUrl ? <img src={v.photoUrl} alt="" /> : v.name.charAt(0)}</span>
+                      <span className="wv-avatar"><img src={photoOf(v)} alt="" /></span>
                       <span className="wv-text"><strong>{v.name}</strong><small>{v.college || 'Student'} · {ago(v.at)}</small></span>
                       <span className="wv-chev">›</span>
                     </button>

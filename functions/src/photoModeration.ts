@@ -91,7 +91,8 @@ async function removePhotos(uid: string, bad: string[]) {
     tx.set(ref, {
       photoUrls: urls,
       photoUrl: urls[0] || null,
-      photoHidden: urls.length === 0,
+      // No photo left: their avatar is shown in Friends (dating needs a photo again)
+      photoHidden: false,
       photoRemovedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true })
   })

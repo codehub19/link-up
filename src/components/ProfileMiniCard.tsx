@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import ReactDOM from 'react-dom'
 import "./ProfileMiniCard.styles.css";
 import { formatHeight, labelFor } from '../utils/profileLabels'
+import { photoOf } from '../utils/avatar'
 
 type UserStructure = {
   uid: string
@@ -62,9 +63,7 @@ export default function ProfileMiniCard({
 
   const imageToShow = images.length > 0
     ? images[imgIdx]
-    : user?.photoUrl
-      ? user.photoUrl
-      : "/placeholder.jpg"
+    : photoOf(user as any)
 
   const age = user?.dob ? calculateAge(user.dob) : user?.age || ""
 

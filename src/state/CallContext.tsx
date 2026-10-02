@@ -22,6 +22,7 @@ import {
 } from '../services/randomCall'
 import { playConnected, playEnded, startRingback, startRingtone, unlockAudio } from '../utils/callSounds'
 import { track } from '../utils/analytics'
+import { photoOf } from '../utils/avatar'
 
 /*
  * Calls belong to the app, not to a page. Starting or answering a call is an
@@ -116,7 +117,9 @@ function friendly(e: any, fallback: string) {
 async function loadPeer(uid: string): Promise<CallPeer | null> {
   try {
     const snap = await getDoc(doc(db, 'users', uid))
-    return snap.exists() ? { uid, ...(snap.data() as any) } : null
+    if (!snap.exists()) return null
+    const d = snap.data() as any
+    return { uid, ...d, photoUrl: photoOf({ ...d, uid }) }
   } catch {
     return null
   }

@@ -240,3 +240,14 @@ test('admin: only a server-set claim with a fresh Google sign-in counts', async 
   // Nobody can give themselves the flag either
   await assertFails(updateDoc(doc(as('fake'), 'users/fake'), { isAdmin: false, banned: false, name: 'x' }).then(() => updateDoc(doc(as('fake'), 'users/fake'), { isAdmin: true })))
 })
+
+test('avatars: only valid choices; photos only from our storage or Google', async () => {
+  await seed((db) => setDoc(doc(db, 'users/a'), person()))
+  const ok = { v: 1, skin: 2, hair: 4, hairColor: 1, eyes: 0, mouth: 1, acc: 3, top: 2, topColor: 5, bg: 1 }
+  await assertSucceeds(updateDoc(doc(as('a'), 'users/a'), { avatar: ok, photoUrl: null }))
+  await assertFails(updateDoc(doc(as('a'), 'users/a'), { avatar: { ...ok, hair: 99 } }))
+  await assertFails(updateDoc(doc(as('a'), 'users/a'), { avatar: { ...ok, svg: '<svg>…</svg>' } }))
+  await assertFails(updateDoc(doc(as('a'), 'users/a'), { photoUrl: 'https://evil.example.com/nsfw.jpg' }))
+  await assertFails(updateDoc(doc(as('a'), 'users/a'), { photoUrl: 'data:image/svg+xml,<svg/>' }))
+  await assertSucceeds(updateDoc(doc(as('a'), 'users/a'), { photoUrl: 'https://firebasestorage.googleapis.com/v0/b/x/o/users%2Fa%2Fprofile_images%2Fprofile_0.jpg?alt=media' }))
+})

@@ -7,7 +7,7 @@ export type ProfileViews = {
   /** Premium and not hiding their own views */
   canSee: boolean
   showViews: boolean
-  viewers: { uid: string; name: string; photoUrl: string | null; college: string | null; at: number }[]
+  viewers: { uid: string; name: string; photoUrl: string | null; avatar?: any; gender?: string | null; college: string | null; at: number }[]
 }
 
 const seen = new Set<string>()

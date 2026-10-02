@@ -12,9 +12,10 @@ import { FriendRequest, sendFriendRequest, subscribeMyFriendRequests } from '../
 import {
   Group, GroupPost, createPost, deletePost, joinGroup, leaveGroup, setImIn, subscribeGroup, subscribePosts,
 } from '../../../services/groups'
+import { photoOf } from '../../../utils/avatar'
 import './Groups.css'
 
-type Person = { uid: string; name?: string; photoUrl?: string; college?: string }
+type Person = { uid: string; name?: string; photoUrl?: string; avatar?: any; gender?: string; college?: string }
 
 const first = (n?: string) => (n || 'Student').split(' ')[0]
 const ago = (t: any) => {
@@ -68,7 +69,7 @@ export default function GroupDetail() {
     Promise.all(missing.map(async (u) => [u, (await getDoc(doc(db, 'users', u)).catch(() => null))?.data()] as const)).then((pairs) =>
       setPeople((prev) => {
         const next = { ...prev }
-        pairs.forEach(([u, d]) => { if (d) next[u] = { uid: u, name: d.name, photoUrl: d.photoUrl, college: d.college } })
+        pairs.forEach(([u, d]) => { if (d) next[u] = { uid: u, name: d.name, photoUrl: d.photoUrl, avatar: d.avatar, gender: d.gender, college: d.college } })
         return next
       }))
   }, [openPost, posts])
@@ -109,7 +110,7 @@ export default function GroupDetail() {
     if (!text.trim()) return
     setBusy('post')
     try {
-      await createPost(group.id, { uid: user.uid, name: profile?.name, photoUrl: profile?.photoUrl, college: profile?.college }, text, when)
+      await createPost(group.id, { uid: user.uid, name: profile?.name, photoUrl: profile?.photoUrl, avatar: (profile as any)?.avatar, college: profile?.college }, text, when)
       setText('')
       setWhen('')
       toast.success('Posted! We’ll tell you when people are in.')
@@ -185,7 +186,7 @@ export default function GroupDetail() {
                 <article key={p.id} className="gr-post">
                   <div className="gr-post-head">
                     <button type="button" className="gr-post-author" onClick={() => nav(`/profile/${p.authorUid}`)}>
-                      <Avatar name={p.authorName} photo={p.authorPhoto} />
+                      <Avatar name={p.authorName} photo={photoOf({ uid: p.authorUid, photoUrl: p.authorPhoto, avatar: p.authorAvatar })} />
                       <span><strong>{mine ? 'You' : p.authorName}</strong><small>{p.authorCollege || 'Student'} · {ago(p.createdAt)}</small></span>
                     </button>
                     {mine ? (
@@ -222,7 +223,7 @@ export default function GroupDetail() {
                         return (
                           <div key={u} className="gr-in-row">
                             <button type="button" className="gr-post-author" onClick={() => nav(`/profile/${u}`)}>
-                              <Avatar name={person?.name} photo={person?.photoUrl} size={34} />
+                              <Avatar name={person?.name} photo={photoOf(person ?? { uid: u })} size={34} />
                               <span><strong>{first(person?.name)}</strong><small>{person?.college || ''}</small></span>
                             </button>
                             {known.has(u)

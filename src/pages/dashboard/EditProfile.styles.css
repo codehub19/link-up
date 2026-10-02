@@ -487,3 +487,5 @@
         background: linear-gradient(135deg, #ff416c, #ff4b2b);
     }
 }
+
+.edit-hint { margin: -4px 0 12px; font-size: 13px; color: rgba(255,255,255,.6); line-height: 1.4; }

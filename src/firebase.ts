@@ -94,6 +94,7 @@ export const setupPresence = (uid: string) => {
 
 import { getToken } from "firebase/messaging";
 import { track } from './utils/analytics'
+import { hasRealPhoto } from './utils/avatar'
 
 // Public web-push key (safe to ship in the client)
 export const FCM_VAPID_KEY = 'BJMro5dKsOYThOeAFmzgqyZ5a5wUzlFQjEMNGChI6KxSqQHPCw_6_NcPNuLt0O-gR04SR-QeCCUhezAIQjC3s_U'
@@ -156,6 +157,8 @@ export type UserProfile = {
   /** Finished the dating details in the Dating tab */
   datingProfileComplete?: boolean
   isAdmin?: boolean
+  /** Illustrated avatar, used when there's no photo (see utils/avatar) */
+  avatar?: import('./utils/avatar').AvatarConfig | null
   /** Icebreaker prompts shown on the profile card */
   prompts?: { q: string; a: string }[]
   lastActiveAt?: any
@@ -284,7 +287,8 @@ export function computeIsProfileComplete(p?: UserProfile | null): boolean {
     s.profile &&
     p.interests?.length &&
     p.bio &&
-    p.photoUrl &&
+    // A photo, or an illustrated avatar instead (Friends doesn't need a photo)
+    (p.photoUrl || (p as any).avatar) &&
     s.photos
   )
 
@@ -317,6 +321,8 @@ export function hasDatingDetails(p?: UserProfile | null): boolean {
 export function isDatingReady(p?: any): boolean {
   if (!p || p.isProfileComplete !== true) return false
   if (p.datingEnabled === false) return false
+  // Dating needs at least one real uploaded photo (not an avatar or Google picture)
+  if (!hasRealPhoto(p)) return false
   return p.datingProfileComplete === true || hasDatingDetails(p)
 }
 
@@ -337,7 +343,8 @@ export async function ensureUserDocument(user: FirebaseUser) {
     await setDoc(refDoc, {
       uid: user.uid,
       name: user.displayName || '',
-      photoUrl: user.photoURL || null,
+      // No Google account picture by default: people choose a photo or an avatar at sign-up
+      photoUrl: null,
       createdAt: now,
       updatedAt: now,
       lastLoginAt: now,

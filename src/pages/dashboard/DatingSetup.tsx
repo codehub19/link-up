@@ -12,14 +12,18 @@ import RelationshipGoals from '../setup/RelationshipGoals'
 import DealBreakers from '../setup/DealBreakers'
 import Questions1 from '../setup/Questions1'
 import Questions2 from '../setup/Questions2'
+import Photos from '../setup/Photos'
+import { hasRealPhoto } from '../../utils/avatar'
 import '../setup/setup.styles.css'
 
-type StepId = 'looking-for' | 'height' | 'preferences' | 'relationship-goals' | 'deal-breakers' | 'q1' | 'q2' | 'finish'
-const ORDER: StepId[] = ['looking-for', 'height', 'preferences', 'relationship-goals', 'deal-breakers', 'q1', 'q2', 'finish']
+type StepId = 'photos' | 'looking-for' | 'height' | 'preferences' | 'relationship-goals' | 'deal-breakers' | 'q1' | 'q2' | 'finish'
+// Real photos first: dating needs authenticity, so an avatar isn't enough here
+const ORDER: StepId[] = ['photos', 'looking-for', 'height', 'preferences', 'relationship-goals', 'deal-breakers', 'q1', 'q2', 'finish']
 
 function derive(raw: any): StepId {
   const p = normalizeProfile(raw)
-  if (!p) return 'looking-for'
+  if (!p) return 'photos'
+  if (!hasRealPhoto(p as any)) return 'photos'
   const s = (p.setupStatus || {}) as any
   if (!s.lookingFor) return 'looking-for'
   if (!p.height || !s.height) return 'height'
@@ -43,7 +47,7 @@ export default function DatingSetup() {
 
   // Already set up (e.g. opened again with Back): go to the rounds
   useEffect(() => {
-    if (profile?.datingProfileComplete && profile?.datingEnabled !== false) nav(roundsPath, { replace: true })
+    if (profile?.datingProfileComplete && profile?.datingEnabled !== false && hasRealPhoto(profile as any)) nav(roundsPath, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -59,6 +63,7 @@ export default function DatingSetup() {
   const finish = async () => {
     setFinishing(true)
     try {
+      if (!hasRealPhoto(profile as any)) { setStep('photos'); toast.error('Add at least one real photo to use dating.'); return }
       await updateProfileAndStatus(user.uid, { datingProfileComplete: true, datingEnabled: true } as any)
       await refreshProfile()
       toast.success('Dating is on! 💘')
@@ -72,6 +77,7 @@ export default function DatingSetup() {
 
   let body: React.ReactNode
   switch (step) {
+    case 'photos': body = <Photos {...shared} photosOnly />; break
     case 'looking-for': body = <LookingFor {...shared} />; break
     case 'height': body = <Height {...shared} />; break
     case 'preferences': body = <Preferences {...shared} />; break

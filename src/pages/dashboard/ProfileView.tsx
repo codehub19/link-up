@@ -17,6 +17,7 @@ import {
 } from '../../services/friends'
 import { formatHeight, labelFor } from '../../utils/profileLabels'
 import './ProfileView.css'
+import { photoOf } from '../../utils/avatar'
 
 type UserDoc = {
   uid: string
@@ -109,7 +110,12 @@ export default function ProfileView() {
     return { kind: 'none' as const }
   }, [requests, myUid, uid])
 
-  const photos = useMemo(() => (user ? (user.photoUrls?.length ? user.photoUrls : [user.photoUrl]).filter(Boolean) as string[] : []), [user])
+  // No photos (Friends allows that): show their avatar instead
+  const photos = useMemo(() => {
+    if (!user) return []
+    const real = (user.photoUrls?.length ? user.photoUrls : [user.photoUrl]).filter(Boolean) as string[]
+    return real.length ? real : [photoOf(user)]
+  }, [user])
 
   if (user === undefined) {
     return (
@@ -187,7 +193,7 @@ export default function ProfileView() {
         ) : canMessage ? (
           <>
             <button type="button" className="pv-btn" onClick={() => nav(`/dashboard/chat?with=${encodeURIComponent(uid)}`)}>{I.chat} Message</button>
-            <button type="button" className="pv-btn ghost icon" aria-label={`Call ${first}`} onClick={() => callPerson(uid, { name: user.name, photoUrl: user.photoUrl })}>{I.phone}</button>
+            <button type="button" className="pv-btn ghost icon" aria-label={`Call ${first}`} onClick={() => callPerson(uid, { name: user.name, photoUrl: photoOf(user) })}>{I.phone}</button>
           </>
         ) : rel.kind === 'sent' ? (
           <button type="button" className="pv-btn ghost" onClick={async () => { if (myUid && await showConfirm('Cancel your friend request?')) cancelFriendRequest(myUid, uid) }}>Request sent · Cancel</button>

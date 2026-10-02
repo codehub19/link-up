@@ -606,3 +606,5 @@ textarea.field-input {
   cursor: pointer;
   padding: 0;
 }
+
+.setup-link-btn { background: none; border: none; color: rgba(255,255,255,.75); font-weight: 600; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 8px; }

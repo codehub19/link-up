@@ -19,7 +19,7 @@ const REGION = 'asia-south2'
  *   +3 Premium "Discover boost"          + a small daily shuffle so the list changes
  */
 
-const PUBLIC_FIELDS = ['name', 'photoUrl', 'college', 'dob', 'gender', 'interests', 'bio', 'prompts', 'collegeId',
+const PUBLIC_FIELDS = ['name', 'photoUrl', 'avatar', 'college', 'dob', 'gender', 'interests', 'bio', 'prompts', 'collegeId',
   'friendsAudience', 'requestsFrom', 'banned', 'underReview', 'photoHidden', 'userType', 'premiumUntil',
   'lastActiveAt', 'createdAt', 'verified', 'isAdmin', 'friendsVisible'] as const
 
@@ -48,7 +48,7 @@ function jitter(a: string, b: string) {
 
 function publicView(p: Candidate) {
   return {
-    uid: p.uid, name: p.name || null, photoUrl: p.photoUrl || null, college: p.college || null, dob: p.dob || null,
+    uid: p.uid, name: p.name || null, photoUrl: p.photoUrl || null, avatar: p.avatar || null, college: p.college || null, dob: p.dob || null,
     gender: p.gender || null, interests: Array.isArray(p.interests) ? p.interests.slice(0, 12) : [],
     bio: typeof p.bio === 'string' ? p.bio.slice(0, 300) : null,
     prompts: Array.isArray(p.prompts) ? p.prompts.slice(0, 3) : [],

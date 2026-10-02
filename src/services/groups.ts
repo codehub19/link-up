@@ -30,6 +30,7 @@ export type GroupPost = {
   authorUid: string
   authorName?: string
   authorPhoto?: string | null
+  authorAvatar?: any
   authorCollege?: string | null
   text: string
   when?: string
@@ -86,13 +87,14 @@ export async function leaveGroup(groupId: string, uid: string) {
   await updateDoc(doc(db, 'groups', groupId), { memberUids: arrayRemove(uid), memberCount: increment(-1) })
 }
 
-export async function createPost(groupId: string, me: { uid: string; name?: string; photoUrl?: string | null; college?: string | null }, text: string, when?: string) {
+export async function createPost(groupId: string, me: { uid: string; name?: string; photoUrl?: string | null; avatar?: any; college?: string | null }, text: string, when?: string) {
   const w = (when || '').trim().slice(0, 60)
   track('group_post', { group: groupId })
   await addDoc(collection(db, 'groups', groupId, 'posts'), {
     authorUid: me.uid,
     authorName: (me.name || 'Student').split(' ')[0],
     authorPhoto: me.photoUrl || null,
+    ...(me.avatar ? { authorAvatar: me.avatar } : {}),
     authorCollege: me.college || null,
     text: text.trim().slice(0, 280),
     ...(w ? { when: w } : {}),

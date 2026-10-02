@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Avatar } from './ChatList'
 import '../../styles/chat.css'
+import { photoOf } from '../../utils/avatar'
 
 const VerifiedBadge = () => (
   <svg width="20" height="20" viewBox="0 0 22 22" fill="none" aria-label="Verified student">
@@ -37,7 +38,7 @@ export default function ProfileModal({
         <div className="dm-sheet-handle" />
         <button type="button" className="dm-modal-close" onClick={onClose} aria-label="Close">✕</button>
         <div className="dm-modal-head">
-          <Avatar name={user.name} photoUrl={user.photoUrl} />
+          <Avatar name={user.name} photoUrl={photoOf(user as any)} />
           <div className="dm-modal-name">
             {user.name || 'User'}
             {user.collegeId?.verified && <VerifiedBadge />}

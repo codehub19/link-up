@@ -18,8 +18,9 @@ import { unlockRandomChat } from '../../../services/randomCall'
 import { useDialog } from '../../../components/ui/Dialog'
 import { useCall } from '../../../state/CallContext'
 import '../../../styles/chat.css'
+import { photoOf } from '../../../utils/avatar'
 
-type UserDoc = { uid: string; name?: string; photoUrl?: string; instagramId?: string; bio?: string; interests?: string[]; college?: string; collegeId?: { verified?: boolean } }
+type UserDoc = { uid: string; name?: string; photoUrl?: string; avatar?: any; gender?: string; instagramId?: string; bio?: string; interests?: string[]; college?: string; collegeId?: { verified?: boolean } }
 type ThreadDoc = {
   id: string
   participants: string[]
@@ -223,7 +224,7 @@ export default function ChatPage() {
           threadId,
           peerUid: p,
           name: users[p]?.name || 'DateU user',
-          photoUrl: users[p]?.photoUrl,
+          photoUrl: photoOf(users[p] ?? { uid: p }),
           lastText: last?.text || (t?.source === 'random_call' ? '📞 You connected on a random call' : ''),
           lastFromMe: last?.senderUid === user.uid,
           time: listTime(ms),
@@ -412,7 +413,7 @@ export default function ChatPage() {
           <button type="button" className="dm-icon-btn" onClick={backToList} aria-label="Back to chats"><BackIcon /></button>
         )}
         <button type="button" className="dm-head-peer" onClick={() => !iAmBlocked && selectedPeer && setShowProfile(true)}>
-          <Avatar name={selectedPeer?.name} photoUrl={selectedPeer?.photoUrl} online={peerOnline} size="sm" />
+          <Avatar name={selectedPeer?.name} photoUrl={selectedPeer ? photoOf(selectedPeer) : undefined} online={peerOnline} size="sm" />
           <span className="dm-head-text">
             <span className="dm-head-name">{selectedPeer?.name || ' '}</span>
             {subtitle}
@@ -420,7 +421,7 @@ export default function ChatPage() {
         </button>
         {!chatDisabled && (
           <button type="button" className="dm-icon-btn" aria-label="Voice call"
-            onClick={() => callPerson(peerUid!, { name: selectedPeer?.name, photoUrl: selectedPeer?.photoUrl })}>
+            onClick={() => callPerson(peerUid!, { name: selectedPeer?.name, photoUrl: selectedPeer ? photoOf(selectedPeer) : undefined })}>
             <PhoneIcon />
           </button>
         )}
@@ -457,7 +458,7 @@ export default function ChatPage() {
         peerTyping={peerTyping}
         onTyping={handleTyping}
         peerLastReadMs={peerLastReadMs}
-        peer={selectedPeer}
+        peer={selectedPeer ? { ...selectedPeer, photoUrl: photoOf(selectedPeer) } : undefined}
         openers={selectedPeer ? suggestOpeners((profile || {}) as any, selectedPeer as any) : undefined}
         intro={selectedThread?.friend || selectedThread?.source === 'friend'
           ? 'You’re friends on DateU. Say hi!'
@@ -494,7 +495,7 @@ export default function ChatPage() {
               <button type="button" onClick={() => { setShowMenu(false); setShowProfile(true) }}>View profile</button>
             )}
             {!chatDisabled && peerUid && (
-              <button type="button" onClick={() => { setShowMenu(false); callPerson(peerUid, { name: selectedPeer?.name, photoUrl: selectedPeer?.photoUrl }) }}>Voice call</button>
+              <button type="button" onClick={() => { setShowMenu(false); callPerson(peerUid, { name: selectedPeer?.name, photoUrl: selectedPeer ? photoOf(selectedPeer) : undefined }) }}>Voice call</button>
             )}
             <button type="button" onClick={() => { setShowMenu(false); setShowReport(true) }}>Report</button>
             <button type="button" className={iBlockedThem ? '' : 'danger'} onClick={toggleBlock}>{iBlockedThem ? 'Unblock' : 'Block'}</button>

@@ -13,6 +13,7 @@ import {
 } from '../../../services/events'
 import { EventCover, Icon, Sheet, SponsorAndTickets } from './EventBits'
 import './Events.css'
+import { photoOf } from '../../../utils/avatar'
 
 type Rel = 'friends' | 'sent' | 'received' | null
 
@@ -92,7 +93,7 @@ export default function EventDetail() {
   const register = async () => {
     setBusy(true)
     try {
-      await registerForEvent(event, { uid: user.uid, name: profile?.name, photoUrl: profile?.photoUrl, college: profile?.college, gender: profile?.gender, userType: profile?.userType }, { lookingForBuddy: buddy && wantsBuddy, note })
+      await registerForEvent(event, { uid: user.uid, name: profile?.name, photoUrl: profile?.photoUrl, avatar: (profile as any)?.avatar, college: profile?.college, gender: profile?.gender, userType: profile?.userType }, { lookingForBuddy: buddy && wantsBuddy, note })
       setSheet(null)
       toast.success('You’re going! 🎉')
     } catch (e: any) {
@@ -288,7 +289,7 @@ export default function EventDetail() {
                     <div key={a.uid} className="ev-person">
                       <button type="button" className="ev-person-main" onClick={() => nav(`/profile/${a.uid}`)}>
                         <span className="ev-avatar">
-                          {a.photoUrl ? <img src={a.photoUrl} alt="" loading="lazy" /> : (a.name || '?').charAt(0).toUpperCase()}
+                          <img src={photoOf(a)} alt="" loading="lazy" />
                         </span>
                         <span className="ev-person-text">
                           <strong>{a.name || 'Student'}{a.lookingForBuddy && buddy && <em>Looking for a {buddyLabel}</em>}</strong>

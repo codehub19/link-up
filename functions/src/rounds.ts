@@ -31,8 +31,15 @@ async function premiumUids(): Promise<Set<string>> {
 }
 
 /** Mirrors isDatingReady() in src/firebase.ts */
+/** A real uploaded photo: dating needs one (avatars and Google pictures don't count). */
+function hasRealPhoto(u: any) {
+  const real = (x: any) => typeof x === 'string' && /firebasestorage\.googleapis\.com|\/o\/users%2F/.test(x)
+  return (Array.isArray(u?.photoUrls) && u.photoUrls.some(real)) || real(u?.photoUrl)
+}
+
 function datingReady(u: any) {
   if (!u || u.isProfileComplete !== true || u.datingEnabled === false) return false
+  if (!hasRealPhoto(u)) return false
   return u.datingProfileComplete === true || !!(u.ageRangeMin !== undefined && u.communicationImportance && u.conflictApproach
     && u.sundayStyle && u.travelPreference && u.loveLanguage)
 }

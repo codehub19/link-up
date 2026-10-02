@@ -82,7 +82,7 @@ export default function DatingIntro() {
           <button type="button" className="di-link" onClick={() => nav('/dashboard/friends')}>
             Not now — find friends instead
           </button>
-          <p className="di-note">Only people who have turned on dating can see you in rounds.</p>
+          <p className="di-note">Dating needs at least one real photo of you (an avatar is only for Friends). Only people who have turned on dating can see you in rounds.</p>
         </div>
       </div>
     </>

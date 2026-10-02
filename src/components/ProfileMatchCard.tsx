@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import './ProfileMatchCard.css';
+import { photoOf } from '../utils/avatar'
 
 type UserStructure = {
   uid: string
@@ -50,7 +51,7 @@ export default function ProfileMatchCard({
       <div className="pm-image-area">
         {/* Show only the profile photo as cover */}
         <img
-          src={user?.photoUrl || "/placeholder.jpg"}
+          src={photoOf(user as any)}
           alt="profile"
           className="pm-card-img"
           draggable={false}

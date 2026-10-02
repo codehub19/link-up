@@ -62,7 +62,7 @@ export const getProfileViews = onCall({ region: REGION }, async (req) => {
     viewers = users.map((u, i) => {
       const d = u.data()
       if (!d || d.banned || d.underReview) return null
-      return { uid: u.id, name: String(d.name || '').split(' ')[0], photoUrl: d.photoUrl || null, college: d.college || null, at: ms(rows[i].get('at')) }
+      return { uid: u.id, name: String(d.name || '').split(' ')[0], photoUrl: d.photoUrl || null, avatar: d.avatar || null, gender: d.gender || null, college: d.college || null, at: ms(rows[i].get('at')) }
     }).filter(Boolean)
   }
   return { count: rows.length, premium, canSee, showViews: me.showViews !== false, viewers }
