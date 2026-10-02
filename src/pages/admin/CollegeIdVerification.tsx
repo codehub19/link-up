@@ -51,10 +51,6 @@ export default function CollegeIdVerification() {
     fetchUsers();
   }, [actionStatus]);
 
-  // Only show if admin
-  if (!profile?.isAdmin) {
-    return <div>You do not have admin access.</div>;
-  }
 
 
 

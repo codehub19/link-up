@@ -16,7 +16,6 @@ export default function SendNotificationAdmin() {
   const functions = getFunctions(undefined, "asia-south2");
   const sendPushNotification = httpsCallable(functions, "sendPushNotification");
 
-  if (!profile?.isAdmin) return <div>Admin access only.</div>;
 
   const handleSend = async () => {
     setSending(true);

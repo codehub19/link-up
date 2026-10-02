@@ -23,7 +23,7 @@ export default function AdminsCard() {
       <div style={{ fontWeight: 600, marginBottom: 6 }}>Who has admin access</div>
       <div style={{ fontSize: 13, color: 'var(--admin-text-muted)', marginBottom: 12 }}>
         Only you (the owner) can add or remove admins. Admins sign in with their admin password and then Google (2-Step Verification on).
-        To add one: Users → open their profile → Make admin; they then open /admin/login → First-time setup to create their admin password.
+        To add one: Users → open their profile → Make admin and set their admin password; they sign in at /admin/login with it plus their Google account.
       </div>
       {!rows ? 'Loading…' : rows.map((r) => (
         <div key={r.uid} className="row" style={{ justifyContent: 'space-between', gap: 8, padding: '8px 0', borderTop: '1px solid var(--admin-border)', flexWrap: 'wrap' }}>

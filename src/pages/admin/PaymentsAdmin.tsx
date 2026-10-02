@@ -16,17 +16,10 @@ export default function PaymentsAdmin() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
-  const isAdmin = !!profile?.isAdmin
-
+  // Access is checked by AdminGuard (two-step admin session) and the database rules
   useEffect(() => {
-    if (isAdmin) {
-      refresh()
-    }
-  }, [isAdmin])
-
-  if (!isAdmin) {
-    return <div style={{ padding: 24 }}>Access denied.</div>
-  }
+    refresh()
+  }, [])
 
   async function approve(paymentId: string) {
     setBusyId(paymentId)
