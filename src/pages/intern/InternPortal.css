@@ -1,0 +1,62 @@
+/* Intern portal (ip- prefix) */
+.ip-page { max-width: 760px; margin: 0 auto; padding-bottom: 40px; }
+.ip-skel { height: 120px; border-radius: 18px; background: rgba(255,255,255,.05); margin-bottom: 12px; }
+.ip-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.ip-kicker { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #ff8fab; }
+.ip-head h1 { margin: 4px 0 0; font-size: 1.8rem; }
+.ip-rank { min-width: 76px; text-align: center; padding: 10px 12px; border-radius: 16px; background: linear-gradient(135deg,#ff416c,#ff4b2b); font-weight: 900; font-size: 1.5rem; line-height: 1; }
+.ip-rank small { display: block; font-size: 11px; font-weight: 600; opacity: .85; margin-top: 4px; }
+.ip-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 16px; padding: 2px 16px; }
+.ip-tabs::-webkit-scrollbar { display: none; }
+.ip-tabs button { flex: 0 0 auto; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); color: inherit; border-radius: 999px; padding: 9px 15px; font-weight: 700; font-size: 14px; cursor: pointer; }
+.ip-tabs button.on { background: #fff; color: #111; border-color: #fff; }
+.ip-stack { display: flex; flex-direction: column; gap: 12px; }
+.ip-card { padding: 16px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); color: inherit; text-align: left; }
+.ip-label { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; opacity: .65; margin-bottom: 8px; }
+.ip-fine { font-size: 13px; color: rgba(255,255,255,.62); line-height: 1.45; }
+.ip-link-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ip-link-row code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,.3); font-size: 14px; }
+.ip-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 600px) { .ip-grid { grid-template-columns: repeat(2, 1fr); } }
+.ip-stat { padding: 14px; border-radius: 16px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column; gap: 4px; }
+.ip-stat strong { font-size: 1.7rem; line-height: 1; }
+.ip-stat span { font-size: 12px; opacity: .7; }
+.ip-stat.hot { background: linear-gradient(135deg, rgba(255,65,108,.25), rgba(255,75,43,.15)); border-color: rgba(255,65,108,.4); }
+.ip-bar { height: 12px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; margin-bottom: 8px; }
+.ip-bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg,#ff416c,#ffb347); }
+.ip-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45; }
+.ip-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ip-action { display: flex; flex-direction: column; gap: 4px; cursor: pointer; }
+.ip-action span { font-size: 22px; }
+.ip-action small { opacity: .65; font-size: 12px; }
+.ip-btn { display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 999px; padding: 11px 18px; font-weight: 800; font-size: 14px; color: #fff; background: linear-gradient(135deg,#ff416c,#ff4b2b); cursor: pointer; text-decoration: none; }
+.ip-btn.sm { padding: 8px 14px; font-size: 13px; }
+.ip-btn.ghost { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
+.ip-btn:disabled { opacity: .55; }
+.ip-pill { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.1); white-space: nowrap; }
+.ip-pill.ok { background: rgba(34,197,94,.2); color: #4ade80; }
+.ip-pill.warn { background: rgba(251,191,36,.18); color: #fbbf24; }
+.ip-task-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.ip-task p, .ip-report p { margin: 8px 0; font-size: 14px; line-height: 1.5; color: rgba(255,255,255,.8); white-space: pre-wrap; }
+.ip-task-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
+.ip-task.done { opacity: .6; }
+.ip-form { display: flex; flex-direction: column; gap: 10px; }
+.ip-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; }
+.ip-form input, .ip-form select, .ip-form textarea { width: 100%; background: rgba(0,0,0,.3); color: inherit; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 15px; }
+.ip-form select option { color: #111; }
+.ip-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 520px) { .ip-form-row { grid-template-columns: 1fr; } }
+.ip-report-links { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 13px; }
+.ip-report-links a { color: #ff8fab; font-weight: 700; }
+.ip-feedback { margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.06); font-size: 13px; }
+.ip-link-btn { background: none; border: none; color: rgba(255,255,255,.55); font-size: 12px; text-decoration: underline; cursor: pointer; padding: 6px 0 0; }
+.ip-kit-qr { display: flex; gap: 16px; align-items: center; }
+.ip-kit-qr img { width: 132px; height: 132px; border-radius: 14px; background: #fff; padding: 6px; flex: 0 0 auto; }
+.ip-msg pre { white-space: pre-wrap; font: inherit; font-size: 14px; line-height: 1.5; margin: 10px 0 12px; padding: 12px; border-radius: 12px; background: rgba(0,0,0,.25); }
+.ip-board-row { display: flex; align-items: center; gap: 12px; }
+.ip-board-row.me { border-color: #ff416c; background: rgba(255,65,108,.1); }
+.ip-board-rank { width: 40px; text-align: center; font-weight: 900; font-size: 18px; }
+.ip-board-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ip-board-name small, .ip-board-nums small { font-size: 12px; opacity: .65; }
+.ip-board-nums { text-align: right; display: flex; flex-direction: column; }
+.ip-board-nums strong { font-size: 1.3rem; }

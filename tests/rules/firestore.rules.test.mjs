@@ -251,3 +251,22 @@ test('avatars: only valid choices; photos only from our storage or Google', asyn
   await assertFails(updateDoc(doc(as('a'), 'users/a'), { photoUrl: 'data:image/svg+xml,<svg/>' }))
   await assertSucceeds(updateDoc(doc(as('a'), 'users/a'), { photoUrl: 'https://firebasestorage.googleapis.com/v0/b/x/o/users%2Fa%2Fprofile_images%2Fprofile_0.jpg?alt=media' }))
 })
+
+test('interns: only active interns report work; they can’t give themselves points', async () => {
+  await seed(async (db) => {
+    await setDoc(doc(db, 'interns/i1'), { uid: 'i1', status: 'active', code: 'ABC123' })
+    await setDoc(doc(db, 'interns/old'), { uid: 'old', status: 'completed' })
+    await setDoc(doc(db, 'internTasks/t1'), { title: 'Post in 3 groups', assignees: 'all' })
+  })
+  const report = (uid, extra = {}) => ({ uid, type: 'whatsapp', title: 'Shared in hostel group', description: '', link: null, status: 'pending', points: 0, createdAt: serverTimestamp(), ...extra })
+  await assertSucceeds(setDoc(doc(as('i1'), 'internReports/r1'), report('i1')))
+  await assertFails(setDoc(doc(as('i1'), 'internReports/r2'), report('i1', { status: 'approved', points: 50 })))
+  await assertFails(setDoc(doc(as('old'), 'internReports/r3'), report('old')))
+  await assertFails(setDoc(doc(as('x'), 'internReports/r4'), report('x')))
+  await assertFails(updateDoc(doc(as('i1'), 'internReports/r1'), { status: 'approved', points: 100 }))
+  await assertSucceeds(updateDoc(doc(as('admin'), 'internReports/r1'), { status: 'approved', points: 20, feedback: 'Nice' }))
+  await assertSucceeds(getDoc(doc(as('i1'), 'internTasks/t1')))
+  await assertFails(getDoc(doc(as('x'), 'internTasks/t1')))
+  await assertFails(getDoc(doc(as('i1'), 'interns/old')))
+  await assertFails(updateDoc(doc(as('i1'), 'interns/i1'), { status: 'active', targets: { signups: 1 } }))
+})

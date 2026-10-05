@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { getProfileViews } from '../../services/profileViews'
+import { doc as fsDoc, getDoc as fsGetDoc } from 'firebase/firestore'
+import { db as fsDb } from '../../firebase'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/Navbar'
 import HomeBackground from '../../components/home/HomeBackground'
@@ -40,6 +42,13 @@ export default function ProfileTab({ referral }: { referral?: React.ReactNode })
   const [views, setViews] = useState<number | null>(null)
   useEffect(() => { getProfileViews().then((v) => setViews(v ? v.count : null)) }, [])
   const { profile, user } = useAuth()
+  // Interns get a shortcut to their portal
+  const [isIntern, setIsIntern] = useState(false)
+  useEffect(() => {
+    const uid = user?.uid
+    if (!uid) return
+    fsGetDoc(fsDoc(fsDb, 'interns', uid)).then((s) => setIsIntern(s.exists() && s.get('status') === 'active')).catch(() => { })
+  }, [user?.uid])
   const nav = useNavigate()
   const [idSheet, setIdSheet] = useState(false)
 
@@ -188,6 +197,13 @@ export default function ProfileTab({ referral }: { referral?: React.ReactNode })
         {referral}
 
         <div className="pt-list">
+          {isIntern && (
+            <button type="button" className="pt-row" onClick={() => nav('/intern')}>
+              <span className="pt-row-icon premium"><Icon><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /></Icon></span>
+              <span className="pt-row-body"><span className="pt-row-title">Intern portal</span><span className="pt-row-sub">Your link, tasks, score and promo kit</span></span>
+              <Chevron />
+            </button>
+          )}
           <button type="button" className="pt-row" onClick={() => nav('/dashboard/views')}>
             <span className="pt-row-icon premium"><Icon><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></Icon></span>
             <span className="pt-row-body">

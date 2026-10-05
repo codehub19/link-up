@@ -23,6 +23,7 @@ export default function AdminSidebar({ mobileOpen, setMobileOpen }: { mobileOpen
                 { label: 'ID Verification', href: '/admin/college-id-verification', icon: Key },
                 { label: 'Requests', href: '/admin/requests', icon: Inbox },
                 { label: 'Referrals', href: '/admin/referrals', icon: Users },
+                { label: 'Interns', href: '/admin/interns', icon: Briefcase },
             ],
         },
         {

@@ -82,6 +82,7 @@ export default function Navbar() {
     "/dashboard/random-call": ["Random call", "/dashboard/chat"],
     "/dashboard/dating-profile": ["Dating profile", "/dashboard"],
     "/dashboard/views": ["Profile views", profileTab],
+    "/intern": ["Intern portal", profileTab],
   };
   // Help and legal pages opened from inside the app get a back button too
   // (the installed iPhone app has no browser back button)

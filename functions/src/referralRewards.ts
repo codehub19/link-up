@@ -24,7 +24,7 @@ export const onReferralProfileComplete = onDocumentUpdated(
     const after = event.data?.after.data()
     const uid = event.params.uid
     if (!after || before?.isProfileComplete === true || after.isProfileComplete !== true) return
-    if (!after.photoUrl) return
+    if (!after.photoUrl && !after.avatar) return
 
     const refRef = db.collection('referrals').doc(uid)
     const cfg = (await db.collection('config').doc('app').get()).data() || {}

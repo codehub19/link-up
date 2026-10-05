@@ -73,6 +73,8 @@ const EventsPage = lazy(() => import('./pages/dashboard/events/Events'))
 const EventDetail = lazy(() => import('./pages/dashboard/events/EventDetail'))
 const GroupDetail = lazy(() => import('./pages/dashboard/groups/GroupDetail'))
 const WhoViewed = lazy(() => import('./pages/dashboard/views/WhoViewed'))
+const InternPortal = lazy(() => import('./pages/intern/InternPortal'))
+const InternsAdmin = lazy(() => import('./pages/admin/InternsAdmin'))
 const EventsAdmin = lazy(() => import('./pages/admin/EventsAdmin'))
 const GroupsAdmin = lazy(() => import('./pages/admin/GroupsAdmin'))
 const ReportsAdmin = lazy(() => import('./pages/admin/ReportsAdmin'))
@@ -251,6 +253,7 @@ export default function App() {
           <Route path="/dashboard/events/:id" element={<Protected><EventDetail /></Protected>} />
           <Route path="/dashboard/groups/:id" element={<Protected><GroupDetail /></Protected>} />
           <Route path="/dashboard/views" element={<Protected><WhoViewed /></Protected>} />
+          <Route path="/intern" element={<Protected><InternPortal /></Protected>} />
 
           <Route
             path="/dashboard/dating-profile"
@@ -353,6 +356,7 @@ export default function App() {
             <Route path="/admin/calls" element={<CallsAdmin />} />
             <Route path="/admin/events" element={<EventsAdmin />} />
             <Route path="/admin/groups" element={<GroupsAdmin />} />
+            <Route path="/admin/interns" element={<InternsAdmin />} />
             <Route path="/admin/subscriptions" element={<SubscriptionsAdmin />} />
             <Route path="/admin/audit" element={<AuditLogAdmin />} />
           </Route>

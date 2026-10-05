@@ -12,6 +12,7 @@ export const PUSHED_ROUTES = [
   '/dashboard/random-call',
   '/dashboard/dating-profile',
   '/dashboard/views',
+  '/intern',
 ]
 
 export function isPushedRoute(pathname: string) {

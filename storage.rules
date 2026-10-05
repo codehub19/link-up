@@ -55,6 +55,14 @@ service firebase.storage {
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
+    // Proof screenshots for intern work reports
+    match /interns/{uid}/{fileName} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow write: if request.auth != null && request.auth.uid == uid
+                   && firestore.exists(/databases/(default)/documents/interns/$(uid))
+                   && request.resource.size < 8 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
     // Event cover images (admins upload, everyone can see)
     match /events/{eventId}/{fileName} {
       allow read: if true;
