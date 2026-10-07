@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import Navbar from '../../components/Navbar'
 import EmptyState from '../../components/ui/EmptyState'
@@ -8,7 +8,7 @@ import { useDialog } from '../../components/ui/Dialog'
 import { compressImage } from '../../utils/compressImage'
 import {
   InternMe, InternReport, InternTask, LeaderRow, REPORT_TYPES, ReportType, deleteReport, inviteLink, loadInternDashboard,
-  submitReport, subscribeMyReports, subscribeTasks, uploadProof,
+  InternRecord, submitReport, subscribeIntern, subscribeMyReports, subscribeTasks, uploadProof,
 } from '../../services/interns'
 import { makePoster, promoMessages, qrDataUrl } from './promo'
 import '../dashboard/dashboard.css'
@@ -28,15 +28,20 @@ export default function InternPortal() {
   const [reports, setReports] = useState<InternReport[]>([])
   const [tasks, setTasks] = useState<InternTask[]>([])
   const [taskForReport, setTaskForReport] = useState<InternTask | null>(null)
+  const [record, setRecord] = useState<InternRecord | null | undefined>(undefined)
 
   const refresh = () => loadInternDashboard().then(setData).catch(() => setData(null))
   useEffect(() => { if (user) refresh() }, [user])
   useEffect(() => { if (user && data) return subscribeMyReports(user.uid, setReports) }, [user, !!data])
   useEffect(() => { if (data) return subscribeTasks(setTasks) }, [!!data])
+  // Finished (or former) interns still have their documents on their profile page
+  useEffect(() => (user && data === null ? subscribeIntern(user.uid, setRecord) : undefined), [user?.uid, data === null])
 
   if (!user) return null
   if (data === undefined) return (<><Navbar /><div className="dashboard-container ip-page"><div className="ip-skel" /><div className="ip-skel" /></div></>)
   if (data === null) {
+    if (record === undefined) return (<><Navbar /><div className="dashboard-container ip-page"><div className="ip-skel" /></div></>)
+    if (record) return <Navigate to="/intern/profile" replace />
     return (
       <>
         <Navbar />
@@ -57,10 +62,11 @@ export default function InternPortal() {
       <Navbar />
       <div className="dashboard-container ip-page">
         <header className="ip-head">
-          <div>
+          <Link to="/intern/profile" className="ip-head-me">
             <div className="ip-kicker">Business Development Intern</div>
             <h1>Hi {me.name?.split(' ')[0] || 'there'} 👋</h1>
-          </div>
+            <span className="ip-fine">{me.internNo ? `${me.internNo} · ` : ''}My internship &amp; documents ›</span>
+          </Link>
           <div className="ip-rank" title="Your rank">#{me.rank || '—'}<small>of {me.total}</small></div>
         </header>
 
@@ -91,6 +97,13 @@ function Home({ me, link, scoring, reports, openTasks, go }: { me: InternMe; lin
   const copy = async () => { await navigator.clipboard.writeText(link).catch(() => { }); toast.success('Link copied') }
   return (
     <div className="ip-stack">
+      {me.documents?.offer && !me.offerAcceptedAt && (
+        <Link to="/intern/profile" className="ip-card ip-offer-banner">
+          <span>📄</span>
+          <span><strong>Your offer letter is ready</strong><small>Read it and accept it on your internship page</small></span>
+          <span className="ip-btn sm">Open</span>
+        </Link>
+      )}
       <section className="ip-card ip-link">
         <div className="ip-label">Your invite link</div>
         <div className="ip-link-row"><code>{link}</code><button className="ip-btn sm" onClick={copy}>Copy</button></div>
@@ -127,6 +140,9 @@ function Home({ me, link, scoring, reports, openTasks, go }: { me: InternMe; lin
           <span>📝</span><strong>{me.pendingReports} awaiting review</strong><small>{reports.length} logged in total</small>
         </button>
       </section>
+      <Link to="/intern/profile" className="ip-card ip-action ip-docs-link">
+        <span>🗂️</span><strong>My internship &amp; documents</strong><small>Offer letter, completion letter, certificate and your details</small>
+      </Link>
     </div>
   )
 }

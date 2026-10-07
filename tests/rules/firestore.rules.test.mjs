@@ -270,3 +270,21 @@ test('interns: only active interns report work; they can’t give themselves poi
   await assertFails(getDoc(doc(as('i1'), 'interns/old')))
   await assertFails(updateDoc(doc(as('i1'), 'interns/i1'), { status: 'active', targets: { signups: 1 } }))
 })
+
+test('interns: edit own contact details; document name locks once issued; documents are private', async () => {
+  await seed(async (db) => {
+    await setDoc(doc(db, 'interns/i1'), { uid: 'i1', status: 'active', name: 'Asha' })
+    await setDoc(doc(db, 'interns/i2'), { uid: 'i2', status: 'completed', name: 'Ravi', docName: 'Ravi Kumar', docsIssued: true })
+    await setDoc(doc(db, 'internDocuments/d1'), { uid: 'i2', type: 'certificate', name: 'Ravi Kumar' })
+  })
+  await assertSucceeds(updateDoc(doc(as('i1'), 'interns/i1'), { docName: 'Asha Verma', phone: '+91 98765 43210', linkedin: 'https://www.linkedin.com/in/asha' }))
+  await assertFails(updateDoc(doc(as('i1'), 'interns/i1'), { linkedin: 'https://evil.example.com' }))
+  await assertFails(updateDoc(doc(as('i1'), 'interns/i1'), { phone: '<script>' }))
+  await assertFails(updateDoc(doc(as('i1'), 'interns/i1'), { docsIssued: false }))
+  await assertFails(updateDoc(doc(as('i2'), 'interns/i2'), { docName: 'Someone Else' }))
+  await assertSucceeds(updateDoc(doc(as('i2'), 'interns/i2'), { phone: '9876543210' }))
+  await assertSucceeds(getDoc(doc(as('i2'), 'internDocuments/d1')))
+  await assertFails(getDoc(doc(as('i1'), 'internDocuments/d1')))
+  await assertFails(setDoc(doc(as('i2'), 'internDocuments/d2'), { uid: 'i2', type: 'certificate' }))
+  await assertFails(getDoc(doc(as('i1'), 'internMeta/settings')))
+})

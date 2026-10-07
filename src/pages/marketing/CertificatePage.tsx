@@ -202,9 +202,9 @@ export default function CertificatePage() {
                                 borderBottom: '1px solid #9ca3af',
                                 paddingBottom: '4px'
                             }}>
-                                The Founders
+                                {cert.signatoryName || 'The Founders'}
                             </div>
-                            <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase' }}>Founding Team</p>
+                            <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase' }}>{cert.signatoryTitle || 'Founding Team'}</p>
                         </div>
 
                         {/* Gold Seal */}
@@ -262,7 +262,7 @@ export default function CertificatePage() {
                                 {new Date(cert.issueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                             </div>
                             <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase' }}>Issue Date</p>
-                            <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#6b7280', fontFamily: 'monospace' }}>ID: {cert.id.substring(0, 8).toUpperCase()}</p>
+                            <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#6b7280', fontFamily: 'monospace' }}>{cert.refNo ? <>Ref: {cert.refNo}<br />Verify: dateu.in/verify/{cert.id}</> : <>ID: {cert.id.substring(0, 8).toUpperCase()}</>}</p>
                         </div>
 
                     </div>

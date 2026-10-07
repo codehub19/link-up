@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
-import { addDoc, collection } from 'firebase/firestore'
-import { db } from '../../firebase'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../state/AuthContext'
 import { useDialog } from '../../components/ui/Dialog'
 import {
-  InternReport, InternTask, REPORT_TYPES, addIntern, createTask, deleteTask, loadInternOverview, reviewReport, setInternStatus,
-  subscribeReportsForReview, subscribeTasks,
+  DOC_INFO, InternDocType, InternDocument, InternReport, InternTask, LetterSettings, REPORT_TYPES, addIntern, createTask, deleteTask,
+  issueDocument, loadInternOverview, loadLetterSettings, reviewReport, revokeDocument, saveLetterSettings, setInternStatus,
+  subscribeMyDocuments, subscribeReportsForReview, subscribeTasks, tsToMs,
 } from '../../services/interns'
 
 type Row = Awaited<ReturnType<typeof loadInternOverview>>[number]
-type Tab = 'interns' | 'review' | 'tasks'
+type Tab = 'interns' | 'review' | 'tasks' | 'letters'
 
 const fmt = (ms?: number | null) => (ms ? new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
 const ago = (ms?: number | null) => {
@@ -31,8 +30,11 @@ export default function InternsAdmin() {
   const [busy, setBusy] = useState(false)
   // add intern form
   const [email, setEmail] = useState('')
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [endDate, setEndDate] = useState(() => new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10))
   const [target, setTarget] = useState('50')
+  const [sendOffer, setSendOffer] = useState(true)
+  const [openDocs, setOpenDocs] = useState<string | null>(null)
   // task form
   const [tTitle, setTTitle] = useState('')
   const [tDesc, setTDesc] = useState('')
@@ -51,8 +53,8 @@ export default function InternsAdmin() {
     e.preventDefault()
     setBusy(true)
     try {
-      const r = await addIntern(email, endDate, Number(target))
-      await showAlert(`Added. Their invite code is ${r.code}. They’ll find the portal at dateu.in/intern (also in their Profile tab).`)
+      const r = await addIntern(email, { startDate, endDate, targetSignups: Number(target), sendOffer })
+      await showAlert(`Added as ${r.internNo}. Invite code ${r.code}.${r.offerId ? ' Their offer letter has been sent; they accept it on their intern profile.' : ''} They’ll find the portal at dateu.in/intern (also in their Profile tab).`)
       setEmail('')
       refresh()
     } catch (err: any) {
@@ -62,17 +64,17 @@ export default function InternsAdmin() {
     }
   }
 
-  const issueCertificate = async (r: Row) => {
-    if (!(await showConfirm(`Issue an internship certificate to ${r.name}?`))) return
-    const ref = await addDoc(collection(db, 'certificates'), {
-      name: r.name, role: 'Business Development', email: r.email,
-      startDate: r.startAt ? new Date(r.startAt).toISOString() : new Date().toISOString(),
-      endDate: new Date(Math.min(Date.now(), r.endAt || Date.now())).toISOString(),
-      issueDate: new Date().toISOString(), internUid: r.uid,
-    })
-    const url = `${window.location.origin}/certificate/${ref.id}`
-    await navigator.clipboard.writeText(url).catch(() => { })
-    await showAlert(`Certificate created and link copied:\n${url}`)
+  const complete = async (r: Row) => {
+    if (!(await showConfirm(`Mark ${r.name}'s internship as completed? Their portal closes, but they keep their profile and documents.`))) return
+    await setInternStatus(r.uid, 'completed')
+    if (await showConfirm(`Issue ${r.name}'s completion letter and certificate now?`)) {
+      try {
+        await issueDocument(r.uid, 'completion')
+        await issueDocument(r.uid, 'certificate')
+        await showAlert('Done. They’ve been notified and can download both from their intern profile.')
+      } catch (e: any) { await showAlert(e?.message || 'Failed') }
+    }
+    refresh()
   }
 
   return (
@@ -85,9 +87,9 @@ export default function InternsAdmin() {
           </p>
         </div>
         <div className="row" style={{ gap: 8 }}>
-          {(['interns', 'review', 'tasks'] as Tab[]).map((t) => (
+          {(['interns', 'review', 'tasks', 'letters'] as Tab[]).map((t) => (
             <button key={t} className={`btn btn-sm ${tab === t ? 'btn-primary' : ''}`} onClick={() => setTab(t)}>
-              {t === 'interns' ? `Interns${rows ? ` (${rows.filter((r) => r.status === 'active').length})` : ''}` : t === 'review' ? `Review work${pending ? ` (${pending})` : ''}` : `Tasks (${tasks.length})`}
+              {t === 'interns' ? `Interns${rows ? ` (${rows.filter((r) => r.status === 'active').length})` : ''}` : t === 'review' ? `Review work${pending ? ` (${pending})` : ''}` : t === 'tasks' ? `Tasks (${tasks.length})` : 'Letter settings'}
             </button>
           ))}
         </div>
@@ -99,11 +101,17 @@ export default function InternsAdmin() {
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Intern’s email (their DateU Google account)
               <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="name@gmail.com" />
             </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Internship starts
+              <input className="input" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Internship ends
               <input className="input" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Target (completed sign-ups)
               <input className="input" type="number" min={1} value={target} onChange={(e) => setTarget(e.target.value)} />
+            </label>
+            <label className="row" style={{ gap: 8, alignItems: 'center', fontSize: 13, cursor: 'pointer' }}>
+              <input type="checkbox" checked={sendOffer} onChange={(e) => setSendOffer(e.target.checked)} /> Send offer letter now
             </label>
             <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add intern'}</button>
           </form>
@@ -114,15 +122,17 @@ export default function InternsAdmin() {
             <div className="admin-card" style={{ overflowX: 'auto' }}>
               <table className="admin-table">
                 <thead>
-                  <tr><th>#</th><th>Intern</th><th>Code</th><th>Sign-ups</th><th>Completed</th><th>Work pts</th><th>Score</th><th>Target</th><th>Logs</th><th>Last active</th><th>Ends</th><th></th></tr>
+                  <tr><th>#</th><th>Intern</th><th>Offer</th><th>Code</th><th>Sign-ups</th><th>Completed</th><th>Work pts</th><th>Score</th><th>Target</th><th>Logs</th><th>Last active</th><th>Ends</th><th></th></tr>
                 </thead>
                 <tbody>
                   {rows.map((r, i) => {
                     const t = r.targets?.signups || 50
                     return (
-                      <tr key={r.uid} style={{ opacity: r.status === 'active' ? 1 : 0.5 }}>
+                      <Fragment key={r.uid}>
+                      <tr style={{ opacity: r.status === 'active' ? 1 : 0.6 }}>
                         <td>{i + 1}</td>
-                        <td><a href={`/admin/users/${r.uid}`}>{r.name}</a><div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>{r.email}{r.college ? ` · ${r.college}` : ''}{r.status !== 'active' ? ` · ${r.status}` : ''}</div></td>
+                        <td><a href={`/admin/users/${r.uid}`}>{r.name}</a><div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>{r.email}{r.college ? ` · ${r.college}` : ''}{r.status !== 'active' ? ` · ${r.status}` : ''}</div>{r.internNo && <div style={{ fontSize: 11, color: 'var(--admin-text-muted)' }}>{r.internNo}</div>}</td>
+                        <td>{r.offerAcceptedAt ? <span className="badge badge-success">Accepted</span> : r.documents?.offer ? <span className="badge badge-warning">Sent</span> : '—'}</td>
                         <td><code>{r.code}</code></td>
                         <td>{r.signups}</td>
                         <td>{r.completed}</td>
@@ -134,10 +144,10 @@ export default function InternsAdmin() {
                         <td>{fmt(r.endAt)}</td>
                         <td>
                           <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
-                            <button className="btn btn-sm" onClick={() => issueCertificate(r)}>Certificate</button>
+                            <button className={`btn btn-sm ${openDocs === r.uid ? 'btn-primary' : ''}`} onClick={() => setOpenDocs(openDocs === r.uid ? null : r.uid)}>Documents</button>
                             {r.status === 'active' ? (
                               <>
-                                <button className="btn btn-sm" onClick={async () => { if (await showConfirm(`Mark ${r.name}'s internship as completed? They lose portal access.`)) { await setInternStatus(r.uid, 'completed'); refresh() } }}>Complete</button>
+                                <button className="btn btn-sm" onClick={() => complete(r)}>Complete</button>
                                 <button className="btn btn-sm" style={{ color: '#f87171', borderColor: '#f87171' }} onClick={async () => { if (await showConfirm(`Remove ${r.name} from the internship?`)) { await setInternStatus(r.uid, 'removed'); refresh() } }}>Remove</button>
                               </>
                             ) : (
@@ -146,6 +156,10 @@ export default function InternsAdmin() {
                           </div>
                         </td>
                       </tr>
+                      {openDocs === r.uid && (
+                        <tr><td colSpan={13} style={{ background: 'rgba(255,255,255,.02)' }}><DocsPanel uid={r.uid} name={r.name} onChange={refresh} /></td></tr>
+                      )}
+                      </Fragment>
                     )
                   })}
                 </tbody>
@@ -165,6 +179,8 @@ export default function InternsAdmin() {
           ))}
         </>
       )}
+
+      {tab === 'letters' && <LetterSettingsForm />}
 
       {tab === 'tasks' && (
         <>
@@ -238,5 +254,113 @@ function ReviewCard({ r, who, task, adminUid, onError }: { r: InternReport; who:
         <button className="btn btn-sm" disabled={busy} onClick={() => decide('changes')}>Send back</button>
       </div>
     </div>
+  )
+}
+
+const DOC_STATUS: Record<InternDocument['status'], string> = { issued: 'Sent, not accepted', accepted: 'Accepted', valid: 'Valid', replaced: 'Replaced', revoked: 'Withdrawn' }
+
+/** One intern's offer letter, completion letter and certificate. */
+function DocsPanel({ uid, name, onChange }: { uid: string; name: string; onChange: () => void }) {
+  const { showAlert, showConfirm } = useDialog()
+  const [docs, setDocs] = useState<InternDocument[]>([])
+  const [remarks, setRemarks] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
+  useEffect(() => subscribeMyDocuments(uid, setDocs), [uid])
+
+  const issue = async (type: InternDocType) => {
+    const has = docs.some((d) => d.type === type && (d.status === 'issued' || d.status === 'accepted' || d.status === 'valid'))
+    if (!(await showConfirm(has ? `Issue a new ${DOC_INFO[type].title.toLowerCase()} for ${name}? The current one will be marked as replaced.` : `Issue the ${DOC_INFO[type].title.toLowerCase()} to ${name}? They’ll be notified.`))) return
+    setBusy(type)
+    try { const r = await issueDocument(uid, type, type === 'completion' ? remarks : undefined); onChange(); await showAlert(`Issued ${r.refNo}.`) }
+    catch (e: any) { await showAlert(e?.message || 'Failed') }
+    finally { setBusy(null) }
+  }
+  const revoke = async (d: InternDocument) => {
+    if (!(await showConfirm(`Withdraw ${d.refNo}? It will show as not valid on the verification page.`))) return
+    try { await revokeDocument(d.id); onChange() } catch (e: any) { await showAlert(e?.message || 'Failed') }
+  }
+  const view = (d: InternDocument) => (d.type === 'certificate' ? `/certificate/${d.id}` : `/intern/documents/${d.id}`)
+
+  return (
+    <div style={{ display: 'grid', gap: 12, padding: '6px 0' }}>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+        <button className="btn btn-sm btn-primary" disabled={!!busy} onClick={() => issue('offer')}>{busy === 'offer' ? 'Issuing…' : 'Issue offer letter'}</button>
+        <button className="btn btn-sm btn-primary" disabled={!!busy} onClick={() => issue('completion')}>{busy === 'completion' ? 'Issuing…' : 'Issue completion letter'}</button>
+        <button className="btn btn-sm btn-primary" disabled={!!busy} onClick={() => issue('certificate')}>{busy === 'certificate' ? 'Issuing…' : 'Issue certificate'}</button>
+      </div>
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Remarks for the completion letter (optional, printed on it)
+        <textarea className="input" rows={2} maxLength={600} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Asha led our partnership with the college dance society and organised two on-campus stalls." />
+      </label>
+      {docs.length === 0 ? <div style={{ fontSize: 13, color: 'var(--admin-text-muted)' }}>No documents yet.</div> : (
+        <table className="admin-table">
+          <thead><tr><th>Document</th><th>Ref</th><th>Issued</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {docs.map((d) => (
+              <tr key={d.id} style={{ opacity: d.status === 'revoked' || d.status === 'replaced' ? 0.5 : 1 }}>
+                <td>{DOC_INFO[d.type].emoji} {DOC_INFO[d.type].title}</td>
+                <td><code>{d.refNo}</code></td>
+                <td>{fmt(tsToMs(d.issuedAt))}</td>
+                <td>{DOC_STATUS[d.status]}{d.status === 'accepted' && d.acceptedAt ? ` · ${fmt(tsToMs(d.acceptedAt))}` : ''}</td>
+                <td>
+                  <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                    <a className="btn btn-sm" href={view(d)} target="_blank" rel="noreferrer">View</a>
+                    {d.status !== 'revoked' && d.status !== 'replaced' && <button className="btn btn-sm" style={{ color: '#f87171', borderColor: '#f87171' }} onClick={() => revoke(d)}>Withdraw</button>}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
+}
+
+const SETTINGS_FIELDS: [keyof LetterSettings, string, string][] = [
+  ['signatoryName', 'Signed by (your full name)', 'e.g. Your full name'],
+  ['signatoryTitle', 'Signatory title', 'Founder, DateU'],
+  ['role', 'Role on the letters', 'Business Development Intern'],
+  ['stipend', 'Stipend', 'e.g. ₹2,000 a month + performance incentives'],
+  ['workMode', 'Work mode', 'Remote, with on-campus activities'],
+  ['hours', 'Time commitment', 'Flexible, about 8 to 10 hours a week'],
+  ['companyName', 'Company name', 'DateU'],
+  ['email', 'Contact email', 'hello@dateu.in'],
+  ['website', 'Website', 'dateu.in'],
+  ['address', 'Address (optional)', 'City, State'],
+]
+
+/** What goes on every new letter (already issued letters keep what they were issued with). */
+function LetterSettingsForm() {
+  const { showAlert } = useDialog()
+  const [s, setS] = useState<Partial<LetterSettings> | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { loadLetterSettings().then(setS).catch(() => setS({})) }, [])
+  if (!s) return <div className="admin-card">Loading…</div>
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    try {
+      const clean: Partial<LetterSettings> = {}
+      SETTINGS_FIELDS.forEach(([k]) => { (clean as any)[k] = String((s as any)[k] || '').trim().slice(0, 300) })
+      clean.acceptDays = Math.min(60, Math.max(1, Number(s.acceptDays) || 7))
+      await saveLetterSettings(clean)
+      await showAlert('Saved. New letters will use these details.')
+    } catch (err: any) { await showAlert(err?.message || 'Failed') } finally { setBusy(false) }
+  }
+  return (
+    <form className="admin-card" onSubmit={save} style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', alignItems: 'end' }}>
+      <p style={{ gridColumn: '1 / -1', margin: 0, fontSize: 13, color: 'var(--admin-text-muted)' }}>
+        These details are printed on new offer letters, completion letters and certificates. Empty fields use the default shown in grey. Letters already issued don’t change; re-issue one to update it.
+      </p>
+      {SETTINGS_FIELDS.map(([k, label, ph]) => (
+        <label key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>{label}
+          <input className="input" value={String((s as any)[k] || '')} placeholder={ph} maxLength={300} onChange={(e) => setS({ ...s, [k]: e.target.value })} />
+        </label>
+      ))}
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Days to accept the offer
+        <input className="input" type="number" min={1} max={60} value={s.acceptDays ?? 7} onChange={(e) => setS({ ...s, acceptDays: Number(e.target.value) })} />
+      </label>
+      <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save letter settings'}</button>
+    </form>
   )
 }

@@ -714,9 +714,30 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/interns/$(request.auth.uid)).data.get('status', '') == 'active';
     }
     // Interns: added by admins (addIntern); each intern reads only their own record
+    // Interns fill in their own contact details and the name printed on their documents
+    // (that name locks once a document has been issued; the team can still correct it)
     match /interns/{uid} {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
       allow write: if isAdmin();
+      allow update: if request.auth != null && request.auth.uid == uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['docName', 'phone', 'linkedin', 'updatedAt'])
+                    && request.resource.data.get('docName', '') is string
+                    && request.resource.data.get('docName', '').size() <= 60
+                    && (resource.data.get('docsIssued', false) != true
+                        || request.resource.data.get('docName', '') == resource.data.get('docName', ''))
+                    && request.resource.data.get('phone', '') is string
+                    && request.resource.data.get('phone', '').matches('^[+0-9 ()-]{0,20}$')
+                    && request.resource.data.get('linkedin', '') is string
+                    && request.resource.data.get('linkedin', '').matches('^(https://([a-z]+[.])?linkedin[.]com/.{1,180})?$');
+    }
+    // Offer letters, completion letters and certificates: issued on the server, read by the intern
+    match /internDocuments/{id} {
+      allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+    // Letter settings (signatory, stipend…) and the intern number counter
+    match /internMeta/{id} {
+      allow read, write: if isAdmin();
     }
     // Tasks from the admin, for everyone ('all') or listed interns
     match /internTasks/{id} {

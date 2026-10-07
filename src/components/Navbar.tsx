@@ -29,6 +29,15 @@ function GridIcon({ className }: { className?: string }) {
   );
 }
 
+function UserIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  );
+}
+
 function CrownIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -83,6 +92,7 @@ export default function Navbar() {
     "/dashboard/dating-profile": ["Dating profile", "/dashboard"],
     "/dashboard/views": ["Profile views", profileTab],
     "/intern": ["Intern portal", profileTab],
+    "/intern/profile": ["My internship", "/intern"],
   };
   // Help and legal pages opened from inside the app get a back button too
   // (the installed iPhone app has no browser back button)
@@ -102,9 +112,13 @@ export default function Navbar() {
   const pushed = PUSHED[loc.pathname]
     || (loc.pathname.startsWith("/profile/") ? ["Profile", "/dashboard/friends"] as [string, string] : null)
     || (loc.pathname.startsWith("/dashboard/events/") ? ["Event", "/dashboard/events"] as [string, string] : null)
-    || (loc.pathname.startsWith("/dashboard/groups/") ? ["Group", "/dashboard/friends?tab=groups"] as [string, string] : null);
+    || (loc.pathname.startsWith("/dashboard/groups/") ? ["Group", "/dashboard/friends?tab=groups"] as [string, string] : null)
+    || (loc.pathname.startsWith("/intern/documents/") ? ["Document", "/intern/profile"] as [string, string] : null);
   const pushedTitle = pushed?.[0];
   const pushedParent = pushed?.[1] || "/dashboard";
+
+  // The intern area is its own workspace: no app icons, just the intern's profile
+  const internArea = loc.pathname === "/intern" || loc.pathname.startsWith("/intern/");
 
   const dashboardPath = "/dashboard";
   const isDashboardActive = loc.pathname.startsWith("/dashboard") && !notificationsActive;
@@ -139,7 +153,13 @@ export default function Navbar() {
           {/* Right: Actions */}
           <div className="nav-group">
 
-            {user && profile?.isProfileComplete && (
+            {user && internArea && loc.pathname !== "/intern/profile" && (
+              <Link to="/intern/profile" className="nav-icon-btn" title="My internship" aria-label="My internship">
+                <UserIcon />
+              </Link>
+            )}
+
+            {user && profile?.isProfileComplete && !internArea && (
               <>
                 <Link
                   to={dashboardPath}

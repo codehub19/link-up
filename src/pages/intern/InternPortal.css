@@ -60,3 +60,10 @@
 .ip-board-name small, .ip-board-nums small { font-size: 12px; opacity: .65; }
 .ip-board-nums { text-align: right; display: flex; flex-direction: column; }
 .ip-board-nums strong { font-size: 1.3rem; }
+.ip-head-me { color: inherit; text-decoration: none; display: block; min-width: 0; }
+.ip-head-me .ip-fine { display: block; margin-top: 4px; }
+.ip-offer-banner { display: flex; align-items: center; gap: 12px; text-decoration: none; border-color: rgba(74,222,128,.45); background: rgba(34,197,94,.1); }
+.ip-offer-banner > span:first-child { font-size: 26px; }
+.ip-offer-banner > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.ip-offer-banner small { font-size: 12px; opacity: .7; }
+.ip-docs-link { text-decoration: none; }

@@ -74,6 +74,9 @@ const EventDetail = lazy(() => import('./pages/dashboard/events/EventDetail'))
 const GroupDetail = lazy(() => import('./pages/dashboard/groups/GroupDetail'))
 const WhoViewed = lazy(() => import('./pages/dashboard/views/WhoViewed'))
 const InternPortal = lazy(() => import('./pages/intern/InternPortal'))
+const InternProfile = lazy(() => import('./pages/intern/InternProfile'))
+const InternLetter = lazy(() => import('./pages/intern/InternLetter'))
+const VerifyDocument = lazy(() => import('./pages/intern/VerifyDocument'))
 const InternsAdmin = lazy(() => import('./pages/admin/InternsAdmin'))
 const EventsAdmin = lazy(() => import('./pages/admin/EventsAdmin'))
 const GroupsAdmin = lazy(() => import('./pages/admin/GroupsAdmin'))
@@ -134,6 +137,7 @@ export default function App() {
           <Route path="/careers" element={<CareersPage />} />
           <Route path="/careers/apply" element={<JobApplicationPage />} />
           <Route path="/certificate/:id" element={<CertificatePage />} />
+          <Route path="/verify/:id" element={<VerifyDocument />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/campus" element={<CampusIndexPage />} />
@@ -253,7 +257,9 @@ export default function App() {
           <Route path="/dashboard/events/:id" element={<Protected><EventDetail /></Protected>} />
           <Route path="/dashboard/groups/:id" element={<Protected><GroupDetail /></Protected>} />
           <Route path="/dashboard/views" element={<Protected><WhoViewed /></Protected>} />
-          <Route path="/intern" element={<Protected><InternPortal /></Protected>} />
+          <Route path="/intern" element={<Protected requireProfile={false}><InternPortal /></Protected>} />
+          <Route path="/intern/profile" element={<Protected requireProfile={false}><InternProfile /></Protected>} />
+          <Route path="/intern/documents/:id" element={<Protected requireProfile={false}><InternLetter /></Protected>} />
 
           <Route
             path="/dashboard/dating-profile"
