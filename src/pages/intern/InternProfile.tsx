@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import Navbar from '../../components/Navbar'
-import EmptyState from '../../components/ui/EmptyState'
 import { useAuth } from '../../state/AuthContext'
 import { photoOf } from '../../utils/avatar'
 import {
@@ -19,7 +18,6 @@ const STATUS: Record<InternRecord['status'], [string, string]> = { active: ['Act
 /** The intern's own page: their internship details, documents and contact details. */
 export default function InternProfile() {
   const { user, profile } = useAuth()
-  const nav = useNavigate()
   const [intern, setIntern] = useState<InternRecord | null | undefined>(undefined)
   const [docs, setDocs] = useState<InternDocument[]>([])
   const [me, setMe] = useState<InternMe | null>(null)
@@ -30,16 +28,8 @@ export default function InternProfile() {
 
   if (!user) return null
   if (intern === undefined) return (<><Navbar /><div className="dashboard-container ip-page"><div className="ip-skel" /><div className="ip-skel" /></div></>)
-  if (intern === null) {
-    return (
-      <>
-        <Navbar />
-        <div className="dashboard-container ip-page">
-          <EmptyState icon="sparkle" title="Intern profile" text="This page is for DateU interns." actions={[{ label: 'Back to DateU', onClick: () => nav('/dashboard') }]} />
-        </div>
-      </>
-    )
-  }
+  // Not an intern (yet): the joining steps are at /intern
+  if (intern === null) return <Navigate to="/intern" replace />
 
   const live = docs.filter(isLive)
   const latest = (t: InternDocType) => live.find((d) => d.type === t) || null

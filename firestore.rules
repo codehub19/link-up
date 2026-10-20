@@ -730,6 +730,33 @@ service cloud.firestore {
                     && request.resource.data.get('linkedin', '') is string
                     && request.resource.data.get('linkedin', '').matches('^(https://([a-z]+[.])?linkedin[.]com/.{1,180})?$');
     }
+    // Joining requests from selected candidates (dateu.in/intern); an admin approves them
+    match /internRequests/{uid} {
+      function requestOk(d) {
+        return d.keys().hasOnly(['uid', 'email', 'name', 'college', 'year', 'phone', 'linkedin', 'track', 'source', 'applicationId', 'note', 'status', 'createdAt', 'updatedAt'])
+          && d.uid == request.auth.uid
+          && d.email == request.auth.token.email
+          && d.name is string && d.name.size() >= 2 && d.name.size() <= 60
+          && d.college is string && d.college.size() >= 2 && d.college.size() <= 120
+          && d.get('year', '') is string && d.get('year', '').size() <= 30
+          && d.phone is string && d.phone.matches('^[+0-9 ()-]{8,20}$')
+          && d.get('linkedin', '') is string && d.get('linkedin', '').matches('^(https://([a-z]+[.])?linkedin[.]com/.{1,180})?$')
+          && d.track in ['business_development', 'campus_ambassador', 'marketing', 'content_design', 'software', 'operations']
+          && d.get('source', '') is string && d.get('source', '').size() <= 40
+          && d.get('applicationId', '') is string && d.get('applicationId', '').size() <= 60
+          && d.get('note', '') is string && d.get('note', '').size() <= 500
+          && d.status == 'pending';
+      }
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow create: if request.auth != null && request.auth.uid == uid
+                    && request.auth.token.get('email_verified', false) == true
+                    && requestOk(request.resource.data);
+      // Editable while waiting; a declined student can send a fresh request
+      allow update: if isAdmin() || (request.auth != null && request.auth.uid == uid
+                    && resource.data.status in ['pending', 'rejected']
+                    && requestOk(request.resource.data));
+      allow delete: if isAdmin();
+    }
     // Offer letters, completion letters and certificates: issued on the server, read by the intern
     match /internDocuments/{id} {
       allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);

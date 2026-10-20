@@ -4,11 +4,11 @@ import { useDialog } from '../../components/ui/Dialog'
 import {
   DOC_INFO, INTERN_TRACKS, InternDocType, InternDocument, InternReport, InternTask, InternTrackKey, LetterSettings, REPORT_TYPES, addIntern,
   createTask, deleteTask, issueDocument, loadInternOverview, loadLetterSettings, reviewReport, revokeDocument, roleTitleOf, saveLetterSettings,
-  setInternRole, setInternStatus, subscribeMyDocuments, subscribeReportsForReview, subscribeTasks, tsToMs, uploadSignature,
+  InternRequest, rejectJoinRequest, setInternRole, setInternStatus, subscribeJoinRequests, subscribeMyDocuments, subscribeReportsForReview, subscribeTasks, tsToMs, uploadSignature,
 } from '../../services/interns'
 
 type Row = Awaited<ReturnType<typeof loadInternOverview>>[number]
-type Tab = 'interns' | 'review' | 'tasks' | 'letters'
+type Tab = 'requests' | 'interns' | 'review' | 'tasks' | 'letters'
 
 const fmt = (ms?: number | null) => (ms ? new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
 const ago = (ms?: number | null) => {
@@ -22,7 +22,7 @@ const tsMs = (t: any) => (t?.toMillis ? t.toMillis() : t?.seconds ? t.seconds * 
 export default function InternsAdmin() {
   const { user } = useAuth()
   const { showAlert, showConfirm } = useDialog()
-  const [tab, setTab] = useState<Tab>('interns')
+  const [tab, setTab] = useState<Tab>('requests')
   const [rows, setRows] = useState<Row[] | null>(null)
   const [reports, setReports] = useState<InternReport[]>([])
   const [showAllReports, setShowAllReports] = useState(false)
@@ -37,6 +37,9 @@ export default function InternsAdmin() {
   const [track, setTrack] = useState<InternTrackKey>('business_development')
   const [stipend, setStipend] = useState('')
   const [openDocs, setOpenDocs] = useState<string | null>(null)
+  const [requests, setRequests] = useState<InternRequest[]>([])
+  useEffect(() => subscribeJoinRequests(setRequests), [])
+  const pendingRequests = requests.filter((r) => r.status === 'pending').length
   // task form
   const [tTitle, setTTitle] = useState('')
   const [tDesc, setTDesc] = useState('')
@@ -85,17 +88,19 @@ export default function InternsAdmin() {
         <div>
           <h2 style={{ margin: 0 }}>Interns</h2>
           <p style={{ margin: '4px 0 0', color: 'var(--admin-text-muted)', fontSize: 14 }}>
-            Business development internship. Sign-ups are counted automatically from each intern’s invite code; work points come from the logs you approve.
+            Selected candidates send a joining request at dateu.in/intern; approve it under Requests. Sign-ups are counted automatically from each intern’s invite code; work points come from the logs you approve.
           </p>
         </div>
-        <div className="row" style={{ gap: 8 }}>
-          {(['interns', 'review', 'tasks', 'letters'] as Tab[]).map((t) => (
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          {(['requests', 'interns', 'review', 'tasks', 'letters'] as Tab[]).map((t) => (
             <button key={t} className={`btn btn-sm ${tab === t ? 'btn-primary' : ''}`} onClick={() => setTab(t)}>
-              {t === 'interns' ? `Interns${rows ? ` (${rows.filter((r) => r.status === 'active').length})` : ''}` : t === 'review' ? `Review work${pending ? ` (${pending})` : ''}` : t === 'tasks' ? `Tasks (${tasks.length})` : 'Letter settings'}
+              {t === 'requests' ? `Requests${pendingRequests ? ` (${pendingRequests})` : ''}` : t === 'interns' ? `Interns${rows ? ` (${rows.filter((r) => r.status === 'active').length})` : ''}` : t === 'review' ? `Review work${pending ? ` (${pending})` : ''}` : t === 'tasks' ? `Tasks (${tasks.length})` : 'Letter settings'}
             </button>
           ))}
         </div>
       </div>
+
+      {tab === 'requests' && <RequestsTab requests={requests} onApproved={refresh} />}
 
       {tab === 'interns' && (
         <>
@@ -413,5 +418,95 @@ function LetterSettingsForm() {
       </label>
       <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save letter settings'}</button>
     </form>
+  )
+}
+
+const dateInput = (ms: number) => new Date(ms).toISOString().slice(0, 10)
+
+/** Joining requests from dateu.in/intern: approve (creates the intern and sends the offer) or decline. */
+function RequestsTab({ requests, onApproved }: { requests: InternRequest[]; onApproved: () => void }) {
+  const [showAll, setShowAll] = useState(false)
+  const list = showAll ? requests : requests.filter((r) => r.status === 'pending')
+  return (
+    <>
+      <label className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 12, cursor: 'pointer' }}>
+        <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} /> Show approved and declined too
+      </label>
+      {list.length === 0 ? (
+        <div className="admin-card">No {showAll ? '' : 'pending '}requests. Selected candidates send one from <b>dateu.in/intern</b> after signing in with Google.</div>
+      ) : list.map((r) => <RequestCard key={r.uid} r={r} onApproved={onApproved} />)}
+    </>
+  )
+}
+
+function RequestCard({ r, onApproved }: { r: InternRequest; onApproved: () => void }) {
+  const { showAlert, showConfirm } = useDialog()
+  const [track, setTrack] = useState<InternTrackKey>(r.track || 'business_development')
+  const [start, setStart] = useState(() => dateInput(Date.now()))
+  const [end, setEnd] = useState(() => dateInput(Date.now() + 60 * 86_400_000))
+  const [target, setTarget] = useState('50')
+  const [stipend, setStipend] = useState('')
+  const [sendOffer, setSendOffer] = useState(true)
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const label = { display: 'flex', flexDirection: 'column' as const, gap: 4, fontSize: 13 }
+
+  const approve = async () => {
+    if (!(await showConfirm(`Approve ${r.name} as ${INTERN_TRACKS[track].title}?${sendOffer ? ' Their offer letter will be sent now.' : ''}`))) return
+    setBusy(true)
+    try {
+      const res = await addIntern(r.email, { uid: r.uid, track, startDate: start, endDate: end, targetSignups: Number(target), stipend, sendOffer })
+      onApproved()
+      await showAlert(`Approved as ${res.internNo}. Invite code ${res.code}.${res.offerId ? ' Offer letter sent.' : ''}`)
+    } catch (e: any) { await showAlert(e?.message || 'Failed') } finally { setBusy(false) }
+  }
+  const reject = async () => {
+    if (!(await showConfirm(`Decline ${r.name}'s request? They’ll be notified${reason.trim() ? ' with your reason' : ''}.`))) return
+    setBusy(true)
+    try { await rejectJoinRequest(r.uid, reason) } catch (e: any) { await showAlert(e?.message || 'Failed') } finally { setBusy(false) }
+  }
+  const wa = r.phone ? `https://wa.me/${r.phone.replace(/[^0-9]/g, '').replace(/^(?=[6-9][0-9]{9}$)/, '91')}` : null
+
+  return (
+    <div className="admin-card" style={{ marginBottom: 12, opacity: r.status === 'pending' ? 1 : 0.65 }}>
+      <div className="row" style={{ justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>{r.name} {r.status !== 'pending' && <span className={`badge ${r.status === 'approved' ? 'badge-success' : 'badge-danger'}`}>{r.status}</span>}</div>
+          <div style={{ fontSize: 13, color: 'var(--admin-text-muted)', marginTop: 2 }}>{r.email} · {r.college}{r.year ? ` · ${r.year}` : ''}</div>
+          <div className="row" style={{ gap: 12, fontSize: 13, marginTop: 6, flexWrap: 'wrap' }}>
+            {wa && <a href={wa} target="_blank" rel="noreferrer">WhatsApp {r.phone}</a>}
+            {r.linkedin && <a href={r.linkedin} target="_blank" rel="noreferrer">LinkedIn ↗</a>}
+            <span>Profile: <b>{INTERN_TRACKS[r.track]?.title}</b></span>
+            {r.source && <span>Applied via {r.source}{r.applicationId ? ` (${r.applicationId})` : ''}</span>}
+            <span style={{ color: 'var(--admin-text-muted)' }}>{fmt(tsToMs(r.createdAt))}</span>
+          </div>
+          {r.note && <div style={{ marginTop: 8, fontSize: 13, padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,.04)' }}>💬 {r.note}</div>}
+          {r.status === 'rejected' && r.reason && <div style={{ marginTop: 6, fontSize: 12, color: 'var(--admin-text-muted)' }}>Reason: {r.reason}</div>}
+        </div>
+      </div>
+      {r.status === 'pending' && (
+        <>
+          <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', alignItems: 'end', marginTop: 12 }}>
+            <label style={label}>Profile
+              <select className="input" value={track} onChange={(e) => setTrack(e.target.value as InternTrackKey)}>
+                {Object.entries(INTERN_TRACKS).map(([k, v]) => <option key={k} value={k}>{v.title}</option>)}
+              </select>
+            </label>
+            <label style={label}>Starts<input className="input" type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
+            <label style={label}>Ends<input className="input" type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></label>
+            <label style={label}>Target sign-ups<input className="input" type="number" min={1} value={target} onChange={(e) => setTarget(e.target.value)} /></label>
+            <label style={label}>Stipend (optional)<input className="input" value={stipend} maxLength={200} onChange={(e) => setStipend(e.target.value)} placeholder="Default" /></label>
+          </div>
+          <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <label className="row" style={{ gap: 6, alignItems: 'center', fontSize: 13, cursor: 'pointer' }}>
+              <input type="checkbox" checked={sendOffer} onChange={(e) => setSendOffer(e.target.checked)} /> Send offer letter
+            </label>
+            <button className="btn btn-sm btn-primary" disabled={busy} onClick={approve}>Approve</button>
+            <input className="input" style={{ flex: 1, minWidth: 180 }} value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="Reason if declining (optional, the student sees it)" />
+            <button className="btn btn-sm" style={{ color: '#f87171', borderColor: '#f87171' }} disabled={busy} onClick={reject}>Decline</button>
+          </div>
+        </>
+      )}
+    </div>
   )
 }

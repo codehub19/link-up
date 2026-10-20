@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import Navbar from '../../components/Navbar'
 import EmptyState from '../../components/ui/EmptyState'
@@ -13,6 +13,7 @@ import {
 import { makePoster, promoMessages, qrDataUrl } from './promo'
 import '../dashboard/dashboard.css'
 import './InternPortal.css'
+import InternJoin from './InternJoin'
 
 type Tab = 'home' | 'tasks' | 'report' | 'kit' | 'board'
 
@@ -22,7 +23,6 @@ const tsMs = (t: any) => (t?.toMillis ? t.toMillis() : t?.seconds ? t.seconds * 
 /** The intern portal: progress, tasks, work log, promotion kit and leaderboard. */
 export default function InternPortal() {
   const { user } = useAuth()
-  const nav = useNavigate()
   const [tab, setTab] = useState<Tab>('home')
   const [data, setData] = useState<{ me: InternMe; leaderboard: LeaderRow[]; scoring: { completed: number; signup: number } } | null | undefined>(undefined)
   const [reports, setReports] = useState<InternReport[]>([])
@@ -37,19 +37,13 @@ export default function InternPortal() {
   // Finished (or former) interns still have their documents on their profile page
   useEffect(() => (user && data === null ? subscribeIntern(user.uid, setRecord) : undefined), [user?.uid, data === null])
 
-  if (!user) return null
+  // Not signed in, or not an approved intern yet: the joining steps
+  if (!user) return <InternJoin />
   if (data === undefined) return (<><Navbar /><div className="dashboard-container ip-page"><div className="ip-skel" /><div className="ip-skel" /></div></>)
   if (data === null) {
     if (record === undefined) return (<><Navbar /><div className="dashboard-container ip-page"><div className="ip-skel" /></div></>)
     if (record) return <Navigate to="/intern/profile" replace />
-    return (
-      <>
-        <Navbar />
-        <div className="dashboard-container ip-page">
-          <EmptyState icon="sparkle" title="Intern portal" text="This portal is for DateU interns. If you’ve been selected, ask the DateU team to add the email you use to sign in to DateU." actions={[{ label: 'Back to DateU', onClick: () => nav('/dashboard') }]} />
-        </div>
-      </>
-    )
+    return <InternJoin />
   }
 
   const { me, leaderboard, scoring } = data
@@ -94,9 +88,10 @@ function Home({ me, link, scoring, reports, openTasks, go }: { me: InternMe; lin
   const target = me.targets?.signups || 50
   const pct = Math.min(100, Math.round((me.completed / target) * 100))
   const daysLeft = me.endAt ? Math.max(0, Math.ceil((me.endAt - Date.now()) / 86_400_000)) : null
-  const copy = async () => { await navigator.clipboard.writeText(link).catch(() => { }); toast.success('Link copied') }
+  const copy = async () => { await navigator.clipboard.writeText(link).catch(() => { }); markDone('shared'); toast.success('Link copied') }
   return (
     <div className="ip-stack">
+      <GettingStarted me={me} reports={reports} go={go} copy={copy} />
       {me.documents?.offer && !me.offerAcceptedAt && (
         <Link to="/intern/profile" className="ip-card ip-offer-banner">
           <span>📄</span>
@@ -144,6 +139,45 @@ function Home({ me, link, scoring, reports, openTasks, go }: { me: InternMe; lin
         <span>🗂️</span><strong>My internship &amp; documents</strong><small>Offer letter, completion letter, certificate and your details</small>
       </Link>
     </div>
+  )
+}
+
+const flagKey = (k: string) => `dateu.intern.${k}`
+function isDone(k: string) { try { return localStorage.getItem(flagKey(k)) === '1' } catch { return false } }
+function markDone(k: string) { try { localStorage.setItem(flagKey(k), '1') } catch { } }
+
+/** First-week checklist; disappears once everything is done. */
+function GettingStarted({ me, reports, go, copy }: { me: InternMe; reports: InternReport[]; go: (t: Tab) => void; copy: () => void }) {
+  const [hidden, setHidden] = useState(() => isDone('startHidden'))
+  const steps = [
+    { id: 'offer', done: !!me.offerAcceptedAt, title: 'Accept your offer letter', text: me.documents?.offer ? 'Read it and sign by typing your name.' : 'It will appear on your profile shortly.', action: me.documents?.offer ? <Link className="ip-btn sm" to="/intern/profile">Open</Link> : null },
+    { id: 'details', done: !!me.phone, title: 'Add your WhatsApp number and LinkedIn', text: 'So the team can reach you. Check the name on your documents too.', action: <Link className="ip-btn sm ghost" to="/intern/profile">Add</Link> },
+    { id: 'kit', done: isDone('kit'), title: 'Go through the promotion kit', text: 'Posters with your QR code and ready-to-send messages.', action: <button className="ip-btn sm ghost" onClick={() => go('kit')}>Open</button> },
+    { id: 'share', done: me.signups > 0 || isDone('shared'), title: 'Share your invite link', text: 'Every student who joins with it counts for you.', action: <button className="ip-btn sm ghost" onClick={copy}>Copy link</button> },
+    { id: 'log', done: reports.length > 0, title: 'Log your first piece of work', text: 'Add a link or screenshot; the team reviews it and gives points.', action: <button className="ip-btn sm ghost" onClick={() => go('report')}>Log work</button> },
+  ]
+  const done = steps.filter((x) => x.done).length
+  if (hidden || done === steps.length) return null
+  return (
+    <section className="ip-card ip-start">
+      <div className="ip-task-top">
+        <div>
+          <div className="ip-label" style={{ marginBottom: 2 }}>Getting started</div>
+          <strong>{done} of {steps.length} done</strong>
+        </div>
+        <button className="ip-link-btn" onClick={() => { markDone('startHidden'); setHidden(true) }}>Hide</button>
+      </div>
+      <div className="ip-bar" style={{ margin: '10px 0 6px' }}><span style={{ width: `${(done / steps.length) * 100}%` }} /></div>
+      <ol className="ip-start-list">
+        {steps.map((x, i) => (
+          <li key={x.id} className={x.done ? 'done' : ''}>
+            <span className="ip-start-dot">{x.done ? '✓' : i + 1}</span>
+            <div><strong>{x.title}</strong><small>{x.text}</small></div>
+            {!x.done && x.action}
+          </li>
+        ))}
+      </ol>
+    </section>
   )
 }
 
@@ -257,6 +291,7 @@ function ReportTab({ uid, reports, tasks, presetTask, onDone }: { uid: string; r
 function Kit({ link, code, college, role }: { link: string; code: string; college?: string | null; role: string }) {
   const [qr, setQr] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  useEffect(() => { markDone('kit') }, [])
   const messages = useMemo(() => promoMessages(link, code, college, role), [link, code, college, role])
   useEffect(() => { qrDataUrl(link).then(setQr).catch(() => { }) }, [link])
 

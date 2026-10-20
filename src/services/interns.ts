@@ -24,7 +24,7 @@ export type InternMe = InternStats & {
   uid: string; name: string; email: string; college?: string | null; code: string; status: string
   targets?: { signups?: number }; rank: number; total: number; startAt: number | null; endAt: number | null
   approvedReports: number; pendingReports: number; reports: number
-  track?: InternTrackKey; roleTitle?: string; stipend?: string | null
+  track?: InternTrackKey; roleTitle?: string; stipend?: string | null; phone?: string
   internNo?: string; documents?: Partial<Record<'offer' | 'completion' | 'certificate', string>>; offerAcceptedAt?: unknown
 }
 export type LeaderRow = InternStats & { uid: string; name: string; college?: string | null }
@@ -79,7 +79,7 @@ export async function deleteReport(id: string) {
 }
 
 /* ---- Admin ---- */
-export async function addIntern(email: string, opts: { startDate?: string; endDate?: string; targetSignups?: number; sendOffer?: boolean; track?: InternTrackKey; stipend?: string }) {
+export async function addIntern(email: string, opts: { uid?: string; startDate?: string; endDate?: string; targetSignups?: number; sendOffer?: boolean; track?: InternTrackKey; stipend?: string }) {
   const r: any = await httpsCallable(functions, 'addIntern')({ email, ...opts })
   return r.data as { uid: string; code: string; internNo: string; offerId: string | null }
 }
@@ -216,4 +216,36 @@ export function linkedInAddUrl(d: InternDocument) {
     certUrl: `https://dateu.in/certificate/${d.id}`, certId: d.refNo,
   })
   return `https://www.linkedin.com/profile/add?${p}`
+}
+
+/* ---- Joining requests: selected candidates ask to join at dateu.in/intern; an admin approves ---- */
+
+export type InternRequest = {
+  uid: string; email: string; name: string; college: string; year?: string; phone: string; linkedin?: string
+  track: InternTrackKey; source?: string; applicationId?: string; note?: string
+  status: 'pending' | 'approved' | 'rejected'; reason?: string | null; createdAt?: any; updatedAt?: any
+}
+export const REQUEST_SOURCES = ['Unstop', 'LinkedIn', 'Referred by someone', 'Email from DateU', 'Other'] as const
+
+export function subscribeMyRequest(uid: string, cb: (r: InternRequest | null) => void) {
+  return onSnapshot(doc(db, 'internRequests', uid), (s) => cb(s.exists() ? (s.data() as InternRequest) : null), () => cb(null))
+}
+/** Sends (or re-sends) the request; a full overwrite so an earlier decision's fields are cleared. */
+export async function submitJoinRequest(uid: string, email: string, f: Omit<InternRequest, 'uid' | 'email' | 'status' | 'createdAt' | 'updatedAt' | 'reason'>) {
+  const clean = (x?: string, n = 120) => String(x || '').trim().replace(/\s+/g, ' ').slice(0, n)
+  const li = clean(f.linkedin, 200)
+  const data: Record<string, unknown> = {
+    uid, email,
+    name: clean(f.name, 60), college: clean(f.college, 120), year: clean(f.year, 30), phone: clean(f.phone, 20),
+    linkedin: li, track: f.track, source: clean(f.source, 40), applicationId: clean(f.applicationId, 60), note: String(f.note || '').trim().slice(0, 500),
+    status: 'pending', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  }
+  await setDoc(doc(db, 'internRequests', uid), data)
+}
+export function subscribeJoinRequests(cb: (r: InternRequest[]) => void) {
+  return onSnapshot(query(collection(db, 'internRequests'), orderBy('createdAt', 'desc'), limit(200)),
+    (s) => cb(s.docs.map((d) => d.data() as InternRequest)), () => cb([]))
+}
+export async function rejectJoinRequest(uid: string, reason: string) {
+  await httpsCallable(functions, 'rejectInternRequest')({ uid, reason })
 }

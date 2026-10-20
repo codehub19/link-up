@@ -1,6 +1,6 @@
 import * as admin from 'firebase-admin'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
-import { onDocumentUpdated } from 'firebase-functions/v2/firestore'
+import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore'
 import { isAdminRequest } from './adminAuth'
 import { notifyUser } from './notify'
 import { INTERN_TRACKS, trackFor } from './internTracks'
@@ -64,14 +64,23 @@ async function isActiveIntern(uid: string) {
 /** Admin: make a DateU member an intern (they sign up on DateU first, with this email). */
 export const addIntern = onCall({ region: REGION }, async (req) => {
   if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
-  const { email, startDate, endDate, targetSignups, sendOffer, track, stipend } = (req.data || {}) as {
-    email?: string; startDate?: string; endDate?: string; targetSignups?: number; sendOffer?: boolean; track?: string; stipend?: string
+  const { email, uid: byUid, startDate, endDate, targetSignups, sendOffer, track, stipend } = (req.data || {}) as {
+    email?: string; uid?: string; startDate?: string; endDate?: string; targetSignups?: number; sendOffer?: boolean; track?: string; stipend?: string
   }
   if (track && !INTERN_TRACKS[track]) throw new HttpsError('invalid-argument', 'Unknown internship profile')
-  const e = String(email || '').trim().toLowerCase()
-  if (!e) throw new HttpsError('invalid-argument', 'Email required')
-  const authUser = await admin.auth().getUserByEmail(e).catch(() => null)
+  let authUser: admin.auth.UserRecord | null = null
+  if (byUid) {
+    authUser = await admin.auth().getUser(String(byUid)).catch(() => null)
+  } else {
+    const em = String(email || '').trim().toLowerCase()
+    if (!em) throw new HttpsError('invalid-argument', 'Email required')
+    authUser = await admin.auth().getUserByEmail(em).catch(() => null)
+  }
   if (!authUser) throw new HttpsError('not-found', 'No DateU account with this email. Ask them to sign up on dateu.in with Google first.')
+  const e = String(authUser.email || email || '').toLowerCase()
+  // Details they sent with their joining request (dateu.in/intern)
+  const requestRef = db.collection('internRequests').doc(authUser.uid)
+  const request = (await requestRef.get()).data() || null
   const userRef = db.collection('users').doc(authUser.uid)
   const user = (await userRef.get()).data() || {}
   let code = user.referralCode as string | undefined
@@ -86,7 +95,10 @@ export const addIntern = onCall({ region: REGION }, async (req) => {
     uid: authUser.uid,
     name: user.name || authUser.displayName || e,
     email: e,
-    college: user.college || null,
+    college: request?.college || user.college || null,
+    ...(request?.name ? { docName: String(request.name).slice(0, 60) } : {}),
+    ...(request?.phone ? { phone: String(request.phone).slice(0, 20) } : {}),
+    ...(request?.linkedin ? { linkedin: String(request.linkedin).slice(0, 200) } : {}),
     status: 'active',
     code,
     internNo,
@@ -98,6 +110,7 @@ export const addIntern = onCall({ region: REGION }, async (req) => {
     targets: { signups: Math.max(1, Number(targetSignups) || 50) },
     addedBy: req.auth!.uid,
   }, { merge: true })
+  if (request) await requestRef.set({ status: 'approved', reviewedAt: admin.firestore.FieldValue.serverTimestamp(), reviewedBy: req.auth!.uid }, { merge: true })
   await db.collection('adminLogs').add({ adminUid: req.auth!.uid, action: 'add_intern', targetUid: authUser.uid, details: { email: e }, createdAt: admin.firestore.FieldValue.serverTimestamp() }).catch(() => { })
   await notifyUser(authUser.uid, {
     title: 'Welcome to the DateU internship! 🚀',
@@ -349,4 +362,36 @@ export const verifyInternDocument = onCall({ region: REGION }, async (req) => {
     startAt: ms(d.startAt), endAt: ms(d.endAt), issuedAt: ms(d.issuedAt),
     status: d.status, // issued | accepted | valid | replaced | revoked
   }
+})
+
+/* ---------------- Joining requests (dateu.in/intern → Admin → Interns → Requests) ---------------- */
+
+/** Admin: decline a joining request (the student is told, with the reason if given). */
+export const rejectInternRequest = onCall({ region: REGION }, async (req) => {
+  if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
+  const { uid, reason } = (req.data || {}) as { uid?: string; reason?: string }
+  if (!uid) throw new HttpsError('invalid-argument', 'uid required')
+  const ref = db.collection('internRequests').doc(uid)
+  if (!(await ref.get()).exists) throw new HttpsError('not-found', 'Request not found')
+  const why = String(reason || '').trim().slice(0, 300)
+  await ref.set({ status: 'rejected', reason: why || null, reviewedAt: admin.firestore.FieldValue.serverTimestamp(), reviewedBy: req.auth!.uid }, { merge: true })
+  await db.collection('adminLogs').add({ adminUid: req.auth!.uid, action: 'intern_request_reject', targetUid: uid, details: { reason: why }, createdAt: admin.firestore.FieldValue.serverTimestamp() }).catch(() => { })
+  await notifyUser(uid, {
+    title: 'Update on your DateU internship request',
+    body: why ? `We couldn’t approve your request: ${why}` : 'We couldn’t approve your internship request. Write to hello@dateu.in if you think this is a mistake.',
+    link: '/intern',
+  })
+  return { ok: true }
+})
+
+/** Tell the admins when someone asks to join. */
+export const onInternRequestCreated = onDocumentCreated({ document: 'internRequests/{uid}', region: REGION }, async (event) => {
+  const d = event.data?.data()
+  if (!d) return
+  const admins = await db.collection('users').where('isAdmin', '==', true).select().get()
+  await Promise.all(admins.docs.map((a) => notifyUser(a.id, {
+    title: 'New intern joining request',
+    body: `${String(d.name || 'Someone').slice(0, 60)}${d.college ? ` (${String(d.college).slice(0, 60)})` : ''} is waiting for approval.`,
+    link: '/admin/interns',
+  }))).catch(() => { })
 })

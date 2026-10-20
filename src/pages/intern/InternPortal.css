@@ -67,3 +67,13 @@
 .ip-offer-banner > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .ip-offer-banner small { font-size: 12px; opacity: .7; }
 .ip-docs-link { text-decoration: none; }
+.ip-start { border-color: rgba(255,65,108,.35); }
+.ip-start-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; }
+.ip-start-list li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.06); }
+.ip-start-list li:first-child { border-top: 0; }
+.ip-start-list li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ip-start-list strong { font-size: 14px; }
+.ip-start-list small { font-size: 12.5px; opacity: .65; line-height: 1.4; }
+.ip-start-list li.done strong { text-decoration: line-through; opacity: .55; }
+.ip-start-dot { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: rgba(255,255,255,.08); }
+.ip-start-list li.done .ip-start-dot { background: rgba(34,197,94,.2); color: #4ade80; }

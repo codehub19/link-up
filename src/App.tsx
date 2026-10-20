@@ -257,7 +257,7 @@ export default function App() {
           <Route path="/dashboard/events/:id" element={<Protected><EventDetail /></Protected>} />
           <Route path="/dashboard/groups/:id" element={<Protected><GroupDetail /></Protected>} />
           <Route path="/dashboard/views" element={<Protected><WhoViewed /></Protected>} />
-          <Route path="/intern" element={<Protected requireProfile={false}><InternPortal /></Protected>} />
+          <Route path="/intern" element={<InternPortal />} />
           <Route path="/intern/profile" element={<Protected requireProfile={false}><InternProfile /></Protected>} />
           <Route path="/intern/documents/:id" element={<Protected requireProfile={false}><InternLetter /></Protected>} />
 

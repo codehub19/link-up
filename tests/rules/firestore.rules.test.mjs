@@ -288,3 +288,18 @@ test('interns: edit own contact details; document name locks once issued; docume
   await assertFails(setDoc(doc(as('i2'), 'internDocuments/d2'), { uid: 'i2', type: 'certificate' }))
   await assertFails(getDoc(doc(as('i1'), 'internMeta/settings')))
 })
+
+test('intern joining requests: own email only, valid fields, cannot approve themselves', async () => {
+  const asV = (uid, email) => as(uid, { email, email_verified: true })
+  const req = (uid, email, extra = {}) => ({ uid, email, name: 'Asha Verma', college: 'IIT Delhi', year: '2nd year', phone: '+91 98765 43210', linkedin: '', track: 'marketing', source: 'Unstop', applicationId: '', note: '', status: 'pending', createdAt: serverTimestamp(), ...extra })
+  await assertSucceeds(setDoc(doc(asV('s1', 's1@test.dev'), 'internRequests/s1'), req('s1', 's1@test.dev')))
+  await assertFails(setDoc(doc(asV('s2', 's2@test.dev'), 'internRequests/s2'), req('s2', 'someone@else.dev')))
+  await assertFails(setDoc(doc(asV('s3', 's3@test.dev'), 'internRequests/s3'), req('s3', 's3@test.dev', { status: 'approved' })))
+  await assertFails(setDoc(doc(asV('s4', 's4@test.dev'), 'internRequests/s4'), req('s4', 's4@test.dev', { track: 'ceo' })))
+  await assertFails(setDoc(doc(asV('s5', 's5@test.dev'), 'internRequests/x'), req('s5', 's5@test.dev')))
+  await assertFails(updateDoc(doc(asV('s1', 's1@test.dev'), 'internRequests/s1'), { status: 'approved' }))
+  await assertSucceeds(updateDoc(doc(asV('s1', 's1@test.dev'), 'internRequests/s1'), { college: 'IIT Bombay' }))
+  await assertFails(getDoc(doc(asV('s2', 's2@test.dev'), 'internRequests/s1')))
+  await assertSucceeds(updateDoc(doc(as('admin'), 'internRequests/s1'), { status: 'approved' }))
+  await assertFails(updateDoc(doc(asV('s1', 's1@test.dev'), 'internRequests/s1'), { college: 'Changed' }))
+})
