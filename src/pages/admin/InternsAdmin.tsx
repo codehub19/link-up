@@ -2,9 +2,9 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../state/AuthContext'
 import { useDialog } from '../../components/ui/Dialog'
 import {
-  DOC_INFO, InternDocType, InternDocument, InternReport, InternTask, LetterSettings, REPORT_TYPES, addIntern, createTask, deleteTask,
-  issueDocument, loadInternOverview, loadLetterSettings, reviewReport, revokeDocument, saveLetterSettings, setInternStatus,
-  subscribeMyDocuments, subscribeReportsForReview, subscribeTasks, tsToMs,
+  DOC_INFO, INTERN_TRACKS, InternDocType, InternDocument, InternReport, InternTask, InternTrackKey, LetterSettings, REPORT_TYPES, addIntern,
+  createTask, deleteTask, issueDocument, loadInternOverview, loadLetterSettings, reviewReport, revokeDocument, roleTitleOf, saveLetterSettings,
+  setInternRole, setInternStatus, subscribeMyDocuments, subscribeReportsForReview, subscribeTasks, tsToMs, uploadSignature,
 } from '../../services/interns'
 
 type Row = Awaited<ReturnType<typeof loadInternOverview>>[number]
@@ -34,6 +34,8 @@ export default function InternsAdmin() {
   const [endDate, setEndDate] = useState(() => new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10))
   const [target, setTarget] = useState('50')
   const [sendOffer, setSendOffer] = useState(true)
+  const [track, setTrack] = useState<InternTrackKey>('business_development')
+  const [stipend, setStipend] = useState('')
   const [openDocs, setOpenDocs] = useState<string | null>(null)
   // task form
   const [tTitle, setTTitle] = useState('')
@@ -53,7 +55,7 @@ export default function InternsAdmin() {
     e.preventDefault()
     setBusy(true)
     try {
-      const r = await addIntern(email, { startDate, endDate, targetSignups: Number(target), sendOffer })
+      const r = await addIntern(email, { startDate, endDate, targetSignups: Number(target), sendOffer, track, stipend })
       await showAlert(`Added as ${r.internNo}. Invite code ${r.code}.${r.offerId ? ' Their offer letter has been sent; they accept it on their intern profile.' : ''} They’ll find the portal at dateu.in/intern (also in their Profile tab).`)
       setEmail('')
       refresh()
@@ -101,6 +103,14 @@ export default function InternsAdmin() {
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Intern’s email (their DateU Google account)
               <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="name@gmail.com" />
             </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Internship profile
+              <select className="input" value={track} onChange={(e) => setTrack(e.target.value as InternTrackKey)}>
+                {Object.entries(INTERN_TRACKS).map(([k, v]) => <option key={k} value={k}>{v.title}</option>)}
+              </select>
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Stipend (optional)
+              <input className="input" value={stipend} maxLength={200} onChange={(e) => setStipend(e.target.value)} placeholder="Default from Letter settings" />
+            </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Internship starts
               <input className="input" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </label>
@@ -131,7 +141,7 @@ export default function InternsAdmin() {
                       <Fragment key={r.uid}>
                       <tr style={{ opacity: r.status === 'active' ? 1 : 0.6 }}>
                         <td>{i + 1}</td>
-                        <td><a href={`/admin/users/${r.uid}`}>{r.name}</a><div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>{r.email}{r.college ? ` · ${r.college}` : ''}{r.status !== 'active' ? ` · ${r.status}` : ''}</div>{r.internNo && <div style={{ fontSize: 11, color: 'var(--admin-text-muted)' }}>{r.internNo}</div>}</td>
+                        <td><a href={`/admin/users/${r.uid}`}>{r.name}</a><div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>{r.email}{r.college ? ` · ${r.college}` : ''}{r.status !== 'active' ? ` · ${r.status}` : ''}</div><div style={{ fontSize: 11, color: 'var(--admin-text-muted)' }}>{roleTitleOf(r)}{r.internNo ? ` · ${r.internNo}` : ''}</div></td>
                         <td>{r.offerAcceptedAt ? <span className="badge badge-success">Accepted</span> : r.documents?.offer ? <span className="badge badge-warning">Sent</span> : '—'}</td>
                         <td><code>{r.code}</code></td>
                         <td>{r.signups}</td>
@@ -157,7 +167,7 @@ export default function InternsAdmin() {
                         </td>
                       </tr>
                       {openDocs === r.uid && (
-                        <tr><td colSpan={13} style={{ background: 'rgba(255,255,255,.02)' }}><DocsPanel uid={r.uid} name={r.name} onChange={refresh} /></td></tr>
+                        <tr><td colSpan={13} style={{ background: 'rgba(255,255,255,.02)' }}><DocsPanel uid={r.uid} name={r.name} track={(r.track || 'business_development') as InternTrackKey} stipend={r.stipend || ''} onChange={refresh} /></td></tr>
                       )}
                       </Fragment>
                     )
@@ -260,9 +270,12 @@ function ReviewCard({ r, who, task, adminUid, onError }: { r: InternReport; who:
 const DOC_STATUS: Record<InternDocument['status'], string> = { issued: 'Sent, not accepted', accepted: 'Accepted', valid: 'Valid', replaced: 'Replaced', revoked: 'Withdrawn' }
 
 /** One intern's offer letter, completion letter and certificate. */
-function DocsPanel({ uid, name, onChange }: { uid: string; name: string; onChange: () => void }) {
+function DocsPanel({ uid, name, track, stipend, onChange }: { uid: string; name: string; track: InternTrackKey; stipend: string; onChange: () => void }) {
   const { showAlert, showConfirm } = useDialog()
   const [docs, setDocs] = useState<InternDocument[]>([])
+  const [newTrack, setNewTrack] = useState<InternTrackKey>(track)
+  const [newStipend, setNewStipend] = useState(stipend)
+  const roleChanged = newTrack !== track || newStipend.trim() !== stipend.trim()
   const [remarks, setRemarks] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   useEffect(() => subscribeMyDocuments(uid, setDocs), [uid])
@@ -283,6 +296,20 @@ function DocsPanel({ uid, name, onChange }: { uid: string; name: string; onChang
 
   return (
     <div style={{ display: 'grid', gap: 12, padding: '6px 0' }}>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'end' }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Internship profile
+          <select className="input" value={newTrack} onChange={(e) => setNewTrack(e.target.value as InternTrackKey)}>
+            {Object.entries(INTERN_TRACKS).map(([k, v]) => <option key={k} value={k}>{v.title}</option>)}
+          </select>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Stipend (blank = default)
+          <input className="input" value={newStipend} maxLength={200} onChange={(e) => setNewStipend(e.target.value)} />
+        </label>
+        <button className="btn btn-sm" disabled={!roleChanged} onClick={async () => {
+          try { await setInternRole(uid, newTrack, newStipend); onChange(); await showAlert('Saved. Documents issued from now on use this profile; re-issue existing ones to update them.') }
+          catch (e: any) { await showAlert(e?.message || 'Failed') }
+        }}>Save profile</button>
+      </div>
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
         <button className="btn btn-sm btn-primary" disabled={!!busy} onClick={() => issue('offer')}>{busy === 'offer' ? 'Issuing…' : 'Issue offer letter'}</button>
         <button className="btn btn-sm btn-primary" disabled={!!busy} onClick={() => issue('completion')}>{busy === 'completion' ? 'Issuing…' : 'Issue completion letter'}</button>
@@ -319,7 +346,6 @@ function DocsPanel({ uid, name, onChange }: { uid: string; name: string; onChang
 const SETTINGS_FIELDS: [keyof LetterSettings, string, string][] = [
   ['signatoryName', 'Signed by (your full name)', 'e.g. Your full name'],
   ['signatoryTitle', 'Signatory title', 'Founder, DateU'],
-  ['role', 'Role on the letters', 'Business Development Intern'],
   ['stipend', 'Stipend', 'e.g. ₹2,000 a month + performance incentives'],
   ['workMode', 'Work mode', 'Remote, with on-campus activities'],
   ['hours', 'Time commitment', 'Flexible, about 8 to 10 hours a week'],
@@ -334,6 +360,7 @@ function LetterSettingsForm() {
   const { showAlert } = useDialog()
   const [s, setS] = useState<Partial<LetterSettings> | null>(null)
   const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
   useEffect(() => { loadLetterSettings().then(setS).catch(() => setS({})) }, [])
   if (!s) return <div className="admin-card">Loading…</div>
   const save = async (e: React.FormEvent) => {
@@ -343,6 +370,7 @@ function LetterSettingsForm() {
       const clean: Partial<LetterSettings> = {}
       SETTINGS_FIELDS.forEach(([k]) => { (clean as any)[k] = String((s as any)[k] || '').trim().slice(0, 300) })
       clean.acceptDays = Math.min(60, Math.max(1, Number(s.acceptDays) || 7))
+      clean.signatureUrl = s.signatureUrl || ''
       await saveLetterSettings(clean)
       await showAlert('Saved. New letters will use these details.')
     } catch (err: any) { await showAlert(err?.message || 'Failed') } finally { setBusy(false) }
@@ -357,6 +385,29 @@ function LetterSettingsForm() {
           <input className="input" value={String((s as any)[k] || '')} placeholder={ph} maxLength={300} onChange={(e) => setS({ ...s, [k]: e.target.value })} />
         </label>
       ))}
+      <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', padding: 12, borderRadius: 10, border: '1px dashed var(--admin-border, #334155)' }}>
+        <div style={{ width: 220, height: 70, background: '#fff', borderRadius: 8, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+          {s.signatureUrl ? <img src={s.signatureUrl} alt="Signature" style={{ maxWidth: 200, maxHeight: 60, objectFit: 'contain' }} /> : <span style={{ color: '#64748b', fontSize: 12 }}>No signature uploaded</span>}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
+          <strong>Signature</strong>
+          <span style={{ color: 'var(--admin-text-muted)' }}>Sign on white paper, photograph it and upload it (PNG with a transparent background looks best). Without one, your name is written in a handwriting font.</span>
+          <div className="row" style={{ gap: 8 }}>
+            <label className="btn btn-sm" style={{ cursor: 'pointer' }}>
+              {uploading ? 'Uploading…' : 'Upload signature'}
+              <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={async (e) => {
+                const f = e.target.files?.[0]
+                if (!f) return
+                if (f.size > 2 * 1024 * 1024) { await showAlert('Use an image under 2 MB.'); return }
+                setUploading(true)
+                try { const url = await uploadSignature(f); setS({ ...s, signatureUrl: url }) } catch (err: any) { await showAlert(err?.message || 'Upload failed') } finally { setUploading(false) }
+              }} />
+            </label>
+            {s.signatureUrl && <button type="button" className="btn btn-sm" onClick={() => setS({ ...s, signatureUrl: '' })}>Remove</button>}
+          </div>
+          <span style={{ color: 'var(--admin-text-muted)', fontSize: 12 }}>Click “Save letter settings” after uploading.</span>
+        </div>
+      </div>
       <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>Days to accept the offer
         <input className="input" type="number" min={1} max={60} value={s.acceptDays ?? 7} onChange={(e) => setS({ ...s, acceptDays: Number(e.target.value) })} />
       </label>

@@ -8,7 +8,7 @@ import { useDialog } from '../../components/ui/Dialog'
 import { compressImage } from '../../utils/compressImage'
 import {
   InternMe, InternReport, InternTask, LeaderRow, REPORT_TYPES, ReportType, deleteReport, inviteLink, loadInternDashboard,
-  InternRecord, submitReport, subscribeIntern, subscribeMyReports, subscribeTasks, uploadProof,
+  InternRecord, roleTitleOf, submitReport, subscribeIntern, subscribeMyReports, subscribeTasks, uploadProof,
 } from '../../services/interns'
 import { makePoster, promoMessages, qrDataUrl } from './promo'
 import '../dashboard/dashboard.css'
@@ -63,7 +63,7 @@ export default function InternPortal() {
       <div className="dashboard-container ip-page">
         <header className="ip-head">
           <Link to="/intern/profile" className="ip-head-me">
-            <div className="ip-kicker">Business Development Intern</div>
+            <div className="ip-kicker">{roleTitleOf(me)}</div>
             <h1>Hi {me.name?.split(' ')[0] || 'there'} 👋</h1>
             <span className="ip-fine">{me.internNo ? `${me.internNo} · ` : ''}My internship &amp; documents ›</span>
           </Link>
@@ -83,7 +83,7 @@ export default function InternPortal() {
         {tab === 'report' && (
           <ReportTab uid={user.uid} reports={reports} tasks={openTasks} presetTask={taskForReport} onDone={() => { setTaskForReport(null); refresh() }} />
         )}
-        {tab === 'kit' && <Kit link={link} code={me.code} college={me.college} />}
+        {tab === 'kit' && <Kit link={link} code={me.code} college={me.college} role={roleTitleOf(me)} />}
         {tab === 'board' && <Board rows={leaderboard} myUid={user.uid} scoring={scoring} />}
       </div>
     </>
@@ -254,10 +254,10 @@ function ReportTab({ uid, reports, tasks, presetTask, onDone }: { uid: string; r
   )
 }
 
-function Kit({ link, code, college }: { link: string; code: string; college?: string | null }) {
+function Kit({ link, code, college, role }: { link: string; code: string; college?: string | null; role: string }) {
   const [qr, setQr] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
-  const messages = useMemo(() => promoMessages(link, code, college), [link, code, college])
+  const messages = useMemo(() => promoMessages(link, code, college, role), [link, code, college, role])
   useEffect(() => { qrDataUrl(link).then(setQr).catch(() => { }) }, [link])
 
   const download = async (kind: 'feed' | 'story') => {

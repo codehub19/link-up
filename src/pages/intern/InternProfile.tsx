@@ -7,7 +7,7 @@ import { useAuth } from '../../state/AuthContext'
 import { photoOf } from '../../utils/avatar'
 import {
   DOC_INFO, InternDocType, InternDocument, InternMe, InternRecord, acceptOffer, inviteLink, isLive, linkedInAddUrl, loadInternDashboard,
-  saveMyInternDetails, subscribeIntern, subscribeMyDocuments, tsToMs, verifyLink,
+  roleTitleOf, saveMyInternDetails, subscribeIntern, subscribeMyDocuments, tsToMs, verifyLink,
 } from '../../services/interns'
 import '../dashboard/dashboard.css'
 import './InternPortal.css'
@@ -58,7 +58,7 @@ export default function InternProfile() {
           <img src={photoOf({ ...profile, uid: user.uid })} alt="" />
           <div className="idp-hero-text">
             <h1>{intern.docName || intern.name}</h1>
-            <div className="ip-kicker">{settings?.role || 'Business Development Intern'} · DateU</div>
+            <div className="ip-kicker">{roleTitleOf(intern)} · DateU</div>
             <div className="idp-hero-meta">
               <span className={`ip-pill ${statusTone}`}>{statusLabel}</span>
               {intern.internNo && <span className="ip-pill">ID {intern.internNo}</span>}
@@ -77,7 +77,7 @@ export default function InternProfile() {
         <div className="ip-label idp-section">Internship details</div>
         <section className="ip-card">
           <dl className="idp-dl">
-            <div><dt>Role</dt><dd>{settings?.role || 'Business Development Intern'}</dd></div>
+            <div><dt>Role</dt><dd>{roleTitleOf(intern)}</dd></div>
             <div><dt>Intern ID</dt><dd>{intern.internNo || '—'}</dd></div>
             <div><dt>Start date</dt><dd>{fmt(start)}</dd></div>
             <div><dt>End date</dt><dd>{fmt(end)}{daysLeft != null ? ` · ${daysLeft} days left` : ''}</dd></div>

@@ -3,8 +3,9 @@ import { Navigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import Navbar from '../../components/Navbar'
 import EmptyState from '../../components/ui/EmptyState'
-import { InternDocument, getInternDocument, tsToMs, verifyLink } from '../../services/interns'
+import { InternDocument, TrackSnapshot, getInternDocument, tsToMs, verifyLink } from '../../services/interns'
 import { qrDataUrl } from './promo'
+import { useDocFonts } from './docFonts'
 import '../dashboard/dashboard.css'
 import './InternPortal.css'
 import './InternDocs.css'
@@ -12,26 +13,35 @@ import './InternDocs.css'
 const longDate = (ms?: number | null) => (ms ? new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—')
 const weeks = (a: number, b: number) => Math.max(1, Math.round((b - a) / (7 * 86_400_000)))
 
-/** An offer or completion letter, laid out as an A4 page ("Download PDF" prints it). */
+/** Documents issued before internship profiles existed. */
+const LEGACY_TRACK: TrackSnapshot = {
+  key: 'business_development', title: 'Business Development Intern', department: 'Growth & Partnerships',
+  summary: 'help us grow among college students by building partnerships with clubs, societies, fest teams and colleges, and by bringing new students onto the platform',
+  responsibilities: [
+    'Introduce the platform to students in your college and beyond, using your personal invite link and QR code.',
+    'Build partnerships with clubs, societies and fest teams.',
+    'Plan and run promotions on campus and online: posters, stalls, events and social media campaigns.',
+    'Create content and share honest feedback from students with the team.',
+    'Complete the tasks assigned to you and log your work in the intern portal.',
+  ],
+  learning: ['Partnership outreach and negotiation', 'Pitching and communication', 'Campaign planning and execution', 'Working with growth metrics'],
+  completion: 'worked on growing the platform among college students, introducing it to students, working with clubs and societies, and running promotions on campus and online',
+}
+
+/** An offer or completion letter on an A4 letterhead ("Download PDF" prints it). */
 export default function InternLetter() {
+  useDocFonts()
   const { id = '' } = useParams()
   const [d, setD] = useState<InternDocument | null | undefined>(undefined)
   const [qr, setQr] = useState<string | null>(null)
 
-  // Handwriting font for the signature
-  useEffect(() => {
-    if (document.getElementById('font-great-vibes')) return
-    const l = document.createElement('link')
-    l.id = 'font-great-vibes'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap'
-    document.head.appendChild(l)
-  }, [])
   useEffect(() => { getInternDocument(id).then(setD).catch(() => setD(null)) }, [id])
   useEffect(() => { if (d) qrDataUrl(verifyLink(d.id)).then(setQr).catch(() => { }) }, [d?.id])
   useEffect(() => {
     if (!d) return
     const prev = document.title
     // Becomes the file name when saved as PDF
-    document.title = `${d.type === 'offer' ? 'Offer Letter' : 'Completion Letter'} - ${d.name} - DateU`
+    document.title = `${d.type === 'offer' ? 'Offer Letter' : 'Internship Completion Letter'} - ${d.name}`
     return () => { document.title = prev }
   }, [d])
 
@@ -49,11 +59,16 @@ export default function InternLetter() {
   if (d.type === 'certificate') return <Navigate to={`/certificate/${d.id}`} replace />
 
   const s = d.settings
+  const t = d.track || LEGACY_TRACK
+  const role = d.role || t.title
+  const company = s.companyName
   const start = tsToMs(d.startAt), end = tsToMs(d.endAt), issued = tsToMs(d.issuedAt) || Date.now()
   const first = d.name.split(' ')[0]
   const withdrawn = d.status === 'revoked' || d.status === 'replaced'
-  const signer = s.signatoryName || s.companyName
+  const accepted = d.status === 'accepted'
   const copyVerify = async () => { await navigator.clipboard.writeText(verifyLink(d.id)).catch(() => { }); toast.success('Verification link copied') }
+  const stats = d.stats
+  const showStats = !!stats && (stats.signups > 0 || stats.approvedReports > 0)
 
   return (
     <>
@@ -67,133 +82,170 @@ export default function InternLetter() {
         {withdrawn && <div className="il-withdrawn no-print">{d.status === 'replaced' ? 'A newer copy of this document has been issued. This copy is no longer valid.' : 'This document has been withdrawn and is no longer valid.'}</div>}
 
         <article className={`il-paper ${withdrawn ? 'void' : ''}`}>
-          <header className="il-letterhead">
-            <div className="il-brand">
+          <header className="il-head">
+            <div className="il-logo">
               <img src="/icons/icon-192.png" alt="" />
               <div>
-                <strong>{s.companyName}</strong>
-                <span>Make new friends from every college</span>
+                <strong>{company}</strong>
+                <span>Social platform for college students</span>
               </div>
             </div>
-            <div className="il-contact">
+            <address className="il-head-contact">
               <span>{s.website}</span>
               <span>{s.email}</span>
               {s.address && <span>{s.address}</span>}
-            </div>
+            </address>
           </header>
+          <div className="il-rule" />
 
-          <div className="il-meta">
-            <span>Ref: <strong>{d.refNo}</strong></span>
-            <span>Date: <strong>{longDate(issued)}</strong></span>
+          <div className="il-titlebar">
+            <div className="il-doctitle">{d.type === 'offer' ? 'Offer Letter' : 'Internship Completion Letter'}</div>
+            <dl className="il-refs">
+              <div><dt>Reference</dt><dd>{d.refNo}</dd></div>
+              <div><dt>Date</dt><dd>{longDate(issued)}</dd></div>
+              <div><dt>Intern ID</dt><dd>{d.internNo}</dd></div>
+            </dl>
           </div>
 
           {d.type === 'offer' ? (
-            <>
-              <div className="il-to">
-                <div>To,</div>
+            <div className="il-body">
+              <div className="il-addressee">
+                <span>To</span>
                 <strong>{d.name}</strong>
-                {d.college && <div>{d.college}</div>}
-                <div>Intern ID: {d.internNo}</div>
+                {d.college && <span>{d.college}</span>}
               </div>
 
-              <h1 className="il-subject">Subject: Offer of Internship — {d.role}</h1>
+              <p className="il-subj"><b>Subject:</b> Offer of internship as {role}</p>
 
               <p>Dear {first},</p>
               <p>
-                We are pleased to offer you an internship with <strong>{s.companyName}</strong> as a <strong>{d.role}</strong>.
-                {' '}{s.companyName} helps college students make new friends beyond their own circle — finding buddies for events, joining interest groups and planning things together —
-                and we are glad to have you on the team to help it grow.
+                We are delighted to offer you the position of <b>{role}</b> in the <b>{t.department}</b> team at <b>{company}</b>.
+                In this role, you will {t.summary}.
               </p>
+              <p>We were impressed by your application and look forward to the energy and ideas you will bring. The details of your internship are set out below.</p>
 
-              <table className="il-table">
-                <tbody>
-                  <tr><th>Position</th><td>{d.role}</td></tr>
-                  <tr><th>Internship period</th><td>{longDate(start)} to {longDate(end)} ({weeks(start, end)} weeks)</td></tr>
-                  <tr><th>Work mode</th><td>{s.workMode}</td></tr>
-                  <tr><th>Time commitment</th><td>{s.hours}</td></tr>
-                  <tr><th>Stipend</th><td>{s.stipend}</td></tr>
-                  <tr><th>Reporting to</th><td>{s.signatoryName ? `${s.signatoryName}, ${s.signatoryTitle}` : s.signatoryTitle}</td></tr>
-                </tbody>
-              </table>
-
-              <h2>Your responsibilities</h2>
-              <ul>
-                <li>Introduce {s.companyName} to students in your college and beyond, using your personal invite link and QR code.</li>
-                <li>Build partnerships with clubs, societies and fest teams.</li>
-                <li>Plan and run promotions on campus and online: posters, stalls, events and social media campaigns.</li>
-                <li>Create content and share honest feedback from students with the team.</li>
-                <li>Complete the tasks assigned to you and log your work in the intern portal.</li>
-              </ul>
-
-              <h2>Terms of the internship</h2>
-              <ol>
-                <li>This is an internship and not an offer of employment.</li>
-                <li>You will keep confidential any non-public information about {s.companyName}, its users and its plans, during and after the internship.</li>
-                <li>You will promote {s.companyName} honestly: no spam, no fake accounts, no signing people up without their consent and no misleading claims.</li>
-                <li>Your performance is measured in the intern portal (sign-ups through your invite link and the work you log). A completion letter and a certificate of completion are issued on successful completion.</li>
-                <li>Either side may end the internship early with 7 days’ notice. {s.companyName} may end it immediately in case of misconduct or a breach of these terms.</li>
-                <li>Content, designs and other material you create for {s.companyName} during the internship may be used by {s.companyName}.</li>
-              </ol>
-
-              <p>Please accept this offer from your intern portal by <strong>{longDate(tsToMs(d.respondBy))}</strong>. We look forward to working with you.</p>
-            </>
-          ) : (
-            <>
-              <h1 className="il-subject center">To Whom It May Concern</h1>
-              <h2 className="il-center-sub">Internship Completion Letter</h2>
-
-              <p>
-                This is to certify that <strong>{d.name}</strong>{d.college ? <>, a student of <strong>{d.college}</strong>,</> : ''} has
-                successfully completed an internship with <strong>{s.companyName}</strong> as a <strong>{d.role}</strong> from <strong>{longDate(start)}</strong> to <strong>{longDate(end)}</strong> (Intern ID {d.internNo}).
-              </p>
-              <p>
-                During the internship, {first} worked on growing {s.companyName} among college students — introducing the platform to students,
-                working with clubs and societies, and running promotions on campus and online.
-              </p>
-
-              {d.stats && (d.stats.signups > 0 || d.stats.approvedReports > 0) && (
-                <table className="il-table">
+              <section className="il-section">
+                <h2><span>1</span>Internship details</h2>
+                <table className="il-kv">
                   <tbody>
-                    {d.stats.signups > 0 && <tr><th>Students who joined through {first}’s invite link</th><td>{d.stats.signups}</td></tr>}
-                    {d.stats.completed > 0 && <tr><th>Of these, completed profiles</th><td>{d.stats.completed}</td></tr>}
-                    {d.stats.approvedReports > 0 && <tr><th>Activities completed and verified</th><td>{d.stats.approvedReports}</td></tr>}
+                    <tr><th>Position</th><td>{role}</td></tr>
+                    <tr><th>Department</th><td>{t.department}</td></tr>
+                    <tr><th>Duration</th><td>{weeks(start, end)} weeks · {longDate(start)} to {longDate(end)}</td></tr>
+                    <tr><th>Work mode</th><td>{s.workMode}</td></tr>
+                    <tr><th>Time commitment</th><td>{s.hours}</td></tr>
+                    <tr><th>Stipend</th><td>{s.stipend}</td></tr>
+                    <tr><th>Reporting to</th><td>{s.signatoryName ? `${s.signatoryName}, ${s.signatoryTitle}` : s.signatoryTitle}</td></tr>
                   </tbody>
                 </table>
+              </section>
+
+              <section className="il-section">
+                <h2><span>2</span>Roles and responsibilities</h2>
+                <ul className="il-list">{t.responsibilities.map((r) => <li key={r}>{r}</li>)}</ul>
+              </section>
+
+              <section className="il-section">
+                <h2><span>3</span>What you will gain</h2>
+                <ul className="il-gains">
+                  {t.learning.map((l) => <li key={l}>{l}</li>)}
+                  <li>Completion letter and verifiable certificate</li>
+                  <li>Mentorship from the founding team</li>
+                </ul>
+              </section>
+
+              <section className="il-section il-terms">
+                <h2><span>4</span>Terms and conditions</h2>
+                <ol>
+                  <li><b>Nature of engagement.</b> This is an internship for learning and experience. It is not an offer of employment and does not create an employer–employee relationship.</li>
+                  <li><b>Confidentiality.</b> You will keep confidential all non-public information about {company}, its users, data, product and plans, during the internship and after it ends.</li>
+                  <li><b>Conduct.</b> You will represent {company} honestly and respectfully: no spam, no fake accounts, no signing people up without their consent and no misleading claims. You will follow the Community Guidelines.</li>
+                  <li><b>Performance.</b> Your work is tracked in the intern portal. A completion letter and certificate of completion are issued on successful completion of the internship.</li>
+                  <li><b>Intellectual property.</b> Content, designs, code and other material you create for {company} during the internship belong to {company} and may be used by it.</li>
+                  <li><b>Termination.</b> Either party may end the internship early with 7 days’ written notice. {company} may end it with immediate effect in case of misconduct or a breach of these terms.</li>
+                </ol>
+              </section>
+
+              <p>
+                To accept this offer, please sign it electronically from your intern portal on or before <b>{longDate(tsToMs(d.respondBy))}</b>.
+                The offer lapses if it is not accepted by then.
+              </p>
+              <p>Congratulations once again. We look forward to welcoming you to the team.</p>
+
+              <div className="il-signs">
+                <Signatory s={s} />
+                <div className="il-signblock">
+                  <div className="il-sign-label">Accepted by the intern</div>
+                  <div className="il-sign-mark">{accepted ? <span className="il-script">{d.acceptedName || d.name}</span> : null}</div>
+                  <div className="il-sign-line" />
+                  <strong>{d.name}</strong>
+                  <span>{accepted ? `Signed electronically on ${longDate(tsToMs(d.acceptedAt))}` : 'Awaiting signature'}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="il-body">
+              <p className="il-twimc">To Whom It May Concern</p>
+              <p>
+                This is to certify that <b>{d.name}</b>{d.college ? <>, a student of <b>{d.college}</b>,</> : ''} has successfully completed an internship
+                with <b>{company}</b> as a <b>{role}</b> in the <b>{t.department}</b> team, from <b>{longDate(start)}</b> to <b>{longDate(end)}</b>.
+              </p>
+              <p>During the internship, {first} {t.completion}.</p>
+
+              {showStats && (
+                <section className="il-section">
+                  <h2>Contribution highlights</h2>
+                  <table className="il-kv">
+                    <tbody>
+                      {stats!.signups > 0 && <tr><th>Students onboarded through {first}’s outreach</th><td>{stats!.signups}</td></tr>}
+                      {stats!.completed > 0 && <tr><th>Of these, completed profiles</th><td>{stats!.completed}</td></tr>}
+                      {stats!.approvedReports > 0 && <tr><th>Assignments completed and verified</th><td>{stats!.approvedReports}</td></tr>}
+                    </tbody>
+                  </table>
+                </section>
               )}
 
-              {d.remarks && <p>{d.remarks}</p>}
+              {d.remarks && (
+                <section className="il-section">
+                  <h2>Remarks</h2>
+                  <p>{d.remarks}</p>
+                </section>
+              )}
 
-              <p>We thank {first} for their contribution and wish them every success in the future.</p>
-            </>
+              <p>We thank {first} for their contribution to {company} and wish them every success in their future endeavours.</p>
+
+              <div className="il-signs single">
+                <Signatory s={s} />
+              </div>
+            </div>
           )}
 
-          <footer className="il-sign">
-            <div>
-              <div>Warm regards,</div>
-              <div className="il-signature">{signer}</div>
-              {s.signatoryName && <strong>{s.signatoryName}</strong>}
-              <div>{s.signatoryTitle}</div>
-            </div>
-            {d.type === 'offer' && (
-              <div className={`il-accept ${d.status === 'accepted' ? 'ok' : ''}`}>
-                <div className="il-accept-title">Acceptance</div>
-                {d.status === 'accepted'
-                  ? <>Accepted by <strong>{d.acceptedName || d.name}</strong> on {longDate(tsToMs(d.acceptedAt))}, electronically through the {s.companyName} intern portal.</>
-                  : <>Awaiting acceptance.</>}
+          <footer className="il-foot">
+            <div className="il-verify">
+              {qr && <img src={qr} alt="" />}
+              <div>
+                <b>Digitally issued document</b>
+                <span>Scan the code or visit {verifyLink(d.id).replace('https://', '')} to verify it.</span>
               </div>
-            )}
-          </footer>
-
-          <div className="il-verify">
-            {qr && <img src={qr} alt="" />}
-            <div>
-              This document was issued digitally by {s.companyName}. Check that it is genuine at<br />
-              <strong>{verifyLink(d.id).replace('https://', '')}</strong>
             </div>
-          </div>
+            <div className="il-foot-co">{company} · {s.website} · {s.email}</div>
+          </footer>
           {withdrawn && <div className="il-void-mark">{d.status === 'replaced' ? 'REPLACED' : 'WITHDRAWN'}</div>}
         </article>
       </div>
     </>
+  )
+}
+
+function Signatory({ s }: { s: InternDocument['settings'] }) {
+  return (
+    <div className="il-signblock">
+      <div className="il-sign-label">For {s.companyName}</div>
+      <div className="il-sign-mark">
+        {s.signatureUrl ? <img src={s.signatureUrl} alt="" /> : <span className="il-script">{s.signatoryName || s.companyName}</span>}
+      </div>
+      <div className="il-sign-line" />
+      <strong>{s.signatoryName || 'Authorised signatory'}</strong>
+      <span>{s.signatoryTitle}</span>
+    </div>
   )
 }

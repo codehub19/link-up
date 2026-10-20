@@ -34,48 +34,91 @@
 .il-toolbar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .il-tip { text-align: center; font-size: 12px; opacity: .6; margin: 8px 0 16px; }
 .il-withdrawn { padding: 12px 14px; border-radius: 12px; background: rgba(248,113,113,.15); color: #fca5a5; font-weight: 700; margin-bottom: 14px; text-align: center; }
+
 .il-paper {
+  --ink: #0f172a; --body: #334155; --muted: #64748b; --line: #e2e8f0; --soft: #f8fafc; --accent: #e11d48;
   position: relative; overflow: hidden; width: 100%; max-width: 794px; min-height: 1123px; margin: 0 auto; box-sizing: border-box;
-  padding: 56px 64px 40px; background: #fff; color: #1f2937; border-radius: 6px; box-shadow: 0 20px 50px rgba(0,0,0,.35);
-  font-family: Georgia, 'Times New Roman', serif; font-size: 14.5px; line-height: 1.6; display: flex; flex-direction: column;
+  padding: 44px 60px 32px; background: #fff; color: var(--body); border-radius: 4px; box-shadow: 0 24px 60px rgba(0,0,0,.4);
+  font-family: Inter, 'Helvetica Neue', Arial, sans-serif; font-size: 13px; line-height: 1.65; display: flex; flex-direction: column;
+  -webkit-font-smoothing: antialiased;
 }
-@media (max-width: 640px) { .il-paper { padding: 28px 20px 24px; font-size: 13.5px; min-height: 0; } }
-.il-paper::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: linear-gradient(90deg,#ff416c,#ff4b2b,#ffb347); }
-.il-paper p { margin: 0 0 12px; }
-.il-paper h2 { font-size: 15px; margin: 18px 0 6px; color: #111827; font-family: inherit; }
-.il-paper ul, .il-paper ol { margin: 0 0 12px; padding-left: 22px; }
-.il-paper li { margin-bottom: 4px; }
-.il-letterhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-bottom: 16px; border-bottom: 2px solid #f3f4f6; margin-bottom: 18px; }
-.il-brand { display: flex; align-items: center; gap: 12px; }
-.il-brand img { width: 48px; height: 48px; border-radius: 12px; }
-.il-brand strong { display: block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 26px; letter-spacing: .5px; color: #ff416c; line-height: 1.1; }
-.il-brand span { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #6b7280; }
-.il-contact { display: flex; flex-direction: column; align-items: flex-end; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11.5px; color: #4b5563; text-align: right; }
-@media (max-width: 520px) { .il-letterhead { flex-direction: column; } .il-contact { align-items: flex-start; text-align: left; } }
-.il-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: 13px; margin-bottom: 18px; }
-.il-to { margin-bottom: 16px; }
-.il-to strong { display: block; font-size: 15px; }
-.il-subject { font-size: 16px; margin: 6px 0 14px; color: #111827; font-family: inherit; text-decoration: underline; text-underline-offset: 4px; }
-.il-subject.center { text-align: center; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; margin-top: 10px; }
-.il-center-sub { text-align: center; font-weight: 400 !important; color: #6b7280 !important; margin: -8px 0 20px !important; font-size: 13px !important; letter-spacing: 2px; text-transform: uppercase; }
-.il-table { width: 100%; border-collapse: collapse; margin: 4px 0 14px; font-size: 13.5px; }
-.il-table th, .il-table td { border: 1px solid #e5e7eb; padding: 7px 10px; text-align: left; vertical-align: top; }
-.il-table th { width: 42%; background: #f9fafb; font-weight: 600; color: #374151; }
-.il-sign { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-top: auto; padding-top: 24px; }
-.il-signature { font-family: 'Great Vibes', cursive; font-size: 34px; color: #111827; line-height: 1.2; margin: 6px 0 2px; }
-.il-accept { max-width: 300px; padding: 10px 12px; border: 1px dashed #d1d5db; border-radius: 8px; font-size: 12.5px; color: #4b5563; }
-.il-accept.ok { border: 1.5px solid #16a34a; color: #14532d; background: #f0fdf4; }
-.il-accept-title { font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; margin-bottom: 4px; }
-.il-verify { display: flex; align-items: center; gap: 12px; margin-top: 22px; padding-top: 12px; border-top: 1px solid #f3f4f6; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #6b7280; }
-.il-verify img { width: 64px; height: 64px; }
-.il-verify strong { color: #374151; }
+.il-paper b, .il-paper strong { color: var(--ink); font-weight: 600; }
+.il-paper p { margin: 0 0 11px; }
+
+.il-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.il-logo { display: flex; align-items: center; gap: 12px; }
+.il-logo img { width: 44px; height: 44px; border-radius: 10px; }
+.il-logo strong { display: block; font-size: 24px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); line-height: 1.05; }
+.il-logo span { font-size: 10.5px; color: var(--muted); letter-spacing: .02em; }
+.il-head-contact { font-style: normal; display: flex; flex-direction: column; align-items: flex-end; font-size: 10.5px; color: var(--muted); line-height: 1.55; text-align: right; }
+.il-rule { height: 3px; margin: 16px 0 0; background: linear-gradient(90deg, var(--accent) 0 72px, var(--line) 72px); }
+
+.il-titlebar { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 22px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 22px; }
+.il-doctitle { font-size: 21px; font-weight: 700; color: var(--ink); letter-spacing: -.01em; }
+.il-refs { display: flex; gap: 22px; margin: 0; }
+.il-refs dt { font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+.il-refs dd { margin: 2px 0 0; font-size: 11.5px; color: var(--ink); font-weight: 600; white-space: nowrap; }
+
+.il-body { flex: 1; }
+.il-addressee { display: flex; flex-direction: column; margin-bottom: 16px; line-height: 1.5; }
+.il-addressee > span:first-child { font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+.il-addressee strong { font-size: 15px; }
+.il-subj { padding: 9px 12px; background: var(--soft); border-left: 3px solid var(--accent); color: var(--ink); margin-bottom: 16px !important; }
+.il-twimc { font-size: 10.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--ink); font-weight: 700; margin-bottom: 16px !important; }
+
+.il-section { margin: 18px 0 14px; break-inside: avoid; page-break-inside: avoid; }
+.il-section h2 { display: flex; align-items: center; gap: 9px; font: 700 12px/1.3 Inter, Arial, sans-serif; text-transform: uppercase; letter-spacing: .1em; color: var(--ink); margin: 0 0 10px; }
+.il-section h2 span { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 10.5px; letter-spacing: 0; }
+.il-kv { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.il-kv th, .il-kv td { padding: 7px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.il-kv tr:first-child th, .il-kv tr:first-child td { border-top: 1px solid var(--line); }
+.il-kv th { width: 36%; font-weight: 500; color: var(--muted); background: var(--soft); }
+.il-kv td { color: var(--ink); font-weight: 500; }
+.il-list { margin: 0; padding-left: 18px; }
+.il-list li { margin-bottom: 5px; padding-left: 2px; }
+.il-list li::marker { color: var(--accent); }
+.il-gains { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; }
+.il-gains li { position: relative; padding-left: 20px; }
+.il-gains li::before { content: '✓'; position: absolute; left: 0; top: 0; color: var(--accent); font-weight: 700; }
+.il-terms ol { margin: 0; padding-left: 18px; font-size: 11.5px; line-height: 1.6; }
+.il-terms li { margin-bottom: 5px; }
+
+.il-signs { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 26px; break-inside: avoid; page-break-inside: avoid; }
+.il-signs.single { grid-template-columns: minmax(0, 260px); }
+.il-signblock { display: flex; flex-direction: column; font-size: 11.5px; color: var(--muted); }
+.il-signblock strong { font-size: 12.5px; margin-top: 6px; }
+.il-sign-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
+.il-sign-mark { height: 58px; display: flex; align-items: flex-end; }
+.il-sign-mark img { max-height: 56px; max-width: 200px; object-fit: contain; }
+.il-script { font-family: 'Great Vibes', cursive; font-size: 30px; color: #1e3a8a; line-height: 1; padding-bottom: 4px; }
+.il-sign-line { height: 1px; background: #94a3b8; margin-top: 2px; }
+
+.il-foot { margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 9.5px; color: var(--muted); }
+.il-verify { display: flex; align-items: center; gap: 10px; }
+.il-verify img { width: 54px; height: 54px; }
+.il-verify div { display: flex; flex-direction: column; }
+.il-verify b { color: var(--ink); font-size: 10px; }
+.il-foot-co { text-align: right; }
+
 .il-paper.void > *:not(.il-void-mark) { opacity: .45; }
-.il-void-mark { position: absolute; top: 45%; left: 50%; transform: translate(-50%,-50%) rotate(-28deg); font: 900 88px/1 'Helvetica Neue', Arial, sans-serif; color: rgba(220,38,38,.28); border: 8px solid rgba(220,38,38,.28); padding: 8px 24px; pointer-events: none; }
+.il-void-mark { position: absolute; top: 45%; left: 50%; transform: translate(-50%,-50%) rotate(-28deg); font: 900 88px/1 Inter, Arial, sans-serif; color: rgba(220,38,38,.28); border: 8px solid rgba(220,38,38,.28); padding: 8px 24px; pointer-events: none; }
+
+@media (max-width: 640px) {
+  .il-paper { padding: 24px 18px 20px; font-size: 12.5px; min-height: 0; }
+  .il-head { flex-direction: column; align-items: flex-start; }
+  .il-head-contact { align-items: flex-start; text-align: left; }
+  .il-titlebar { flex-direction: column; align-items: flex-start; }
+  .il-refs { flex-wrap: wrap; gap: 10px 18px; }
+  .il-gains { grid-template-columns: 1fr; }
+  .il-signs { grid-template-columns: 1fr; gap: 24px; }
+  .il-foot { flex-direction: column; align-items: flex-start; }
+  .il-foot-co { text-align: left; }
+}
 
 @media print {
   @page { size: A4; margin: 0; }
   html, body, #root { background: #fff !important; }
   .navbar-modern, .no-print, .install-sheet, .offline-banner, .notif-prompt, [data-sonner-toaster] { display: none !important; }
   .il-wrap { padding: 0 !important; margin: 0 !important; max-width: none; }
-  .il-paper { box-shadow: none; border-radius: 0; max-width: none; width: 210mm; min-height: 297mm; padding: 16mm 18mm 12mm; font-size: 12.5pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .il-paper { box-shadow: none; border-radius: 0; max-width: none; width: 210mm; min-height: 297mm; padding: 14mm 17mm 10mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

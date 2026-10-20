@@ -1,297 +1,136 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { db } from '../../firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import LoadingHeart from '../../components/LoadingHeart';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { doc, getDoc } from 'firebase/firestore'
+import { toast } from 'sonner'
+import { db } from '../../firebase'
+import LoadingHeart from '../../components/LoadingHeart'
 import { useSeo } from '../../utils/seo'
+import { qrDataUrl } from '../intern/promo'
+import { useDocFonts } from '../intern/docFonts'
+import './CertificatePage.css'
 
+type Cert = {
+  id: string; name: string; role: string; department?: string; track?: string; refNo?: string
+  startDate: string; endDate: string; issueDate: string
+  signatoryName?: string | null; signatoryTitle?: string; signatureUrl?: string | null; companyName?: string
+}
+
+const W = 1122, H = 793 // A4 landscape at 96 dpi
+const fmt = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—')
+
+/** Public certificate of completion (/certificate/:id). */
 export default function CertificatePage() {
   useSeo({ title: 'Certificate', noindex: true })
-    const { id } = useParams();
-    const [cert, setCert] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+  useDocFonts()
+  const { id = '' } = useParams()
+  const [cert, setCert] = useState<Cert | null | undefined>(undefined)
+  const [qr, setQr] = useState<string | null>(null)
+  const [scale, setScale] = useState(1)
+  const boxRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
-        const fetchCert = async () => {
-            if (!id) return;
-            try {
-                const snap = await getDoc(doc(db, 'certificates', id));
-                if (snap.exists()) {
-                    setCert({ id: snap.id, ...snap.data() });
-                }
-            } catch (error) {
-                console.error("Error fetching certificate", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchCert();
-    }, [id]);
+  useEffect(() => {
+    getDoc(doc(db, 'certificates', id))
+      .then((s) => setCert(s.exists() ? ({ id: s.id, ...(s.data() as any) }) : null))
+      .catch(() => setCert(null))
+  }, [id])
+  const verifyUrl = `https://dateu.in/verify/${id}`
+  useEffect(() => { if (cert?.refNo) qrDataUrl(verifyUrl).then(setQr).catch(() => { }) }, [cert?.refNo, verifyUrl])
+  useEffect(() => {
+    if (!cert) return
+    const prev = document.title
+    document.title = `Certificate of Completion - ${cert.name}`
+    return () => { document.title = prev }
+  }, [cert])
 
-    if (loading) return <div className="h-screen flex items-center justify-center bg-gray-900"><LoadingHeart /></div>;
-    if (!cert) return <div className="h-screen flex items-center justify-center text-white bg-gray-900">Certificate not found.</div>;
+  // Fit the A4 certificate to the screen width
+  useLayoutEffect(() => {
+    const el = boxRef.current
+    if (!el) return
+    const fit = () => setScale(Math.min(1, el.clientWidth / W))
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [cert])
 
-    const handleDownload = () => {
-        window.print();
-    };
+  if (cert === undefined) return <div className="cp-center"><LoadingHeart /></div>
+  if (cert === null) return <div className="cp-center">Certificate not found.</div>
 
-    return (
-        <div className="tw bg-gray-100 min-h-screen py-8 flex flex-col items-center justify-center font-serif">
+  const company = cert.companyName || 'DateU'
+  const year = new Date(cert.issueDate).getFullYear()
+  const copy = async () => { await navigator.clipboard.writeText(verifyUrl).catch(() => { }); toast.success('Verification link copied') }
 
-            {/* Download Button - Hidden in Print */}
-            <div className="no-print mb-8">
-                <button
-                    onClick={handleDownload}
-                    style={{
-                        padding: '12px 24px',
-                        backgroundColor: '#1f2937',
-                        color: 'white',
-                        borderRadius: '8px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                    }}
-                >
-                    Download Certificate (PDF)
-                </button>
+  return (
+    <div className="cp-page">
+      <div className="cp-toolbar no-print">
+        <button className="cp-btn" onClick={() => window.print()}>⬇ Download PDF</button>
+        {cert.refNo && <button className="cp-btn ghost" onClick={copy}>Copy verification link</button>}
+      </div>
+
+      <div className="cp-fit" ref={boxRef} style={{ height: H * scale }}>
+        <div className="cp-cert" style={{ width: W, height: H, transform: `scale(${scale})` }}>
+          <div className="cp-frame" />
+          <div className="cp-frame2" />
+          {(['tl', 'tr', 'bl', 'br'] as const).map((c) => <span key={c} className={`cp-corner ${c}`} />)}
+
+          <div className="cp-inner">
+            <div className="cp-brand">
+              <img src="/icons/icon-192.png" alt="" />
+              <span>{company}</span>
             </div>
 
-            {/* Certificate Container */}
-            <div className="certificate-container" style={{
-                width: '1123px', // A4 Landscape
-                height: '794px', // A4 Landscape
-                backgroundColor: '#fff',
-                position: 'relative',
-                color: '#1f2937',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                backgroundImage: 'radial-gradient(circle at center, #fff, #f3f4f6)'
-            }}>
-                {/* Guilloche Pattern Background - CSS Pattern */}
-                <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    opacity: 0.03,
-                    backgroundImage: `repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 0, transparent 50%)`,
-                    backgroundSize: '20px 20px'
-                }} />
+            <h1 className="cp-title">Certificate</h1>
+            <div className="cp-sub"><span />of Completion<span /></div>
 
-                {/* Ornamental Border */}
-                <div style={{
-                    position: 'absolute',
-                    inset: '20px',
-                    border: '2px solid #b45309', // Amber-700
-                    pointerEvents: 'none',
-                    zIndex: 5
-                }} />
-                <div style={{
-                    position: 'absolute',
-                    inset: '25px',
-                    border: '4px double #78350f', // Amber-900
-                    pointerEvents: 'none',
-                    zIndex: 5
-                }} />
+            <div className="cp-middle">
+            <p className="cp-presented">This certificate is proudly presented to</p>
+            <div className="cp-name">{cert.name}</div>
 
-                {/* Watermark */}
-                <img src="/icons/icon-192.png" alt="watermark" style={{
-                    position: 'absolute',
-                    width: '400px',
-                    opacity: 0.04,
-                    filter: 'grayscale(100%)',
-                    zIndex: 0
-                }} />
+            <p className="cp-text">
+              {cert.track ? (
+                <>for successfully completing an internship as <b>{cert.role}</b>{cert.department ? <> with the <b>{cert.department}</b> team</> : null} at <b>{company}</b>, </>
+              ) : (
+                <>for successfully completing the <b>{cert.role}</b> internship programme at <b>{company}</b>, </>
+              )}
+              from <b>{fmt(cert.startDate)}</b> to <b>{fmt(cert.endDate)}</b>.
+              {' '}We recognise their dedication, initiative and valuable contribution.
+            </p>
+            </div>
 
-                <div style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    padding: '40px 80px', // Reduced top padding significantly
-                    zIndex: 10
-                }}>
-
-                    {/* Header: Company Name */}
-                    <div style={{ textAlign: 'center', marginBottom: '20px', width: '100%' }}>
-                        <div style={{ marginBottom: '8px' }}>
-                            <span style={{
-                                fontSize: '48px',
-                                fontWeight: 'bold',
-                                fontFamily: "'Playfair Display', serif",
-                                letterSpacing: '2px',
-                                textTransform: 'uppercase',
-                                color: '#9ca3af', // Gray-400 equivalent for "DateU" logo-ish feel
-                                backgroundImage: 'linear-gradient(135deg, #1f2937 0%, #4b5563 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                display: 'inline-block'
-                            }}>DateU</span>
-                        </div>
-
-                        <h1 style={{
-                            fontSize: '60px', // Reduced slightly
-                            fontWeight: 'normal',
-                            margin: '0',
-                            color: '#78350f', // Amber-900 
-                            fontFamily: "'Playfair Display', serif",
-                            textTransform: 'uppercase',
-                            letterSpacing: '4px',
-                            borderBottom: '2px solid #b45309',
-                            display: 'inline-block',
-                            paddingBottom: '4px',
-                            lineHeight: 1
-                        }}>
-                            Certificate
-                        </h1>
-                        <h2 style={{
-                            fontSize: '20px', // Reduced
-                            fontWeight: '300',
-                            margin: '8px 0 0',
-                            color: '#4b5563',
-                            textTransform: 'uppercase',
-                            letterSpacing: '6px'
-                        }}>
-                            of Completion
-                        </h2>
-                    </div>
-
-                    <p style={{ fontSize: '18px', color: '#374151', marginBottom: '16px', fontFamily: 'serif' }}>This certificate is proudly presented to</p>
-
-                    {/* Name */}
-                    <div style={{
-                        margin: '0 0 24px 0',
-                        minWidth: '500px',
-                        textAlign: 'center',
-                        borderBottom: '1px solid #d1d5db',
-                        paddingBottom: '4px'
-                    }}>
-                        <h3 style={{
-                            fontSize: '64px', // Bigger name
-                            fontWeight: 'bold',
-                            margin: 0,
-                            color: '#111827',
-                            fontFamily: "'Great Vibes', cursive",
-                            lineHeight: '1.2'
-                        }}>
-                            {cert.name}
-                        </h3>
-                    </div>
-
-                    <p style={{ fontSize: '18px', color: '#1f2937', margin: '0 0 24px 0', maxWidth: '900px', textAlign: 'center', lineHeight: '1.6' }}>
-                        For successfully completing the <strong>{cert.role}</strong> Internship program at <strong>DateU</strong>. <br />
-                        We recognize their dedication, hard work, and valuable contribution during the period from <br />
-                        <strong>{new Date(cert.startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</strong> to <strong>{new Date(cert.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</strong>.
-                    </p>
-
-                    {/* Footer Section: Signatures & Seal */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', marginTop: 'auto', paddingBottom: '20px' }}>
-
-                        {/* Signature 1 */}
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{
-                                fontFamily: "'Great Vibes', cursive",
-                                fontSize: '32px',
-                                color: '#000',
-                                marginBottom: '4px',
-                                minWidth: '220px',
-                                borderBottom: '1px solid #9ca3af',
-                                paddingBottom: '4px'
-                            }}>
-                                {cert.signatoryName || 'The Founders'}
-                            </div>
-                            <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase' }}>{cert.signatoryTitle || 'Founding Team'}</p>
-                        </div>
-
-                        {/* Gold Seal */}
-                        <div style={{
-                            width: '120px',
-                            height: '120px',
-                            position: 'relative',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginBottom: '10px'
-                        }}>
-                            {/* Outer Starburst */}
-                            <div style={{
-                                position: 'absolute', inset: 0, backgroundColor: '#b45309',
-                                clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
-                                transform: 'rotate(0deg)'
-                            }} />
-                            <div style={{
-                                position: 'absolute', inset: 0, backgroundColor: '#d97706',
-                                clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
-                                transform: 'rotate(22.5deg)'
-                            }} />
-
-                            {/* Inner Circle */}
-                            <div style={{
-                                width: '86px',
-                                height: '86px',
-                                borderRadius: '50%',
-                                border: '2px solid #fef3c7',
-                                backgroundColor: '#92400e',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#fef3c7',
-                                zIndex: 10,
-                                boxShadow: 'inset 0 0 10px rgba(0,0,0,0.3)'
-                            }}>
-                                <div style={{ textAlign: 'center', fontSize: '9px', fontWeight: 'bold', lineHeight: '1.2' }}>
-                                    OFFICIAL<br />CERTIFICATE<br />DATEU
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Date & ID */}
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{
-                                minWidth: '220px',
-                                borderBottom: '1px solid #9ca3af',
-                                paddingBottom: '12px',
-                                marginBottom: '8px',
-                                fontSize: '18px',
-                                fontFamily: 'serif'
-                            }}>
-                                {new Date(cert.issueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                            </div>
-                            <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase' }}>Issue Date</p>
-                            <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#6b7280', fontFamily: 'monospace' }}>{cert.refNo ? <>Ref: {cert.refNo}<br />Verify: dateu.in/verify/{cert.id}</> : <>ID: {cert.id.substring(0, 8).toUpperCase()}</>}</p>
-                        </div>
-
-                    </div>
-
+            <div className="cp-bottom">
+              <div className="cp-sign">
+                <div className="cp-sign-mark">
+                  {cert.signatureUrl ? <img src={cert.signatureUrl} alt="" /> : <span>{cert.signatoryName || company}</span>}
                 </div>
+                <div className="cp-line" />
+                <strong>{cert.signatoryName || 'Authorised signatory'}</strong>
+                <small>{cert.signatoryTitle || `Founder, ${company}`}</small>
+              </div>
+
+              <div className="cp-seal" aria-hidden="true">
+                <div className="cp-seal-ring">
+                  <div className="cp-seal-core">
+                    <small>{company}</small>
+                    <strong>★</strong>
+                    <small>Certified · {year}</small>
+                  </div>
+                </div>
+              </div>
+
+              <div className="cp-meta">
+                {qr && <img src={qr} alt="" />}
+                <div>
+                  <span>Certificate No.</span>
+                  <strong>{cert.refNo || cert.id.slice(0, 8).toUpperCase()}</strong>
+                  <span>Issued on</span>
+                  <strong>{fmt(cert.issueDate)}</strong>
+                  {cert.refNo && <em>Verify at dateu.in/verify/{cert.id}</em>}
+                </div>
+              </div>
             </div>
-
-            <style>
-                {`
-                    @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&display=swap');
-
-                    @media print {
-                        @page { size: landscape; margin: 0; }
-                        body { margin: 0; background-color: white !important; -webkit-print-color-adjust: exact; }
-                        .no-print { display: none !important; }
-                        .certificate-container { 
-                            width: 100% !important; 
-                            height: 100vh !important; 
-                            box-shadow: none !important; 
-                            border: none !important;
-                            border-radius: 0 !important;
-                            margin: 0 !important;
-                            page-break-after: always;
-                            -webkit-print-color-adjust: exact;
-                            print-color-adjust: exact;
-                        }
-                    }
-                `}
-            </style>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  )
 }

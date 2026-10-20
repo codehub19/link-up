@@ -3,6 +3,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore'
 import { isAdminRequest } from './adminAuth'
 import { notifyUser } from './notify'
+import { INTERN_TRACKS, trackFor } from './internTracks'
 
 if (!admin.apps.length) admin.initializeApp()
 const db = admin.firestore()
@@ -63,7 +64,10 @@ async function isActiveIntern(uid: string) {
 /** Admin: make a DateU member an intern (they sign up on DateU first, with this email). */
 export const addIntern = onCall({ region: REGION }, async (req) => {
   if (!(await isAdminRequest(req))) throw new HttpsError('permission-denied', 'Admin only')
-  const { email, startDate, endDate, targetSignups, sendOffer } = (req.data || {}) as { email?: string; startDate?: string; endDate?: string; targetSignups?: number; sendOffer?: boolean }
+  const { email, startDate, endDate, targetSignups, sendOffer, track, stipend } = (req.data || {}) as {
+    email?: string; startDate?: string; endDate?: string; targetSignups?: number; sendOffer?: boolean; track?: string; stipend?: string
+  }
+  if (track && !INTERN_TRACKS[track]) throw new HttpsError('invalid-argument', 'Unknown internship profile')
   const e = String(email || '').trim().toLowerCase()
   if (!e) throw new HttpsError('invalid-argument', 'Email required')
   const authUser = await admin.auth().getUserByEmail(e).catch(() => null)
@@ -86,6 +90,9 @@ export const addIntern = onCall({ region: REGION }, async (req) => {
     status: 'active',
     code,
     internNo,
+    track: trackFor(track).key,
+    roleTitle: trackFor(track).title,
+    stipend: String(stipend || '').trim().slice(0, 200) || null,
     startAt: admin.firestore.Timestamp.fromDate(isNaN(start.getTime()) ? new Date() : start),
     endAt: admin.firestore.Timestamp.fromDate(isNaN(end.getTime()) ? new Date(Date.now() + 60 * 86_400_000) : end),
     targets: { signups: Math.max(1, Number(targetSignups) || 50) },
@@ -167,7 +174,7 @@ export const LETTER_DEFAULTS = {
   address: '',
   signatoryName: '',
   signatoryTitle: 'Founder, DateU',
-  role: 'Business Development Intern',
+  signatureUrl: '',
   workMode: 'Remote, with on-campus activities',
   hours: 'Flexible, about 8 to 10 hours a week',
   stipend: 'Performance-based incentives, as per the internship listing',
@@ -180,9 +187,11 @@ async function letterSettings(): Promise<LetterSettings> {
   const out: any = { ...LETTER_DEFAULTS }
   for (const k of Object.keys(LETTER_DEFAULTS)) {
     const v = s[k]
-    if (typeof v === 'string' && v.trim()) out[k] = v.trim().slice(0, 300)
+    if (typeof v === 'string' && v.trim()) out[k] = v.trim().slice(0, k === 'signatureUrl' ? 1000 : 300)
     if (k === 'acceptDays' && Number(v) > 0) out[k] = Math.min(60, Math.round(Number(v)))
   }
+  // Only our own uploads (Admin → Interns → Letter settings) can be used as the signature
+  if (!/^https:\/\/firebasestorage\.googleapis\.com\/.+\/o\/branding%2F/.test(out.signatureUrl)) out.signatureUrl = ''
   return out
 }
 
@@ -211,6 +220,9 @@ async function issueDocument(uid: string, type: InternDocType, adminUid: string,
   const d = intern.data() || {}
   const internNo = await internNumber(uid)
   const settings = await letterSettings()
+  // Per-intern stipend (set when adding them) wins over the default
+  if (typeof d.stipend === 'string' && d.stipend.trim()) settings.stipend = d.stipend.trim()
+  const track = trackFor(d.track)
   const name = String(d.docName || d.name || '').trim()
   if (!name) throw new HttpsError('failed-precondition', 'The intern has no name on record')
   const startAt = ms(d.startAt) || Date.now()
@@ -222,7 +234,7 @@ async function issueDocument(uid: string, type: InternDocType, adminUid: string,
   const data: Record<string, any> = {
     uid, type,
     refNo: `DATEU/${DOC_CODE[type]}/${new Date().getFullYear()}/${seq}`,
-    internNo, name, college: d.college || null, role: settings.role,
+    internNo, name, college: d.college || null, role: track.title, track,
     startAt: admin.firestore.Timestamp.fromMillis(startAt),
     endAt: admin.firestore.Timestamp.fromMillis(endAt),
     settings,
@@ -246,9 +258,10 @@ async function issueDocument(uid: string, type: InternDocType, adminUid: string,
   if (type === 'certificate') {
     // Public certificate page (/certificate/:id): no email or other contact details
     batch.set(db.collection('certificates').doc(ref.id), {
-      name, role: 'Business Development', internUid: uid, refNo: data.refNo,
+      name, role: track.title, department: track.department, track: track.key, internUid: uid, refNo: data.refNo,
       startDate: new Date(startAt).toISOString(), endDate: new Date(endAt).toISOString(), issueDate: new Date().toISOString(),
-      signatoryName: settings.signatoryName || null, signatoryTitle: settings.signatoryTitle,
+      signatoryName: settings.signatoryName || null, signatoryTitle: settings.signatoryTitle, signatureUrl: settings.signatureUrl || null,
+      companyName: settings.companyName,
     })
   }
   batch.set(internRef, { docsIssued: true, documents: { [type]: ref.id } }, { merge: true })
@@ -260,7 +273,7 @@ async function issueDocument(uid: string, type: InternDocType, adminUid: string,
     title: '📄 Your DateU offer letter is here',
     body: `Congratulations ${first}! Read your offer letter and accept it in your intern profile.`,
     link: '/intern/profile',
-    email: { subject: 'Your DateU internship offer letter', heading: `Congratulations, ${first}!`, text: `Your offer letter for the ${settings.role} role at DateU is ready. Open your intern profile to read it, download it as a PDF and accept the offer within ${settings.acceptDays} days.`, cta: 'View offer letter' },
+    email: { subject: 'Your DateU internship offer letter', heading: `Congratulations, ${first}!`, text: `Your offer letter for the ${track.title} role at DateU is ready. Open your intern profile to read it, download it as a PDF and accept the offer within ${settings.acceptDays} days.`, cta: 'View offer letter' },
   } : {
     title: type === 'certificate' ? '🏅 Your certificate of completion is ready' : '📄 Your completion letter is ready',
     body: `Download your ${DOC_LABEL[type]} from your intern profile.`,

@@ -55,6 +55,13 @@ service firebase.storage {
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
+    // Signature used on internship letters and certificates (Admin → Interns → Letter settings)
+    match /branding/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin()
+                   && request.resource.size < 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(png|jpeg|webp)');
+    }
     // Proof screenshots for intern work reports
     match /interns/{uid}/{fileName} {
       allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());

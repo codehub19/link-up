@@ -24,6 +24,7 @@ export type InternMe = InternStats & {
   uid: string; name: string; email: string; college?: string | null; code: string; status: string
   targets?: { signups?: number }; rank: number; total: number; startAt: number | null; endAt: number | null
   approvedReports: number; pendingReports: number; reports: number
+  track?: InternTrackKey; roleTitle?: string; stipend?: string | null
   internNo?: string; documents?: Partial<Record<'offer' | 'completion' | 'certificate', string>>; offerAcceptedAt?: unknown
 }
 export type LeaderRow = InternStats & { uid: string; name: string; college?: string | null }
@@ -78,7 +79,7 @@ export async function deleteReport(id: string) {
 }
 
 /* ---- Admin ---- */
-export async function addIntern(email: string, opts: { startDate?: string; endDate?: string; targetSignups?: number; sendOffer?: boolean }) {
+export async function addIntern(email: string, opts: { startDate?: string; endDate?: string; targetSignups?: number; sendOffer?: boolean; track?: InternTrackKey; stipend?: string }) {
   const r: any = await httpsCallable(functions, 'addIntern')({ email, ...opts })
   return r.data as { uid: string; code: string; internNo: string; offerId: string | null }
 }
@@ -107,6 +108,16 @@ export async function createTask(t: { title: string; description?: string; point
 export async function deleteTask(id: string) {
   await deleteDoc(doc(db, 'internTasks', id))
 }
+/** Admin: change an intern's profile or stipend (used on documents issued from now on). */
+export async function setInternRole(uid: string, track: InternTrackKey, stipend: string) {
+  await updateDoc(doc(db, 'interns', uid), { track, roleTitle: INTERN_TRACKS[track].title, stipend: stipend.trim().slice(0, 200) || null })
+}
+/** Admin: upload the signature image printed on letters and certificates. */
+export async function uploadSignature(file: Blob) {
+  const r = ref(storage, `branding/signature-${Date.now()}.png`)
+  await uploadBytes(r, file, { contentType: (file as any).type || 'image/png' })
+  return getDownloadURL(r)
+}
 export async function setInternStatus(uid: string, status: 'active' | 'completed' | 'removed') {
   await updateDoc(doc(db, 'interns', uid), { status })
 }
@@ -121,18 +132,33 @@ export const DOC_INFO: Record<InternDocType, { title: string; emoji: string; whe
 }
 export type LetterSettings = {
   companyName: string; website: string; email: string; address: string; signatoryName: string; signatoryTitle: string
-  role: string; workMode: string; hours: string; stipend: string; acceptDays: number
+  signatureUrl?: string; workMode: string; hours: string; stipend: string; acceptDays: number
 }
+
+/** Internship profiles; the letter text for each lives in functions/src/internTracks.ts (keep keys and titles in sync). */
+export const INTERN_TRACKS = {
+  business_development: { title: 'Business Development Intern', department: 'Growth & Partnerships' },
+  campus_ambassador: { title: 'Campus Ambassador', department: 'Community' },
+  marketing: { title: 'Marketing & Social Media Intern', department: 'Marketing' },
+  content_design: { title: 'Content & Graphic Design Intern', department: 'Brand & Design' },
+  software: { title: 'Software Development Intern', department: 'Engineering' },
+  operations: { title: 'Operations & Community Intern', department: 'Operations' },
+} as const
+export type InternTrackKey = keyof typeof INTERN_TRACKS
+export const roleTitleOf = (r?: { roleTitle?: string | null; track?: string | null } | null) =>
+  r?.roleTitle || INTERN_TRACKS[(r?.track || '') as InternTrackKey]?.title || 'Business Development Intern'
+export type TrackSnapshot = { key: string; title: string; department: string; summary: string; responsibilities: string[]; learning: string[]; completion: string }
 export type InternDocument = {
   id: string; uid: string; type: InternDocType; refNo: string; internNo: string; name: string; college?: string | null; role: string
   startAt: any; endAt: any; issuedAt: any; respondBy?: any; acceptedAt?: any; acceptedName?: string
-  settings: LetterSettings; remarks?: string | null
+  settings: LetterSettings & { role?: string }; remarks?: string | null; track?: TrackSnapshot
   stats?: { signups: number; completed: number; approvedReports: number; score: number } | null
   status: 'issued' | 'accepted' | 'valid' | 'replaced' | 'revoked'
 }
 export type InternRecord = {
   uid: string; name: string; email: string; college?: string | null; status: 'active' | 'completed' | 'removed'; code: string
   internNo?: string; startAt?: any; endAt?: any; targets?: { signups?: number }
+  track?: InternTrackKey; roleTitle?: string; stipend?: string | null
   docName?: string; phone?: string; linkedin?: string; docsIssued?: boolean; documents?: Partial<Record<InternDocType, string>>
 }
 

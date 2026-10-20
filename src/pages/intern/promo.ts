@@ -2,7 +2,7 @@ import QRCode from 'qrcode'
 
 /* Ready-to-share material for interns: messages and posters with their own QR code. */
 
-export function promoMessages(link: string, code: string, college?: string | null) {
+export function promoMessages(link: string, code: string, college?: string | null, role = 'Business Development Intern') {
   const where = college ? ` at ${college}` : ''
   return [
     {
@@ -23,7 +23,7 @@ export function promoMessages(link: string, code: string, college?: string | nul
     },
     {
       id: 'linkedin', label: 'LinkedIn',
-      text: `I've joined DateU as a Business Development intern 🚀\n\nDateU helps college students make new friends beyond their own circle — find buddies for fests and events, join interest groups and plan things together, with safety built in (18+, ID verification, photo checks).\n\nIf you're a student, try it out: ${link}\n\n#Internship #StartUp #StudentCommunity`,
+      text: `I've joined DateU as a ${role} 🚀\n\nDateU helps college students make new friends beyond their own circle — find buddies for fests and events, join interest groups and plan things together, with safety built in (18+, ID verification, photo checks).\n\nIf you're a student, try it out: ${link}\n\n#Internship #StartUp #StudentCommunity`,
     },
   ]
 }
